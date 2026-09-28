@@ -2072,6 +2072,11 @@ class AutoClickService : AccessibilityService() {
 
         val location = IntArray(2)
         target?.getLocationOnScreen(location)
+        
+        // Window 좌표와 실제 물리 좌표 간의 차이(상태 표시줄 오프셋 등)를 동적 계산
+        val offsetX = location[0] - (targetParams?.x ?: 0)
+        val offsetY = location[1] - (targetParams?.y ?: 0)
+        
         val targetW = if (target != null && target.width > 0) target.width else dpToPx(38)
         val targetH = if (target != null && target.height > 0) target.height else dpToPx(38)
         
@@ -2082,9 +2087,13 @@ class AutoClickService : AccessibilityService() {
         // 예약 시작 즉시 타겟 뷰를 '최근에 저장된 위치'로 이동
         moveTargetViewTo(targetPx, targetPy)
 
-        // 항상 최근에 저장된 좌표(targetPx, targetPy) 중심점을 타격 좌표로 고정
-        val clickX = targetPx + targetW / 2f
-        val clickY = targetPy + targetH / 2f
+        // 저장된 위치(Window 좌표)에 앞서 구한 오프셋을 더해 절대 물리 좌표 환산
+        val absoluteX = targetPx + offsetX
+        val absoluteY = targetPy + offsetY
+
+        // 절대 물리 좌표 기반 타격 중심점 계산
+        val clickX = absoluteX + targetW / 2f
+        val clickY = absoluteY + targetH / 2f
 
         mainHandler.post {
             setTargetTouchable(false) // 과녁이 터치를 가로채지 않고 게임 내 출발 버튼에 100% 닿도록 통과 설정
@@ -2238,11 +2247,12 @@ class AutoClickService : AccessibilityService() {
             return
         }
 
-        val targetPx = targetParams?.x ?: 0
-        val targetPy = targetParams?.y ?: 0
+        // 절대 물리 화면 좌표(상태 표시줄 포함)를 정확히 가져옴
+        val location = IntArray(2)
+        target.getLocationOnScreen(location)
         
-        val centerX = targetPx + target.width / 2f
-        val centerY = targetPy + target.height / 2f
+        val centerX = location[0] + target.width / 2f
+        val centerY = location[1] + target.height / 2f
 
         currentIntervalMs = PreferencesHelper.getIntervalMs(this)
         startAutoClick(centerX, centerY, currentIntervalMs)
