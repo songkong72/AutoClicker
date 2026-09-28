@@ -1707,6 +1707,7 @@ class AutoClickService : AccessibilityService() {
                         gJson.put("rallyWaitMinutes", g.rallyWaitMinutes)
                         gJson.put("leaderName", g.leaderName)
                         gJson.put("members", g.members)
+                        gJson.put("lastDepartedTimestamp", g.lastDepartedTimestamp) // 상태 전파를 위해 출발 기록 추가
                         groupsArr.put(gJson)
                     }
                     json.put("groups", groupsArr)
@@ -2141,6 +2142,9 @@ class AutoClickService : AccessibilityService() {
                         // 🔥 해당 군단이 실제로 정시 클릭(출발)되었음을 영구 기록
                         group.lastDepartedTimestamp = departureTimestamp
                         RallyGroupManager.updateGroup(this@AutoClickService, group)
+                        
+                        // 다른 팀원들의 기기에도 "출발완료/행군중/도착" 상태가 표시되도록 즉시 클라우드로 전파
+                        syncDepartureToCloud()
 
                         mainHandler.post(pulseRunnable)
                     } catch (e: Exception) {
@@ -2497,6 +2501,58 @@ class AutoClickService : AccessibilityService() {
         }
     }
 
+    private fun syncDepartureToCloud() {
+        val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+        val room = prefs.getString("cloud_room_number", "") ?: ""
+        if (room.isEmpty()) return
+
+        Thread {
+            try {
+                val url = java.net.URL("$firebaseDbUrl/rooms/$room.json")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "PUT"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.doOutput = true
+                
+                val timestamp = System.currentTimeMillis()
+                val json = org.json.JSONObject()
+                
+                val selectedGroup = RallyGroupManager.getSelectedGroup(this@AutoClickService)
+                json.put("targetHour", selectedGroup.targetHour)
+                json.put("targetMinute", selectedGroup.targetMinute)
+                json.put("targetSecond", selectedGroup.targetSecond)
+                json.put("rallyWaitMinutes", selectedGroup.rallyWaitMinutes)
+                json.put("timestamp", timestamp)
+                json.put("senderId", myDeviceId)
+                
+                val groupsArr = org.json.JSONArray()
+                val allGroups = RallyGroupManager.getGroups(this@AutoClickService)
+                for (g in allGroups) {
+                    val gJson = org.json.JSONObject()
+                    gJson.put("id", g.id)
+                    gJson.put("name", g.name)
+                    gJson.put("targetHour", g.targetHour)
+                    gJson.put("targetMinute", g.targetMinute)
+                    gJson.put("targetSecond", g.targetSecond)
+                    gJson.put("marchDurationSec", g.marchDurationSec)
+                    gJson.put("rallyWaitMinutes", g.rallyWaitMinutes)
+                    gJson.put("leaderName", g.leaderName)
+                    gJson.put("members", g.members)
+                    gJson.put("lastDepartedTimestamp", g.lastDepartedTimestamp) // 상태 전파 핵심!
+                    groupsArr.put(gJson)
+                }
+                json.put("groups", groupsArr)
+                
+                conn.outputStream.write(json.toString().toByteArray())
+                if (conn.responseCode == 200) {
+                    prefs.edit().putLong("last_cloud_timestamp", timestamp).apply()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }.start()
+    }
+
     private fun startCloudSyncPolling() {
         if (isPolling) return
         isPolling = true
@@ -2561,7 +2617,10 @@ class AutoClickService : AccessibilityService() {
                                                     leaderName = gJson.optString("leaderName", ""),
                                                     members = gJson.optString("members", ""),
                                                     isAutoMode = RallyGroupManager.getGroups(this@AutoClickService).find { it.name.trim() == gJson.optString("name", "").trim() }?.isAutoMode ?: false,
-                                                    lastDepartedTimestamp = RallyGroupManager.getGroups(this@AutoClickService).find { it.name.trim() == gJson.optString("name", "").trim() }?.lastDepartedTimestamp ?: 0L
+                                                    lastDepartedTimestamp = maxOf(
+                                                        gJson.optLong("lastDepartedTimestamp", 0L),
+                                                        RallyGroupManager.getGroups(this@AutoClickService).find { it.name.trim() == gJson.optString("name", "").trim() }?.lastDepartedTimestamp ?: 0L
+                                                    )
                                                 ))
                                             }
                                             RallyGroupManager.saveGroups(this@AutoClickService, newGroups)
