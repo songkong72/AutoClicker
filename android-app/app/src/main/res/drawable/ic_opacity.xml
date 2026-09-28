@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 외곽 원 테두리 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:pathData="M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2Z"/>
+    <!-- 왼쪽 반원 채움 (투명도/대비 상징) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,3.5A8.5,8.5 0 0,0 12,20.5Z"/>
+</vector>

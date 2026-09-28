@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_card"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- 1. Header: 타이틀 & 닫기 버튼 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⚙️ 연타 세부 설정"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnDialogClose"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/bg_floating_btn_circle"
+            android:contentDescription="Close"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            android:tint="#94A3B8" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="12dp"
+        android:background="#334155" />
+
+    <!-- 2. 클릭 속도 섹션 (가로 컴팩트) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="클릭 주기"
+            android:textColor="#CBD5E1"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/dialogEtInterval"
+            android:layout_width="80dp"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_floating_capsule"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="5"
+            android:text="500"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="ms"
+            android:textColor="#94A3B8"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 속도 4분할 칩 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/dialogChip100"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="0.1초"
+            android:textColor="#E2E8F0"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChip200"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="0.2초"
+            android:textColor="#E2E8F0"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChip500"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_selected"
+            android:gravity="center"
+            android:text="0.5초"
+            android:textColor="#FFFFFF"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChip1000"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="1.0초"
+            android:textColor="#E2E8F0"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="#334155" />
+
+    <!-- 3. 반복 조건 섹션 (가로 3분할 탭) -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="반복 조건"
+        android:textColor="#CBD5E1"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/dialogTabInfinite"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_selected"
+            android:gravity="center"
+            android:text="♾️ 무한"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogTabCount"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="🔢 횟수"
+            android:textColor="#E2E8F0"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogTabTimer"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="⏱️ 시간"
+            android:textColor="#E2E8F0"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 모드별 가변 컨테이너 (아주 컴팩트한 1줄) -->
+    <!-- 3-1. 무한 모드 문구 -->
+    <TextView
+        android:id="@+id/dialogTvInfiniteDesc"
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:text="💡 정지 버튼이나 스마트폰 볼륨 키를 누를 때까지 계속 연타합니다."
+        android:textColor="#94A3B8"
+        android:textSize="11.5sp"
+        android:visibility="visible" />
+
+    <!-- 3-2. 횟수 모드 입력 -->
+    <LinearLayout
+        android:id="@+id/dialogLayoutCountInput"
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/dialogEtCount"
+            android:layout_width="70dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_floating_capsule"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="5"
+            android:text="100"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:text="회"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/dialogChipCount50"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:paddingHorizontal="7dp"
+            android:text="50"
+            android:textColor="#E2E8F0"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChipCount100"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_chip_selected"
+            android:gravity="center"
+            android:paddingHorizontal="7dp"
+            android:text="100"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChipCount300"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:paddingHorizontal="7dp"
+            android:text="300"
+            android:textColor="#E2E8F0"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 3-3. 시간 모드 입력 -->
+    <LinearLayout
+        android:id="@+id/dialogLayoutTimerInput"
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/dialogEtTimerMin"
+            android:layout_width="45dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_floating_capsule"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="3"
+            android:text="1"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="3dp"
+            android:text="분"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/dialogEtTimerSec"
+            android:layout_width="45dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_floating_capsule"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="2"
+            android:text="0"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="3dp"
+            android:text="초"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/dialogChipTimer1m"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_chip_selected"
+            android:gravity="center"
+            android:paddingHorizontal="6dp"
+            android:text="1분"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChipTimer3m"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:paddingHorizontal="6dp"
+            android:text="3분"
+            android:textColor="#E2E8F0"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="10dp"
+        android:background="#334155" />
+
+    <!-- 4. 버튼 투명도 조절 섹션 (가로 4분할 칩) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="버튼 투명도"
+            android:textColor="#CBD5E1"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogTvAlphaPercent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="100%"
+            android:textColor="#38BDF8"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/dialogChipAlpha100"
+            android:layout_width="0dp"
+            android:layout_height="28dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_selected"
+            android:gravity="center"
+            android:text="100%"
+            android:textColor="#FFFFFF"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChipAlpha80"
+            android:layout_width="0dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="5dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="80%"
+            android:textColor="#E2E8F0"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChipAlpha60"
+            android:layout_width="0dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="5dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="60%"
+            android:textColor="#E2E8F0"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/dialogChipAlpha40"
+            android:layout_width="0dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="5dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="40%"
+            android:textColor="#E2E8F0"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="💡 플로팅 바 위에서 위/아래 제스처로 실시간 조절도 가능합니다."
+        android:textColor="#94A3B8"
+        android:textSize="10.5sp" />
+
+    <!-- 5. 확인 및 적용 버튼 -->
+    <Button
+        android:id="@+id/btnDialogSave"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="12dp"
+        android:backgroundTint="#2563EB"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="확인 및 적용"
+        android:textColor="#FFFFFF"
+        android:textSize="13.5sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

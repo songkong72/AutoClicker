@@ -1,0 +1,94 @@
+{
+  "치료_백그라운드": {
+    "tab_idx": 0,
+    "single_target_hwnd": 69124,
+    "single_target_title": "WOS: 화이트아웃 서바이벌 - 송세준",
+    "single_target_x": 447,
+    "single_target_y": 692,
+    "single_target_cx": 380,
+    "single_target_cy": 656,
+    "single_interval": "0.5",
+    "single_unit": "s",
+    "single_rep_mode": "infinite",
+    "single_rep_cnt": "",
+    "kb_key": "1",
+    "kb_interval": "100",
+    "pat_interval_mode": "fixed",
+    "pat_fixed_delay": "0.5",
+    "pat_delay_unit": "s",
+    "pat_rep_mode": "infinite",
+    "pat_rep_cnt": "",
+    "start_key": "F6",
+    "rec_key": "F8",
+    "sound": true,
+    "topmost": true,
+    "recorded_events": [
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.05
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.16699624061584473
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.1870591640472412
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.18702936172485352
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.19491791725158691
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.19510221481323242
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.19108200073242188
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.1919848918914795
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.18497061729431152
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.18586015701293945
+      },
+      {
+        "x": 488,
+        "y": 705,
+        "button": "left",
+        "delay": 0.19397711753845215
+      }
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Primary -->
+    <color name="primary">#2563EB</color>
+    <color name="primary_dark">#1D4ED8</color>
+    <color name="primary_light">#DBEAFE</color>
+    <color name="primary_container">#EFF6FF</color>
+
+    <!-- Accent & Status -->
+    <color name="success">#16A34A</color>
+    <color name="success_container">#DCFCE7</color>
+    <color name="danger">#DC2626</color>
+    <color name="danger_container">#FEE2E2</color>
+    <color name="warning">#D97706</color>
+
+    <!-- Neutral & Backgrounds -->
+    <color name="background">#F8FAFC</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F1F5F9</color>
+    <color name="divider">#E2E8F0</color>
+
+    <!-- Typography -->
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#475569</color>
+    <color name="text_tertiary">#94A3B8</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Floating Controller Colors (Glassmorphism Dark) -->
+    <color name="floater_bg">#EE1E293B</color>
+    <color name="floater_border">#33CBD5E1</color>
+    <color name="target_ring">#2563EB</color>
+    <color name="target_center">#DC2626</color>
+    <color name="target_fill">#4D2563EB</color>
+</resources>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "876220251158",
+    "project_id": "wos-commander",
+    "storage_bucket": "wos-commander.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:876220251158:android:218d44f784874427014937",
+        "android_client_info": {
+          "package_name": "com.sejun.autoclicker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDa_fsGEBPeUOzQyHAb2qOPcDTZZJQ0AXg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,24 @@
+# Compiled Python
+__pycache__/
+*.py[cod]
+
+# Executables & Archives
+*.exe
+*.apk
+*.aab
+*.zip
+
+# Build directories
+build/
+dist/
+
+# Android app specific
+android-app/build/
+android-app/app/build/
+android-app/.gradle/
+android-app/local.properties
+android-app/.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db

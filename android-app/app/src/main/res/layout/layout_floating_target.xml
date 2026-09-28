@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/targetRoot"
+    android:layout_width="52dp"
+    android:layout_height="52dp">
+
+    <!-- Crosshair Target Overlay Graphic (Drag onto heal button) -->
+    <ImageView
+        android:id="@+id/ivTargetGraphic"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/bg_floating_target"
+        android:contentDescription="Target Crosshair" />
+
+</FrameLayout>
