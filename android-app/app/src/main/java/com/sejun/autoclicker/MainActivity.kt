@@ -1,13 +1,20 @@
 package com.sejun.autoclicker
 
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.view.accessibility.AccessibilityManager
+import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.sejun.autoclicker.databinding.ActivityMainBinding
@@ -35,10 +42,18 @@ class MainActivity : AppCompatActivity() {
         setupListeners()
         setupPresets()
         setupRepeatConditionListeners()
+
+        // 미인증 사용자의 경우 실행 시 인증 다이얼로그 즉시 표시
+        if (!PreferencesHelper.isVerified(this)) {
+            binding.root.post {
+                showVerificationDialog()
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        updateAuthUI()
         loadSettings()
         updateRallyInfoCard()
         updatePermissionStates()
@@ -68,6 +83,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        // 회원 인증 관리 버튼
+        binding.btnAuthAction.setOnClickListener {
+            showVerificationDialog()
+        }
+
+        // 상단 관리자 설정 아이콘
+        binding.btnAdminIcon.setOnClickListener {
+            showAdminLoginDialog()
+        }
+
+        // 상단 타이틀 5회 연속 탭 시 관리자 진입 (히든 제스처)
+        var titleTapCount = 0
+        var lastTitleTapTime = 0L
+        binding.tvAppTitle.setOnClickListener {
+            val now = System.currentTimeMillis()
+            if (now - lastTitleTapTime > 1500L) {
+                titleTapCount = 0
+            }
+            lastTitleTapTime = now
+            titleTapCount++
+            if (titleTapCount >= 5) {
+                titleTapCount = 0
+                showAdminLoginDialog()
+            }
+        }
+
         // Accessibility Permission Button (Only 1 setting required!)
         binding.btnGrantAccessibility.setOnClickListener {
             openAccessibilitySettings()
@@ -88,6 +129,12 @@ class MainActivity : AppCompatActivity() {
 
         // ⚔️ 집결 동시 착탄 및 그룹 작전 설정 버튼
         binding.btnOpenRallySettings.setOnClickListener {
+            if (!PreferencesHelper.isVerified(this)) {
+                Toast.makeText(this, "🔒 정회원 초대코드 인증 후 이용 가능합니다.", Toast.LENGTH_SHORT).show()
+                showVerificationDialog()
+                return@setOnClickListener
+            }
+
             if (!hasAccessibilityPermission()) {
                 Toast.makeText(this, "스위치를 먼저 켜주셔야 게임을 자동으로 터치할 수 있습니다.", Toast.LENGTH_LONG).show()
                 openAccessibilitySettings()
@@ -113,6 +160,12 @@ class MainActivity : AppCompatActivity() {
 
         // Single Smart Toggle Button: [🚀 오토클리커 띄우기] ↔ [✕ 오토클리커 숨기기]
         binding.btnStartService.setOnClickListener {
+            if (!PreferencesHelper.isVerified(this)) {
+                Toast.makeText(this, "🔒 정회원 초대코드 인증 후 이용 가능합니다.", Toast.LENGTH_SHORT).show()
+                showVerificationDialog()
+                return@setOnClickListener
+            }
+
             if (!hasAccessibilityPermission()) {
                 Toast.makeText(this, "스위치를 먼저 켜주셔야 게임을 자동으로 터치할 수 있습니다.", Toast.LENGTH_LONG).show()
                 openAccessibilitySettings()
@@ -370,5 +423,166 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return false
+    }
+
+    // --- 초대코드 및 관리자 모드 관련 기능 ---
+
+    private fun updateAuthUI() {
+        val isVerified = PreferencesHelper.isVerified(this)
+        val userId = PreferencesHelper.getVerifiedUserId(this)
+
+        if (isVerified) {
+            binding.tvAuthStatusTitle.text = "✅ 정회원 인증 완료"
+            binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
+            binding.tvAuthStatusSubtitle.text = if (userId.isNotEmpty()) "인증된 회원 ID: $userId" else "정회원 인증이 완료되었습니다."
+            binding.btnAuthAction.text = "인증 변경"
+            binding.btnAuthAction.setBackgroundColor(Color.parseColor("#475569"))
+        } else {
+            binding.tvAuthStatusTitle.text = "🔒 회원 전용 인증 필요"
+            binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#F59E0B"))
+            binding.tvAuthStatusSubtitle.text = "초대코드를 입력하여 정회원 인증을 완료해 주세요."
+            binding.btnAuthAction.text = "인증하기"
+            binding.btnAuthAction.setBackgroundColor(Color.parseColor("#3B82F6"))
+        }
+    }
+
+    private fun showVerificationDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.layout_dialog_user_verification, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val etUserId = dialogView.findViewById<EditText>(R.id.etVerifyUserId)
+        val etCode = dialogView.findViewById<EditText>(R.id.etVerifyCode)
+        val btnSubmit = dialogView.findViewById<Button>(R.id.btnSubmitVerification)
+        val btnAdmin = dialogView.findViewById<TextView>(R.id.btnOpenAdminLogin)
+
+        val currentId = PreferencesHelper.getVerifiedUserId(this)
+        if (currentId.isNotEmpty()) {
+            etUserId.setText(currentId)
+        }
+
+        btnSubmit.setOnClickListener {
+            val userId = etUserId.text.toString().trim()
+            val code = etCode.text.toString().trim()
+
+            if (userId.isEmpty()) {
+                Toast.makeText(this, "회원 이메일 또는 식별 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (code.isEmpty()) {
+                Toast.makeText(this, "초대코드를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (InvitationManager.verifyInviteCode(this, userId, code)) {
+                PreferencesHelper.setVerified(this, true, userId)
+                Toast.makeText(this, "🎉 정회원 인증에 성공했습니다! 환영합니다.", Toast.LENGTH_LONG).show()
+                dialog.dismiss()
+                updateAuthUI()
+            } else {
+                Toast.makeText(this, "❌ 유효하지 않은 초대코드이거나 일치하지 않는 ID입니다.", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        btnAdmin.setOnClickListener {
+            dialog.dismiss()
+            showAdminLoginDialog()
+        }
+
+        dialog.show()
+    }
+
+    private fun showAdminLoginDialog() {
+        val input = EditText(this).apply {
+            hint = "비밀번호를 입력하세요"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+            setPadding(50, 40, 50, 40)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("👑 관리자 로그인")
+            .setMessage("관리자 비밀번호를 입력해 주세요.")
+            .setView(input)
+            .setPositiveButton("확인") { d, _ ->
+                val pass = input.text.toString().trim()
+                if (InvitationManager.checkAdminPassword(this, pass)) {
+                    Toast.makeText(this, "👑 관리자 모드로 진입합니다.", Toast.LENGTH_SHORT).show()
+                    d.dismiss()
+                    showAdminPanelDialog()
+                } else {
+                    Toast.makeText(this, "❌ 관리자 비밀번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun showAdminPanelDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.layout_dialog_admin_panel, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val btnClose = dialogView.findViewById<TextView>(R.id.btnAdminClose)
+        val etTargetId = dialogView.findViewById<EditText>(R.id.etTargetMemberId)
+        val btnGenerate = dialogView.findViewById<Button>(R.id.btnGenerateCode)
+        val layoutResult = dialogView.findViewById<View>(R.id.layoutGeneratedResult)
+        val tvCode = dialogView.findViewById<TextView>(R.id.tvGeneratedCode)
+        val btnCopy = dialogView.findViewById<Button>(R.id.btnCopyShareMessage)
+
+        val etNewPass = dialogView.findViewById<EditText>(R.id.etNewMasterPassword)
+        etNewPass.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        val btnSavePass = dialogView.findViewById<Button>(R.id.btnSaveMasterPassword)
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        var currentGeneratedCode = ""
+        var currentMemberId = ""
+
+        btnGenerate.setOnClickListener {
+            val memberId = etTargetId.text.toString().trim()
+            if (memberId.isEmpty()) {
+                Toast.makeText(this, "회원 이메일 또는 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val code = InvitationManager.generateInviteCode(memberId)
+            currentGeneratedCode = code
+            currentMemberId = memberId
+            tvCode.text = code
+            layoutResult.visibility = View.VISIBLE
+            Toast.makeText(this, "초대코드가 발급되었습니다.", Toast.LENGTH_SHORT).show()
+        }
+
+        btnCopy.setOnClickListener {
+            if (currentGeneratedCode.isEmpty()) return@setOnClickListener
+            val shareMsg = "[AutoClicker Pro 정회원 초대]\n회원 ID: $currentMemberId\n초대코드: $currentGeneratedCode\n앱 실행 후 인증창에 입력하시면 정회원으로 등록됩니다."
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("AutoClickerInvite", shareMsg)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "📋 카카오톡 전달 메시지가 복사되었습니다!", Toast.LENGTH_SHORT).show()
+        }
+
+        btnSavePass.setOnClickListener {
+            val newPass = etNewPass.text.toString().trim()
+            if (newPass.length < 4) {
+                Toast.makeText(this, "비밀번호는 최소 4자 이상이어야 합니다.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (InvitationManager.updateAdminPassword(this, newPass)) {
+                Toast.makeText(this, "🔑 관리자 비밀번호가 성공적으로 변경되었습니다.", Toast.LENGTH_LONG).show()
+                etNewPass.setText("")
+            }
+        }
+
+        dialog.show()
     }
 }

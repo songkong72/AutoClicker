@@ -228,6 +228,10 @@ class AutoClickService : AccessibilityService() {
      * 이미 떠 있다면 기존 상태를 안전하게 리셋하고 새로 띄웁니다!
      */
     fun showOverlays(intervalMs: Long? = null) {
+        if (!PreferencesHelper.isVerified(this)) {
+            Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
         currentIntervalMs = intervalMs ?: PreferencesHelper.getIntervalMs(this)
         currentOverlayAlpha = PreferencesHelper.getOverlayAlpha(this)
         val wm = windowManager ?: getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -1063,6 +1067,10 @@ class AutoClickService : AccessibilityService() {
 
     @SuppressLint("InflateParams", "ClickableViewAccessibility")
     fun showRallyDialog(skipTimeInit: Boolean = false) {
+        if (!PreferencesHelper.isVerified(this)) {
+            Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (rallyDialogView != null) {
             hideRallyDialog()
             return
@@ -2320,6 +2328,10 @@ class AutoClickService : AccessibilityService() {
     }
 
     fun startAutoClick(x: Float, y: Float, intervalMs: Long) {
+        if (!PreferencesHelper.isVerified(this)) {
+            Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (isClicking) {
             stopAutoClick()
         }

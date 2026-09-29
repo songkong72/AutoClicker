@@ -168,4 +168,32 @@ object PreferencesHelper {
             .putFloat(KEY_RALLY_DIALOG_ALPHA, alpha)
             .apply()
     }
+
+    // --- 초대코드 및 관리자 권한 관련 설정 ---
+    private const val KEY_IS_VERIFIED = "key_is_verified"
+    private const val KEY_VERIFIED_USER_ID = "key_verified_user_id"
+    private const val KEY_ADMIN_MASTER_KEY = "key_admin_master_key"
+
+    fun isVerified(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_IS_VERIFIED, false)
+    }
+
+    fun setVerified(context: Context, verified: Boolean, userId: String = "") {
+        getPrefs(context).edit()
+            .putBoolean(KEY_IS_VERIFIED, verified)
+            .putString(KEY_VERIFIED_USER_ID, userId)
+            .apply()
+    }
+
+    fun getVerifiedUserId(context: Context): String {
+        return getPrefs(context).getString(KEY_VERIFIED_USER_ID, "") ?: ""
+    }
+
+    fun getAdminMasterKey(context: Context): String {
+        return getPrefs(context).getString(KEY_ADMIN_MASTER_KEY, "admin1234!") ?: "admin1234!"
+    }
+
+    fun setAdminMasterKey(context: Context, key: String) {
+        getPrefs(context).edit().putString(KEY_ADMIN_MASTER_KEY, key).apply()
+    }
 }
