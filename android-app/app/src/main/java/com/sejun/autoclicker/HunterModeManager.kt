@@ -100,16 +100,28 @@ object HunterModeManager {
             return
         }
 
-        // 출정 화면인지 1차 검증: 출정 버튼 위치의 색상 비교 (자동 모드일 때만 검증)
-        val currentColor = bitmap.getPixel(dispatchX, dispatchY)
-        if (isAutoScanActive && dispatchColor != 0) {
-            val rDiffBtn = Math.abs(Color.red(currentColor) - Color.red(dispatchColor))
-            val gDiffBtn = Math.abs(Color.green(currentColor) - Color.green(dispatchColor))
-            val bDiffBtn = Math.abs(Color.blue(currentColor) - Color.blue(dispatchColor))
-            if (rDiffBtn > 30 || gDiffBtn > 30 || bDiffBtn > 30) {
-                // 출정 화면이 아님! 스캔 중단
-                return
+        // 출정 버튼이 파란색인지 감지 (넓은 범위 스캔으로 텍스트 위에서도 작동하게 함)
+        if (isAutoScanActive) {
+            var foundBlue = false
+            val startX = Math.max(0, dispatchX - 15)
+            val endX = Math.min(bitmap.width - 1, dispatchX + 15)
+            val startY = Math.max(0, dispatchY - 15)
+            val endY = Math.min(bitmap.height - 1, dispatchY + 15)
+            
+            for (y in startY..endY step 5) {
+                for (x in startX..endX step 5) {
+                    val color = bitmap.getPixel(x, y)
+                    val r = Color.red(color)
+                    val g = Color.green(color)
+                    val b = Color.blue(color)
+                    if (b > r + 20 && b > g && b > 100) {
+                        foundBlue = true
+                        break
+                    }
+                }
+                if (foundBlue) break
             }
+            if (!foundBlue) return
         }
         
         // 1. 깃발 간격 계산
@@ -175,4 +187,23 @@ object HunterModeManager {
         val gesture = android.accessibilityservice.GestureDescription.Builder().addStroke(stroke).build()
         service.dispatchGesture(gesture, null, null)
     }
+    fun forceDispatchCombo(service: AutoClickService) {
+        // 색상 검사나 화면 캡처 없이 즉시 1번 타겟 클릭 후 출정 타겟 클릭 (스나이퍼 샷)
+        val path = android.graphics.Path()
+        path.moveTo(flag1X.toFloat(), flag1Y.toFloat())
+        val builder = android.accessibilityservice.GestureDescription.Builder()
+        builder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 50))
+        service.dispatchGesture(builder.build(), null, null)
+
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            val path2 = android.graphics.Path()
+            path2.moveTo(dispatchX.toFloat(), dispatchY.toFloat())
+            val builder2 = android.accessibilityservice.GestureDescription.Builder()
+            builder2.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path2, 0, 50))
+            service.dispatchGesture(builder2.build(), null, null)
+        }, 150)
+    }
+
 }
+
+

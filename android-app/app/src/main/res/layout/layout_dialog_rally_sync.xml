@@ -114,39 +114,100 @@
         android:layout_marginBottom="8dp"
         android:background="#334155" />
 
-    <!-- 클라우드 방 번호 입력 (맨 위로 이동) -->
+    <!-- 👑 관리자 / ⚔️ 집결장 모드 토글 탭 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="34dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_chip_normal"
+        android:orientation="horizontal"
+        android:padding="3dp">
+
+        <TextView
+            android:id="@+id/tabAdmin"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_selected"
+            android:gravity="center"
+            android:text="👑 관리자"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tabRallyLeader"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:gravity="center"
+            android:text="⚔️ 집결장"
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 초대 코드 및 클라우드 연동 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="☁️ 연동 방 번호:"
+            android:text="☁️ 방 코드:"
             android:textColor="#CBD5E1"
             android:textSize="12sp"
             android:textStyle="bold" />
         <EditText
             android:id="@+id/etRoomNumber"
-            android:layout_width="60dp"
+            android:layout_width="65dp"
             android:layout_height="24dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_compact_picker"
             android:gravity="center"
-            android:hint="선택"
-            android:inputType="number"
+            android:hint="초대코드"
+            android:inputType="textCapCharacters"
             android:textColor="#FFFFFF"
             android:textColorHint="#64748B"
             android:textSize="12sp" />
+        <!-- 관리자 전용: 생성 버튼 -->
+        <Button
+            android:id="@+id/btnGenerateRoom"
+            android:layout_width="45dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_chip_normal"
+            android:text="생성"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp"
+            android:padding="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp" />
+        <Button
+            android:id="@+id/btnCopyRoom"
+            android:layout_width="45dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_chip_normal"
+            android:text="복사"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp"
+            android:padding="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp" />
         <TextView
             android:id="@+id/tvSyncStatus"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="● 미사용"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:gravity="end"
+            android:singleLine="true"
+            android:text="● 오프라인"
             android:textColor="#94A3B8"
             android:textSize="10sp" />
     </LinearLayout>
@@ -156,6 +217,13 @@
         android:layout_height="1dp"
         android:layout_marginBottom="8dp"
         android:background="#334155" />
+
+    <!-- ===== 관리자 전용 영역 시작 (groupAdminOnly) ===== -->
+    <LinearLayout
+        android:id="@+id/groupAdminOnly"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
     <!-- 2. 군/작전 그룹 가로 스크롤 탭 & 확실한 [+], [휴지통] 아이콘 -->
     <LinearLayout
@@ -543,6 +611,100 @@
         android:textSize="10.5sp"
         android:textStyle="bold" />
 
+    </LinearLayout>
+    <!-- ===== 관리자 전용 영역 끝 ===== -->
+
+    <!-- ===== 집결장 전용 영역 시작 (groupLeaderOnly) - 기본 숨김 ===== -->
+    <LinearLayout
+        android:id="@+id/groupLeaderOnly"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- 군단 탭 (읽기 전용, +/삭제 없음) -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+            <LinearLayout
+                android:id="@+id/layoutArmyChipsContainerLeader"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- 군단명 + 집결장 이름 읽기 전용 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvLeaderGroupName"
+                android:layout_width="0dp"
+                android:layout_height="30dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_floating_capsule"
+                android:gravity="center_vertical"
+                android:paddingStart="8dp"
+                android:text="군단명"
+                android:textColor="#CBD5E1"
+                android:textSize="11.5sp" />
+
+            <TextView
+                android:id="@+id/tvLeaderName"
+                android:layout_width="0dp"
+                android:layout_height="30dp"
+                android:layout_marginStart="5dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_floating_capsule"
+                android:gravity="center_vertical"
+                android:paddingStart="8dp"
+                android:text="집결장명"
+                android:textColor="#CBD5E1"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <!-- 도착 시간 읽기 전용 표시 -->
+        <TextView
+            android:id="@+id/tvLeaderTargetTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="⏰ 도착 시간: --:--:--"
+            android:textColor="#94A3B8"
+            android:textSize="11sp" />
+
+        <!-- 전체 군단 현황 뱃지 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="전체 군단 현황"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:scrollbars="none">
+            <LinearLayout
+                android:id="@+id/layoutArmyStatusBadges"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+    </LinearLayout>
+    <!-- ===== 집결장 전용 영역 끝 ===== -->
+
+
+
     <!-- 5. 행군 시간 & 미세 타격 보정 -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -903,6 +1065,43 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- 실시간 전광판 (공지사항) -->
+    <LinearLayout
+        android:id="@+id/marqueeContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_compact_picker"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="6dp">
+        
+        <ImageButton
+            android:id="@+id/btnAnnounce"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:background="@null"
+            android:src="@drawable/ic_speaker"
+            android:contentDescription="공지"
+            android:tint="#F59E0B" />
+
+        <TextView
+            android:id="@+id/tvMarquee"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:singleLine="true"
+            android:text="공지사항이 없습니다."
+            android:textColor="#EF4444"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     </LinearLayout><!-- rallyDialogContent 끝 -->
 
 </LinearLayout>
+
+

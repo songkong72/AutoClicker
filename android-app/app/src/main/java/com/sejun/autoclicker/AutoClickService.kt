@@ -80,7 +80,7 @@ class AutoClickService : AccessibilityService() {
             if (HunterModeManager.isHunterModeEnabled && HunterModeManager.isAutoScanActive) {
                 HunterModeManager.triggerScan(this@AutoClickService)
             }
-            mainHandler.postDelayed(this, 300) // 0.3초마다 검사
+            mainHandler.postDelayed(this, 50) // 0.3초마다 검사
         }
     }
 
@@ -163,6 +163,7 @@ class AutoClickService : AccessibilityService() {
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         currentOverlayAlpha = PreferencesHelper.getOverlayAlpha(this)
         Log.d(TAG, "AutoClickService connected.")
+        HunterModeManager.loadSettings(this)
 
         serviceInfo = (serviceInfo ?: AccessibilityServiceInfo()).apply {
             flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
@@ -470,6 +471,15 @@ class AutoClickService : AccessibilityService() {
         val btnToggleTarget = control.findViewById<ImageButton>(R.id.btnToggleTarget)
         val btnRally = control.findViewById<ImageButton>(R.id.btnRally)
         val btnBearMode = control.findViewById<ImageButton>(R.id.btnBearMode)
+        val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("bear_mode_unlocked", false)) {
+            btnBearMode?.visibility = View.GONE
+        }
+        btnBearMode?.setOnClickListener {
+            vibrate(20)
+            hideOpacityPanel()
+            toggleBearMode()
+        }
         val btnSettings = control.findViewById<ImageButton>(R.id.btnSettings)
         val btnOpacity = control.findViewById<ImageButton>(R.id.btnOpacity)
         val btnClose = control.findViewById<ImageButton>(R.id.btnClose)
@@ -1145,6 +1155,32 @@ class AutoClickService : AccessibilityService() {
         val rallyDialogContent = view.findViewById<LinearLayout>(R.id.rallyDialogContent)
         val rallyDialogCompactContent = view.findViewById<LinearLayout>(R.id.rallyDialogCompactContent)
         val tvTitle = view.findViewById<TextView>(R.id.tvRallyDialogTitle)
+        var secretTapCount = 0
+        var lastSecretTapTime = 0L
+        tvTitle.setOnTouchListener { _, event ->
+            if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+                val now = System.currentTimeMillis()
+                if (now - lastSecretTapTime < 800) {
+                    secretTapCount++
+                } else {
+                    secretTapCount = 1
+                }
+                lastSecretTapTime = now
+
+                if (secretTapCount == 5) {
+                    val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+                    if (!prefs.getBoolean("bear_mode_unlocked", false)) {
+                        prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
+                        controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
+                        showToast("🐻 비밀 헌터 모드가 개방되었습니다!")
+                    } else {
+                        showToast("🐻 이미 헌터 모드가 열려있습니다!")
+                    }
+                    secretTapCount = 0
+                }
+            }
+            true
+        }
 
         // ── 윈도우 포커스 동적 제어 (게임 화면 대화창 차단 방지) ─────────────
         fun setDialogFocusable(focusable: Boolean) {
@@ -1666,12 +1702,173 @@ class AutoClickService : AccessibilityService() {
         // 클라우드 동기화 UI 연동
         val etRoomNumber = view.findViewById<EditText>(R.id.etRoomNumber)
         val tvSyncStatus = view.findViewById<TextView>(R.id.tvSyncStatus)
+        val tvMarquee = view.findViewById<TextView>(R.id.tvMarquee)
+        val btnAnnounce = view.findViewById<android.widget.ImageButton>(R.id.btnAnnounce)
+        tvMarquee?.isSelected = true
+        
+        btnAnnounce?.setOnClickListener {
+            tvMarquee?.performClick()
+        }
+        // ── 관리자 / 집결장 모드 토글 ─────────────────────────
+        val tabAdmin = view.findViewById<TextView>(R.id.tabAdmin)
+        val tabRallyLeader = view.findViewById<TextView>(R.id.tabRallyLeader)
+        val groupAdminOnly = view.findViewById<android.widget.LinearLayout>(R.id.groupAdminOnly)
+        val groupLeaderOnly = view.findViewById<android.widget.LinearLayout>(R.id.groupLeaderOnly)
+        val btnGenerateRoomRef = view.findViewById<android.widget.Button>(R.id.btnGenerateRoom)
+        val btnAnnounceRef = view.findViewById<android.widget.ImageButton>(R.id.btnAnnounce)
+
+        fun applyMode(admin: Boolean) {
+            getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+                .edit().putBoolean("is_admin_mode", admin).apply()
+            if (admin) {
+                tabAdmin?.setBackgroundResource(R.drawable.bg_chip_selected)
+                tabAdmin?.setTextColor(android.graphics.Color.WHITE)
+                tabRallyLeader?.setBackgroundResource(0)
+                tabRallyLeader?.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+                groupAdminOnly?.visibility = android.view.View.VISIBLE
+                groupLeaderOnly?.visibility = android.view.View.GONE
+                btnGenerateRoomRef?.visibility = android.view.View.VISIBLE
+                btnAnnounceRef?.visibility = android.view.View.VISIBLE
+            } else {
+                tabRallyLeader?.setBackgroundResource(R.drawable.bg_chip_selected)
+                tabRallyLeader?.setTextColor(android.graphics.Color.WHITE)
+                tabAdmin?.setBackgroundResource(0)
+                tabAdmin?.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+                groupAdminOnly?.visibility = android.view.View.GONE
+                groupLeaderOnly?.visibility = android.view.View.VISIBLE
+                btnGenerateRoomRef?.visibility = android.view.View.GONE
+                btnAnnounceRef?.visibility = android.view.View.GONE
+                val tvLeaderGroupName = view.findViewById<TextView>(R.id.tvLeaderGroupName)
+                val tvLeaderNameView = view.findViewById<TextView>(R.id.tvLeaderName)
+                val tvLeaderTargetTime = view.findViewById<TextView>(R.id.tvLeaderTargetTime)
+                tvLeaderGroupName?.text = selectedGroup.name
+                tvLeaderNameView?.text = selectedGroup.leaderName.ifEmpty { "집결장 미지정" }
+                tvLeaderTargetTime?.text = "⏰ 도착 시간: %02d:%02d:%02d".format(
+                    selectedGroup.targetHour, selectedGroup.targetMinute, selectedGroup.targetSecond)
+                val leaderChipContainer = view.findViewById<android.widget.LinearLayout>(R.id.layoutArmyChipsContainerLeader)
+                leaderChipContainer?.removeAllViews()
+                RallyGroupManager.getGroups(this).forEach { g ->
+                    val chip = TextView(this).apply {
+                        text = g.name; textSize = 11f
+                        setTextColor(android.graphics.Color.parseColor(if (g.id == selectedGroup.id) "#FFFFFF" else "#94A3B8"))
+                        setBackgroundResource(if (g.id == selectedGroup.id) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                        setPadding(dpToPx(8), 0, dpToPx(8), 0); gravity = android.view.Gravity.CENTER
+                        layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, dpToPx(28)).also { it.marginEnd = dpToPx(4) }
+                        setOnClickListener { selectedGroup = g; applyMode(false) }
+                    }
+                    leaderChipContainer?.addView(chip)
+                }
+                val badgesContainer = view.findViewById<android.widget.LinearLayout>(R.id.layoutArmyStatusBadges)
+                badgesContainer?.removeAllViews()
+                RallyGroupManager.getGroups(this).forEach { g ->
+                    val now = System.currentTimeMillis(); val departTs = g.lastDepartedTimestamp; val marchMs = (g.marchDurationSec * 1000).toLong()
+                    val (statusText, statusColor) = when {
+                        departTs > 0 && now < departTs + marchMs -> "🚶행군중" to "#F59E0B"
+                        departTs > 0 -> "✅출발" to "#10B981"
+                        else -> "🕐대기" to "#38BDF8"
+                    }
+                    val badge = TextView(this).apply {
+                        text = "${g.name} $statusText"; textSize = 10f
+                        setBackgroundResource(R.drawable.bg_chip_normal)
+                        setPadding(dpToPx(6), dpToPx(3), dpToPx(6), dpToPx(3))
+                        layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).also { it.marginEnd = dpToPx(4) }
+                        setTextColor(android.graphics.Color.parseColor(statusColor))
+                    }
+                    badgesContainer?.addView(badge)
+                }
+            }
+        }
+
+        val isAdminMode = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("is_admin_mode", true)
+        applyMode(isAdminMode)
+        tabAdmin?.setOnClickListener { applyMode(true) }
+        tabRallyLeader?.setOnClickListener { applyMode(false) }
+
+        tvMarquee?.setOnClickListener {
+            val p = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+            val room = p.getString("cloud_room_number", "") ?: ""
+            if (room.isEmpty()) {
+                showToast("방 코드를 먼저 입력/생성해주세요!")
+                return@setOnClickListener
+            }
+            
+            val etInput = EditText(this).apply {
+                hint = "공지 내용을 입력하세요"
+                setTextColor(Color.WHITE)
+            }
+            val dialogView = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dpToPx(20), dpToPx(20), dpToPx(20), dpToPx(20))
+                addView(etInput)
+            }
+            
+            val builder = android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("📢 공지사항 전송")
+                .setView(dialogView)
+                .setPositiveButton("전송") { _, _ ->
+                    val msg = etInput.text.toString().trim()
+                    if (msg.isNotEmpty()) {
+                        Thread {
+                            try {
+                                val url = java.net.URL("$firebaseDbUrl/rooms/$room.json")
+                                val conn = url.openConnection() as java.net.HttpURLConnection
+                                conn.requestMethod = "PATCH"
+                                conn.doOutput = true
+                                conn.setRequestProperty("Content-Type", "application/json")
+                                val jsonStr = "{\"announcement\": \"$msg\"}"
+                                conn.outputStream.write(jsonStr.toByteArray(Charsets.UTF_8))
+                                if (conn.responseCode == 200) {
+                                    Handler(Looper.getMainLooper()).post {
+                                        showToast("공지가 전송되었습니다!")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "공지 전송 실패", e)
+                            }
+                        }.start()
+                    }
+                }
+                .setNegativeButton("취소", null)
+                
+            val dialog = builder.create()
+            dialog.window?.setType(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
+            dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+            dialog.show()
+            
+            etInput.requestFocus()
+            setDialogFocusable(true)
+            dialog.setOnDismissListener { setDialogFocusable(false) }
+        }
         val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
         val savedRoom = prefs.getString("cloud_room_number", "") ?: ""
-        etRoomNumber.setText(savedRoom)
+                etRoomNumber.setText(savedRoom)
+
+        // Generate and Copy Buttons
+        val btnGenerateRoom = view.findViewById<android.widget.Button>(R.id.btnGenerateRoom)
+        val btnCopyRoom = view.findViewById<android.widget.Button>(R.id.btnCopyRoom)
+
+        btnGenerateRoom?.setOnClickListener {
+            val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            val randomCode = (1..6).map { chars.random() }.joinToString("")
+            etRoomNumber.setText(randomCode)
+            showToast("보안 방 코드가 생성되었습니다: $randomCode")
+        }
+
+        btnCopyRoom?.setOnClickListener {
+            val room = etRoomNumber.text.toString()
+            if (room.isNotEmpty()) {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("방 코드", room)
+                clipboard.setPrimaryClip(clip)
+                showToast("방 코드가 복사되었습니다! 채팅창에 붙여넣기 하세요.")
+            } else {
+                showToast("복사할 방 코드가 없습니다.")
+            }
+        }
         
         if (savedRoom.isNotEmpty()) {
-            tvSyncStatus.text = "● 연결대기"
+            tvSyncStatus.text = "● 대기중"
             tvSyncStatus.setTextColor(Color.parseColor("#38BDF8"))
         }
 
@@ -1685,7 +1882,7 @@ class AutoClickService : AccessibilityService() {
                     .putLong("last_cloud_timestamp", 0) // 새 방에 연결 시 즉시 최신 데이터 수신할 수 있도록 리셋
                     .apply()
                 if (newRoom.isNotEmpty()) {
-                    tvSyncStatus.text = "● 연결대기"
+                    tvSyncStatus.text = "● 대기중"
                     tvSyncStatus.setTextColor(Color.parseColor("#38BDF8"))
                 } else {
                     tvSyncStatus.text = "● 미사용"
@@ -1738,7 +1935,7 @@ class AutoClickService : AccessibilityService() {
                     if (conn.responseCode == 200) {
                         prefs.edit().putLong("last_cloud_timestamp", timestamp).apply()
                         Handler(Looper.getMainLooper()).post {
-                            tvSyncStatus.text = "● 클라우드 전송됨"
+                            tvSyncStatus.text = "● 전송됨"
                             tvSyncStatus.setTextColor(Color.parseColor("#10B981"))
                         }
                     }
@@ -2504,6 +2701,146 @@ class AutoClickService : AccessibilityService() {
         manager.cancel(NOTIFICATION_ID)
     }
 
+        // --- Bear Hunter Mode Restored UI ---
+    private var bearSetupView: View? = null
+    private var bearSetupParams: WindowManager.LayoutParams? = null
+    private var targetFlag1View: View? = null
+    private var targetFlag8View: View? = null
+    private var targetFlag1Params: WindowManager.LayoutParams? = null
+    private var targetFlag8Params: WindowManager.LayoutParams? = null
+
+    private fun toggleBearMode() {
+        HunterModeManager.isHunterModeEnabled = !HunterModeManager.isHunterModeEnabled
+        val btnBearMode = controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)
+        if (HunterModeManager.isHunterModeEnabled) {
+            showToast("🐻 스마트 헌터 모드 활성화!")
+            btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#10B981")) // 초록색으로 변경
+            HunterModeManager.isAutoScanActive = true
+            mainHandler.post(hunterScanRunnable) // 스캔 시작
+            showBearSetupUi()
+        } else {
+            showToast("🐻 스마트 헌터 모드 종료!")
+            btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#F59E0B")) // 노란색으로 복구
+            mainHandler.removeCallbacks(hunterScanRunnable)
+            hideBearSetupUi()
+        }
+    }
+
+    private fun showBearSetupUi() {
+        if (bearSetupView == null) {
+            val ctx = this
+            bearSetupView = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setBackgroundColor(Color.TRANSPARENT)
+                
+                val btnSave = android.widget.Button(ctx).apply {
+                    text = "헌터 타겟 저장"
+                    setBackgroundColor(Color.parseColor("#3B82F6"))
+                    setTextColor(Color.WHITE)
+                    setOnClickListener {
+                        HunterModeManager.flag1X = targetFlag1Params?.x ?: 0
+                        HunterModeManager.flag1Y = targetFlag1Params?.y ?: 0
+                        HunterModeManager.flag8X = targetFlag8Params?.x ?: 0
+                        HunterModeManager.flag8Y = targetFlag8Params?.y ?: 0
+                        HunterModeManager.dispatchX = targetParams?.x ?: 0
+                        HunterModeManager.dispatchY = targetParams?.y ?: 0
+                        HunterModeManager.dispatchColor = Color.BLUE
+                        HunterModeManager.saveSettings(ctx)
+                        hideBearSetupUi()
+                    }
+                }
+                addView(btnSave)
+            }
+            
+            bearSetupParams = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
+                y = 200
+            }
+        }
+        
+        try {
+            windowManager?.addView(bearSetupView, bearSetupParams)
+        } catch (e: Exception) {}
+
+        if (targetFlag1View == null) {
+            targetFlag1View = android.widget.TextView(this).apply {
+                text = "1"
+                textSize = 24f
+                setTextColor(Color.WHITE)
+                setShadowLayer(4f, 0f, 0f, Color.BLACK)
+            }
+            targetFlag1Params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = 100; y = 300 }
+            setupDrag(targetFlag1View!!, targetFlag1Params!!)
+        }
+        if (targetFlag8View == null) {
+            targetFlag8View = android.widget.TextView(this).apply {
+                text = "8"
+                textSize = 24f
+                setTextColor(Color.WHITE)
+                setShadowLayer(4f, 0f, 0f, Color.BLACK)
+            }
+            targetFlag8Params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = 100; y = 500 }
+            setupDrag(targetFlag8View!!, targetFlag8Params!!)
+        }
+        
+        try { windowManager?.addView(targetFlag1View, targetFlag1Params) } catch (e: Exception) {}
+        try { windowManager?.addView(targetFlag8View, targetFlag8Params) } catch (e: Exception) {}
+        
+        if (!isTargetVisible) {
+            toggleTargetVisibility()
+        }
+    }
+
+    private fun hideBearSetupUi() {
+        try { windowManager?.removeView(bearSetupView) } catch (e: Exception) {}
+        try { windowManager?.removeView(targetFlag1View) } catch (e: Exception) {}
+        try { windowManager?.removeView(targetFlag8View) } catch (e: Exception) {}
+    }
+
+    private fun setupDrag(view: View, params: WindowManager.LayoutParams) {
+        var initialX = 0
+        var initialY = 0
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+        view.setOnTouchListener { _, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    initialX = params.x
+                    initialY = params.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    params.x = initialX + (event.rawX - initialTouchX).toInt()
+                    params.y = initialY + (event.rawY - initialTouchY).toInt()
+                    windowManager?.updateViewLayout(view, params)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+    // --- End Bear Hunter Mode Restored UI ---
+
     private fun showToast(msg: String) {
         mainHandler.post {
             Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT).show()
@@ -2598,6 +2935,10 @@ class AutoClickService : AccessibilityService() {
                             val response = conn.inputStream.bufferedReader().readText()
                             if (response != "null") {
                                 val json = org.json.JSONObject(response)
+                                val ann = json.optString("announcement", "공지사항이 없습니다.")
+                                Handler(Looper.getMainLooper()).post {
+                                    rallyDialogView?.findViewById<TextView>(R.id.tvMarquee)?.text = ann
+                                }
                                 val timestamp = json.optLong("timestamp", 0)
                                 val senderId = json.optString("senderId", "")
                                 
@@ -2720,6 +3061,19 @@ class AutoClickService : AccessibilityService() {
         syncPollingThread = null
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

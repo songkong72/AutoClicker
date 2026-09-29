@@ -20,6 +20,44 @@ import androidx.core.content.ContextCompat
 import com.sejun.autoclicker.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+    private fun checkAppVersion() {
+        Thread {
+            try {
+                val url = java.net.URL("https://autoclicker-6f8d7-default-rtdb.asia-southeast1.firebasedatabase.app/appInfo.json")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.connectTimeout = 3000
+                if (conn.responseCode == 200) {
+                    val res = conn.inputStream.bufferedReader().readText()
+                    if (res != "null") {
+                        val json = org.json.JSONObject(res)
+                        val latestVersion = json.optInt("latestVersionCode", packageManager.getPackageInfo(packageName, 0).versionCode)
+                        val downloadUrl = json.optString("downloadUrl", "")
+                        if (latestVersion > packageManager.getPackageInfo(packageName, 0).versionCode && downloadUrl.isNotEmpty()) {
+                            runOnUiThread {
+                                showUpdateDialog(downloadUrl)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {}
+        }.start()
+    }
+
+    private fun showUpdateDialog(url: String) {
+        // 중복 방지
+        if (isFinishing) return
+        android.app.AlertDialog.Builder(this)
+            .setTitle("🚀 새로운 버전 업데이트")
+            .setMessage("연맹 필수! 새로운 버전의 오토클리커가 준비되었습니다. 지금 다운로드하시겠습니까?")
+            .setPositiveButton("다운로드") { _, _ ->
+                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                startActivity(intent)
+            }
+            .setNegativeButton("나중에", null)
+            .setCancelable(false)
+            .show()
+    }
 
     private lateinit var binding: ActivityMainBinding
 
@@ -53,6 +91,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        checkAppVersion()
         updateAuthUI()
         loadSettings()
         updateRallyInfoCard()
@@ -584,3 +623,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 }
+
+
+
+
