@@ -500,8 +500,6 @@ class MainActivity : AppCompatActivity() {
             hint = "비밀번호를 입력하세요"
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.GRAY)
             setPadding(50, 40, 50, 40)
         }
 
