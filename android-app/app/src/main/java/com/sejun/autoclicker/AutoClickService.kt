@@ -75,6 +75,14 @@ class AutoClickService : AccessibilityService() {
     private var clickJob: Job? = null
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val hunterScanRunnable = object : Runnable {
+        override fun run() {
+            if (HunterModeManager.isHunterModeEnabled && HunterModeManager.isAutoScanActive) {
+                HunterModeManager.triggerScan(this@AutoClickService)
+            }
+            mainHandler.postDelayed(this, 300) // 0.3초마다 검사
+        }
+    }
 
     var isClicking: Boolean = false
         private set
@@ -148,6 +156,7 @@ class AutoClickService : AccessibilityService() {
         }
     }
 
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -181,6 +190,10 @@ class AutoClickService : AccessibilityService() {
         if (event?.action == KeyEvent.ACTION_DOWN) {
             val code = event.keyCode
             if (code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_VOLUME_UP) {
+                if (HunterModeManager.isHunterModeEnabled && !HunterModeManager.isAutoScanActive && code == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                    HunterModeManager.triggerScan(this)
+                    return true
+                }
                 if (isRallyReserved) {
                     cancelRallyReservation()
                     vibrate(60)
@@ -456,6 +469,7 @@ class AutoClickService : AccessibilityService() {
         val btnPlayPause = control.findViewById<ImageButton>(R.id.btnPlayPause)
         val btnToggleTarget = control.findViewById<ImageButton>(R.id.btnToggleTarget)
         val btnRally = control.findViewById<ImageButton>(R.id.btnRally)
+        val btnBearMode = control.findViewById<ImageButton>(R.id.btnBearMode)
         val btnSettings = control.findViewById<ImageButton>(R.id.btnSettings)
         val btnOpacity = control.findViewById<ImageButton>(R.id.btnOpacity)
         val btnClose = control.findViewById<ImageButton>(R.id.btnClose)
@@ -2706,3 +2720,8 @@ class AutoClickService : AccessibilityService() {
         syncPollingThread = null
     }
 }
+
+
+
+
+
