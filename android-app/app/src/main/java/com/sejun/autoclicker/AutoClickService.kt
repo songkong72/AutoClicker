@@ -1157,56 +1157,26 @@ class AutoClickService : AccessibilityService() {
         val tvTitle = view.findViewById<TextView>(R.id.tvRallyDialogTitle)
         var secretTapCount = 0
         var lastSecretTapTime = 0L
-        var dragStartRawX = 0f
-        var dragStartRawY = 0f
-        var dragStartParamX = 0
-        var dragStartParamY = 0
-        var isDragging = false
 
+        // 이스터에그: tvTitle 5번 탭
         tvTitle.setOnTouchListener { _, event ->
-            when (event.action) {
-                android.view.MotionEvent.ACTION_DOWN -> {
-                    isDragging = false
-                    dragStartRawX = event.rawX
-                    dragStartRawY = event.rawY
-                    dragStartParamX = rallyDialogParams?.x ?: 0
-                    dragStartParamY = rallyDialogParams?.y ?: 0
-
-                    // 이스터에그: 5번 연속 탭 감지
-                    val now = System.currentTimeMillis()
-                    if (now - lastSecretTapTime < 800) secretTapCount++ else secretTapCount = 1
-                    lastSecretTapTime = now
-                    if (secretTapCount == 5) {
-                        val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
-                        if (!prefs.getBoolean("bear_mode_unlocked", false)) {
-                            prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
-                            controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
-                            showToast("🐻 비밀 헌터 모드가 개방되었습니다!")
-                        } else {
-                            showToast("🐻 이미 헌터 모드가 열려있습니다!")
-                        }
-                        secretTapCount = 0
+            if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+                val now = System.currentTimeMillis()
+                if (now - lastSecretTapTime < 800) secretTapCount++ else secretTapCount = 1
+                lastSecretTapTime = now
+                if (secretTapCount == 5) {
+                    val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+                    if (!prefs.getBoolean("bear_mode_unlocked", false)) {
+                        prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
+                        controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
+                        showToast("🐻 비밀 헌터 모드가 개방되었습니다!")
+                    } else {
+                        showToast("🐻 이미 헌터 모드가 열려있습니다!")
                     }
-                }
-                android.view.MotionEvent.ACTION_MOVE -> {
-                    val dx = event.rawX - dragStartRawX
-                    val dy = event.rawY - dragStartRawY
-                    // 5픽셀 이상 움직여야 드래그로 인식 (탭과 구분)
-                    if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-                        isDragging = true
-                    }
-                    if (isDragging) {
-                        val p = rallyDialogParams ?: return@setOnTouchListener true
-                        p.x = dragStartParamX + dx.toInt()
-                        p.y = dragStartParamY + dy.toInt()
-                        try { wm.updateViewLayout(view, p) } catch (e: Exception) {}
-                    }
-                }
-                android.view.MotionEvent.ACTION_UP -> {
-                    isDragging = false
+                    secretTapCount = 0
                 }
             }
-            true
+            false // 헤더의 드래그 리스너도 함께 동작하도록 이벤트 소비 안 함
         }
 
 
