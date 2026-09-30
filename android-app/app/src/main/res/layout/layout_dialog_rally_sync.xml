@@ -14,7 +14,6 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal">
-
         <TextView
             android:id="@+id/tvRallyDialogTitle"
             android:layout_width="0dp"
@@ -26,8 +25,6 @@
             android:singleLine="true"
             android:ellipsize="end"
             android:textStyle="bold" />
-
-        <!-- 투명도 버튼 -->
         <TextView
             android:id="@+id/btnRallyAlpha"
             android:layout_width="40dp"
@@ -40,8 +37,6 @@
             android:textSize="11sp"
             android:textStyle="bold"
             android:singleLine="true" />
-
-        <!-- ─ 최소화 버튼 -->
         <TextView
             android:id="@+id/btnRallyMinimize"
             android:layout_width="28dp"
@@ -53,8 +48,6 @@
             android:textColor="#CBD5E1"
             android:textSize="14sp"
             android:textStyle="bold" />
-
-        <!-- ✕ 닫기 버튼 -->
         <ImageButton
             android:id="@+id/btnRallyClose"
             android:layout_width="28dp"
@@ -66,7 +59,6 @@
             android:tint="#94A3B8" />
     </LinearLayout>
 
-    <!-- 컴팩트 뷰 영역 (최소화 시 보여짐) -->
     <LinearLayout
         android:id="@+id/rallyDialogCompactContent"
         android:layout_width="match_parent"
@@ -75,7 +67,6 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:visibility="gone">
-
         <TextView
             android:id="@+id/tvCompactCountdown"
             android:layout_width="0dp"
@@ -85,7 +76,6 @@
             android:textColor="#38BDF8"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:id="@+id/tvCompactMode"
             android:layout_width="wrap_content"
@@ -100,598 +90,661 @@
             android:paddingBottom="2dp" />
     </LinearLayout>
 
-    <!-- 콘텐츠 영역: 최소화 시 이 뷰 전체를 GONE으로 숨김 -->
     <LinearLayout
         android:id="@+id/rallyDialogContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="#334155" />
-
-    <!-- 👑 관리자 / ⚔️ 집결장 모드 토글 탭 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="34dp"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/bg_chip_normal"
-        android:orientation="horizontal"
-        android:padding="3dp">
-
-        <TextView
-            android:id="@+id/tabAdmin"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="@drawable/bg_chip_selected"
-            android:gravity="center"
-            android:text="👑 관리자"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tabRallyLeader"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginStart="3dp"
-            android:gravity="center"
-            android:text="⚔️ 집결장"
-            android:textColor="#94A3B8"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- 초대 코드 및 클라우드 연동 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="☁️ 방 코드:"
-            android:textColor="#CBD5E1"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-        <EditText
-            android:id="@+id/etRoomNumber"
-            android:layout_width="65dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_compact_picker"
-            android:gravity="center"
-            android:hint="초대코드"
-            android:inputType="textCapCharacters"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
-            android:textSize="12sp" />
-        <!-- 관리자 전용: 생성 버튼 -->
-        <Button
-            android:id="@+id/btnGenerateRoom"
-            android:layout_width="45dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="4dp"
-            android:background="@drawable/bg_chip_normal"
-            android:text="생성"
-            android:textColor="#FFFFFF"
-            android:textSize="10sp"
-            android:padding="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp" />
-        <Button
-            android:id="@+id/btnCopyRoom"
-            android:layout_width="45dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="4dp"
-            android:background="@drawable/bg_chip_normal"
-            android:text="복사"
-            android:textColor="#FFFFFF"
-            android:textSize="10sp"
-            android:padding="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp" />
-        <TextView
-            android:id="@+id/tvSyncStatus"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:gravity="end"
-            android:singleLine="true"
-            android:text="● 오프라인"
-            android:textColor="#94A3B8"
-            android:textSize="10sp" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginBottom="8dp"
-        android:background="#334155" />
-
-    <!-- ===== 관리자 전용 영역 시작 (groupAdminOnly) ===== -->
-    <LinearLayout
-        android:id="@+id/groupAdminOnly"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-    <!-- 2. 군/작전 그룹 가로 스크롤 탭 & 확실한 [+], [휴지통] 아이콘 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <HorizontalScrollView
-            android:id="@+id/scrollArmyChips"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:id="@+id/layoutArmyChipsContainer"
-                android:layout_width="wrap_content"
-                android:layout_height="28dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal" />
-        </HorizontalScrollView>
-
-        <!-- 명확한 추가 (+) 아이콘 -->
-        <ImageButton
-            android:id="@+id/btnAddGroup"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="군단 추가"
-            android:padding="5dp"
-            android:src="@drawable/ic_add"
-            android:tint="#38BDF8" />
-
-        <!-- 명확한 삭제 (휴지통) 아이콘 -->
-        <ImageButton
-            android:id="@+id/btnDeleteGroup"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginStart="4dp"
-            android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="군단 삭제"
-            android:padding="5dp"
-            android:src="@drawable/ic_delete"
-            android:tint="#EF4444" />
-    </LinearLayout>
-
-    <!-- 3. 작전명 및 집결장 이름 입력칸 (슬림 30dp) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:orientation="horizontal">
-
-        <EditText
-            android:id="@+id/etGroupName"
-            android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_floating_capsule"
-            android:hint="작전명 (예: 1군 집결)"
-            android:inputType="text"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
-            android:textSize="11.5sp" />
-
-        <EditText
-            android:id="@+id/etLeaderName"
-            android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_marginStart="5dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_floating_capsule"
-            android:hint="집결장 이름 (예: 리더김)"
-            android:inputType="text"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
-            android:textSize="11.5sp" />
-    </LinearLayout>
-
-    <!-- ⚙️ 집결 설정 (집결 대기 + 도착 시간 통합 토글, 기본 닫힘) -->
-    <LinearLayout
-        android:id="@+id/sectionHeaderRallySettings"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:gravity="center_vertical"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="⚙️ 집결 설정"
-            android:textColor="#CBD5E1"
-            android:textSize="11.5sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvRallyWaitNote"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:text="(대기 5분 / 도착 시간)"
-            android:textColor="#94A3B8"
-            android:textSize="10.5sp" />
-
-        <ImageView
-            android:id="@+id/ivToggleRallySettings"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:src="@drawable/ic_arrow_drop_down"
-            android:tint="#94A3B8" />
-    </LinearLayout>
-
-    <!-- 집결 설정 본문 (기본 닫힘) -->
-    <LinearLayout
-        android:id="@+id/sectionBodyRallySettings"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <!-- 3-1. 집결원 입력칸 (토글 안으로 들어옴) -->
-        <EditText
-            android:id="@+id/etMembers"
+        <View
             android:layout_width="match_parent"
-            android:layout_height="30dp"
-            android:layout_marginTop="5dp"
-            android:background="@drawable/bg_floating_capsule"
-            android:hint="👥 집결원 (예: 홍길동, 김철수, 이영희)"
-            android:inputType="text"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
-            android:textSize="11.5sp" />
-
-        <!-- ⏳ 집결 대기 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="1dp"
             android:layout_marginTop="8dp"
-            android:text="⏳ 집결 대기"
-            android:textColor="#94A3B8"
-            android:textSize="10.5sp"
-            android:textStyle="bold" />
+            android:layout_marginBottom="8dp"
+            android:background="#334155" />
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
-
+            android:layout_height="34dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_chip_normal"
+            android:orientation="horizontal"
+            android:padding="3dp">
             <TextView
-                android:id="@+id/btnWait1Min"
+                android:id="@+id/tabAdmin"
                 android:layout_width="0dp"
-                android:layout_height="26dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:background="@drawable/bg_chip_normal"
-                android:gravity="center"
-                android:text="1분"
-                android:textColor="#94A3B8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/btnWait3Min"
-                android:layout_width="0dp"
-                android:layout_height="26dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:background="@drawable/bg_chip_normal"
-                android:gravity="center"
-                android:text="3분"
-                android:textColor="#94A3B8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/btnWait5Min"
-                android:layout_width="0dp"
-                android:layout_height="26dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
                 android:background="@drawable/bg_chip_selected"
                 android:gravity="center"
-                android:text="5분"
+                android:text="👑 관리자"
                 android:textColor="#FFFFFF"
                 android:textSize="11sp"
                 android:textStyle="bold" />
-
             <TextView
-                android:id="@+id/btnWait10Min"
+                android:id="@+id/tabRallyLeader"
                 android:layout_width="0dp"
-                android:layout_height="26dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:background="@drawable/bg_chip_normal"
+                android:layout_marginStart="3dp"
                 android:gravity="center"
-                android:text="10분"
+                android:text="⚔️ 집결장"
+                android:textColor="#94A3B8"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/tabStatus"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="3dp"
+                android:gravity="center"
+                android:text="📋 현황판"
                 android:textColor="#94A3B8"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- ⏰ 도착 시간 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="⏰ 도착 시간"
-            android:textColor="#94A3B8"
-            android:textSize="10.5sp"
-            android:textStyle="bold" />
-
         <LinearLayout
+            android:id="@+id/layoutRoomCode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginBottom="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
-
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☁️ 방 코드:"
+                android:textColor="#CBD5E1"
+                android:textSize="12sp"
+                android:textStyle="bold" />
             <EditText
-                android:id="@+id/etTargetHour"
-                android:layout_width="32dp"
-                android:layout_height="30dp"
+                android:id="@+id/etRoomNumber"
+                android:layout_width="65dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/bg_compact_picker"
                 android:gravity="center"
-                android:inputType="number"
-                android:maxLength="2"
-                android:text="20"
+                android:hint="초대코드"
+                android:inputType="textCapCharacters"
                 android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:text="시"
-                android:textColor="#94A3B8"
-                android:textSize="11sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="2dp"
-                android:text=":"
-                android:textColor="#94A3B8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/etTargetMin"
-                android:layout_width="32dp"
-                android:layout_height="30dp"
-                android:background="@drawable/bg_compact_picker"
-                android:gravity="center"
-                android:inputType="number"
-                android:maxLength="2"
-                android:text="30"
+                android:textColorHint="#64748B"
+                android:textSize="12sp" />
+            <Button
+                android:id="@+id/btnGenerateRoom"
+                android:layout_width="45dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_chip_normal"
+                android:text="생성"
                 android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:text="분"
-                android:textColor="#94A3B8"
-                android:textSize="11sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="2dp"
-                android:text=":"
-                android:textColor="#94A3B8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/etTargetSec"
-                android:layout_width="32dp"
-                android:layout_height="30dp"
-                android:background="@drawable/bg_compact_picker"
-                android:gravity="center"
-                android:inputType="number"
-                android:maxLength="2"
-                android:text="00"
+                android:textSize="10sp"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp" />
+            <Button
+                android:id="@+id/btnCopyRoom"
+                android:layout_width="45dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_chip_normal"
+                android:text="복사"
                 android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
+                android:textSize="10sp"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp" />
             <TextView
-                android:layout_width="wrap_content"
+                android:id="@+id/tvSyncStatus"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:text="초"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:gravity="end"
+                android:singleLine="true"
+                android:text="● 오프라인"
                 android:textColor="#94A3B8"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
-        <!-- 도착 시간 프리셋 버튼: -5분 / -1분 / +1분 / +5분 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginBottom="8dp"
+            android:background="#334155" />
+
+        <!-- 공통 군단 선택 영역 -->
         <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <HorizontalScrollView
+                    android:id="@+id/scrollArmyChips"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:scrollbars="none">
+                    <LinearLayout
+                        android:id="@+id/layoutArmyChipsContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+                <ImageButton
+                    android:id="@+id/btnAddGroup"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_floating_btn_circle"
+                    android:contentDescription="군단 추가"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_add"
+                    android:tint="#38BDF8" />
+                <ImageButton
+                    android:id="@+id/btnDeleteGroup"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/bg_floating_btn_circle"
+                    android:contentDescription="군단 삭제"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_delete"
+                    android:tint="#EF4444" />
+            </LinearLayout>
+
+        <!-- ===== 관리자 전용 영역 시작 ===== -->
+        <LinearLayout
+            android:id="@+id/groupAdminOnly"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/btnTimeMinus5"
-                android:layout_width="0dp"
-                android:layout_height="26dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:background="@drawable/bg_chip_normal"
-                android:gravity="center"
-                android:text="-5분"
-                android:textColor="#94A3B8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+            
 
-            <TextView
-                android:id="@+id/btnTimeMinus1"
-                android:layout_width="0dp"
-                android:layout_height="26dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:background="@drawable/bg_chip_normal"
-                android:gravity="center"
-                android:text="-1분"
-                android:textColor="#94A3B8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/btnTimePlus1"
-                android:layout_width="0dp"
-                android:layout_height="26dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:background="@drawable/bg_chip_normal"
-                android:gravity="center"
-                android:text="+1분"
-                android:textColor="#38BDF8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/btnTimePlus5"
-                android:layout_width="0dp"
-                android:layout_height="26dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_chip_normal"
-                android:gravity="center"
-                android:text="+5분"
-                android:textColor="#38BDF8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- 📢 전체 적용 버튼 (집결 대기 + 도착 시간 설정을 전체 군단에 적용) -->
-    <Button
-        android:id="@+id/btnApplyAllOrder"
-        android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:layout_marginTop="8dp"
-        android:backgroundTint="#991B1B"
-        android:insetTop="0dp"
-        android:insetBottom="0dp"
-        android:text="📢 집결 대기 + 도착 시간 → 전체 적용"
-        android:textColor="#FFFFFF"
-        android:textSize="10.5sp"
-        android:textStyle="bold" />
-
-    </LinearLayout>
-    <!-- ===== 관리자 전용 영역 끝 ===== -->
-
-    <!-- ===== 집결장 전용 영역 시작 (groupLeaderOnly) - 기본 숨김 ===== -->
-    <LinearLayout
-        android:id="@+id/groupLeaderOnly"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <!-- 군단 탭 (읽기 전용, +/삭제 없음) -->
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:scrollbars="none">
             <LinearLayout
-                android:id="@+id/layoutArmyChipsContainerLeader"
-                android:layout_width="wrap_content"
-                android:layout_height="28dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal" />
-        </HorizontalScrollView>
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+                <EditText
+                    android:id="@+id/etGroupName"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_floating_capsule"
+                    android:hint="작전명 (예: 1군 집결)"
+                    android:inputType="text"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#64748B"
+                    android:textSize="11.5sp" />
+                <EditText
+                    android:id="@+id/etLeaderName"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="5dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_floating_capsule"
+                    android:hint="집결장 이름 (예: 리더김)"
+                    android:inputType="text"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#64748B"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
 
-        <!-- 군단명 + 집결장 이름 읽기 전용 -->
+            <LinearLayout
+                android:id="@+id/sectionHeaderRallySettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/bg_chip_normal"
+                android:padding="8dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️ 집결 설정"
+                    android:textColor="#CBD5E1"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tvRallyWaitNote"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:text="(대기 5분 / 도착 시간)"
+                    android:textColor="#94A3B8"
+                    android:textSize="10.5sp" />
+                <TextView
+                    android:id="@+id/tvToggleRallySettingsText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▲ 접기"
+                    android:textColor="#94A3B8"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="4dp" />
+                <ImageView
+                    android:id="@+id/ivToggleRallySettings"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_arrow_drop_down"
+                    android:tint="#38BDF8"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/sectionBodyRallySettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+                <EditText
+                    android:id="@+id/etMembers"
+                    android:layout_width="match_parent"
+                    android:layout_height="30dp"
+                    android:layout_marginTop="5dp"
+                    android:background="@drawable/bg_floating_capsule"
+                    android:hint="👥 집결원 (예: 홍길동, 김철수)"
+                    android:inputType="text"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#64748B"
+                    android:textSize="11.5sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="⏳ 집결 대기"
+                    android:textColor="#94A3B8"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+                    <TextView android:id="@+id/btnWait1Min" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="1분" android:textColor="#94A3B8" android:textSize="11sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnWait3Min" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="3분" android:textColor="#94A3B8" android:textSize="11sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnWait5Min" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/bg_chip_selected" android:gravity="center" android:text="5분" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnWait10Min" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="10분" android:textColor="#94A3B8" android:textSize="11sp" android:textStyle="bold" />
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:text="⏰ 도착 시간"
+                        android:textColor="#94A3B8"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold" />
+                    <EditText android:id="@+id/etTargetHour" android:layout_width="32dp" android:layout_height="30dp" android:background="@drawable/bg_compact_picker" android:gravity="center" android:inputType="number" android:maxLength="2" android:text="20" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="2dp" android:text="시" android:textColor="#94A3B8" android:textSize="11sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingHorizontal="2dp" android:text=":" android:textColor="#94A3B8" android:textSize="11sp" android:textStyle="bold" />
+                    <EditText android:id="@+id/etTargetMin" android:layout_width="32dp" android:layout_height="30dp" android:background="@drawable/bg_compact_picker" android:gravity="center" android:inputType="number" android:maxLength="2" android:text="30" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="2dp" android:text="분" android:textColor="#94A3B8" android:textSize="11sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingHorizontal="2dp" android:text=":" android:textColor="#94A3B8" android:textSize="11sp" android:textStyle="bold" />
+                    <EditText android:id="@+id/etTargetSec" android:layout_width="32dp" android:layout_height="30dp" android:background="@drawable/bg_compact_picker" android:gravity="center" android:inputType="number" android:maxLength="2" android:text="00" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="2dp" android:text="초" android:textColor="#94A3B8" android:textSize="11sp" />
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+                    <TextView android:id="@+id/btnTimeMinus5" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="-5분" android:textColor="#94A3B8" android:textSize="11sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnTimeMinus1" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="-1분" android:textColor="#94A3B8" android:textSize="11sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnTimePlus1" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="+1분" android:textColor="#38BDF8" android:textSize="11sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnTimePlus5" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="+5분" android:textColor="#38BDF8" android:textSize="11sp" android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+                        <TextView
+                android:id="@+id/tvAdminDepartureInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="상태: 대기중"
+                android:textColor="#E2E8F0"
+                android:textSize="11sp"
+                android:singleLine="true" />
+                
+            <Button
+                android:id="@+id/btnApplyAllOrder"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="#991B1B"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="📢 집결 대기 + 도착 시간 → 전체 적용"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+            
+        </LinearLayout>
+        <!-- ===== 관리자 전용 영역 끝 ===== -->
+
+        <!-- ===== 집결장 전용 영역 시작 ===== -->
         <LinearLayout
+            android:id="@+id/groupLeaderOnly"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:visibility="gone">
 
-            <TextView
-                android:id="@+id/tvLeaderGroupName"
-                android:layout_width="0dp"
-                android:layout_height="30dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_floating_capsule"
+            <!-- 간편 모드 토글 스위치 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
                 android:gravity="center_vertical"
-                android:paddingStart="8dp"
-                android:text="군단명"
-                android:textColor="#CBD5E1"
-                android:textSize="11.5sp" />
+                android:orientation="horizontal">
+                
+                <TextView
+                    android:id="@+id/tvSimpleModeTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⚡ 간편 모드 ON"
+                    android:textColor="#34D399"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+                    
+                <Switch
+                    android:id="@+id/switchSimpleMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:theme="@style/Widget.AppCompat.CompoundButton.Switch" />
+            </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvLeaderName"
-                android:layout_width="0dp"
-                android:layout_height="30dp"
-                android:layout_marginStart="5dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_floating_capsule"
+
+
+            
+
+            <!-- 행군 시간 & MS 보정 (통합) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:gravity="center_vertical"
-                android:paddingStart="8dp"
-                android:text="집결장명"
-                android:textColor="#CBD5E1"
-                android:textSize="11.5sp" />
+                android:orientation="horizontal">
+                
+                <!-- 행군 시간 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏃 행군 시간"
+                    android:textColor="#CBD5E1"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+                <EditText
+                    android:id="@+id/etMarchDuration"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_compact_picker"
+                    android:gravity="center"
+                    android:inputType="numberDecimal"
+                    android:maxLength="7"
+                    android:text="120"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="초"
+                    android:textColor="#94A3B8"
+                    android:textSize="11.5sp" />
+                
+                <!-- MS 보정 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="⚙️ MS"
+                    android:textColor="#94A3B8"
+                    android:textSize="11.5sp" />
+                <EditText
+                    android:id="@+id/etClickOffsetMs"
+                    android:layout_width="50dp"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/bg_compact_picker"
+                    android:gravity="center"
+                    android:inputType="numberSigned"
+                    android:maxLength="5"
+                    android:text="0"
+                    android:textColor="#FBBF24"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="ms"
+                    android:textColor="#94A3B8"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
+
+            <!-- 고급 설정 컨테이너 (간편모드 켜지면 숨겨짐) -->
+            <!-- 모드 선택 (고급) -->
+            <LinearLayout
+                android:id="@+id/layoutAdvancedSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="end"
+                android:visibility="gone">
+                <TextView android:id="@+id/btnModeAuto" android:layout_width="wrap_content" android:layout_height="26dp" android:gravity="center" android:paddingHorizontal="6dp" android:text="🤖 자동" android:textColor="#FFFFFF" android:textSize="10.5sp" android:background="@drawable/bg_chip_normal" />
+                <TextView android:id="@+id/btnModeManual" android:layout_width="wrap_content" android:layout_height="26dp" android:layout_marginStart="4dp" android:gravity="center" android:paddingHorizontal="6dp" android:text="🖐️ 수동" android:textColor="#FFFFFF" android:textSize="10.5sp" android:background="@drawable/bg_chip_selected" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+                    <TextView android:id="@+id/btnMarchMinus10" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="-10" android:textColor="#94A3B8" android:textSize="10.5sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnMarchMinus1" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="-1" android:textColor="#94A3B8" android:textSize="10.5sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnMarchMinus01" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1.1" android:layout_marginEnd="2dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="-0.1" android:textColor="#F59E0B" android:textSize="10.5sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnMarchPlus01" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1.1" android:layout_marginEnd="2dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="+0.1" android:textColor="#F59E0B" android:textSize="10.5sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnMarchPlus1" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="+1" android:textColor="#38BDF8" android:textSize="10.5sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/btnMarchPlus10" android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:background="@drawable/bg_chip_normal" android:gravity="center" android:text="+10" android:textColor="#38BDF8" android:textSize="10.5sp" android:textStyle="bold" />
+                </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="#334155" />
+
+            <!-- 타겟 위치 및 모드 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/tvSavedTargetLocation"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🎯 타겟 : 미지정"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- 액션 버튼 및 내 상태 -->
+            <TextView
+                android:id="@+id/tvMyDepartureInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="상태: 대기중"
+                android:textColor="#E2E8F0"
+                android:textSize="11sp"
+                android:singleLine="true" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical">
+                <Button
+                    android:id="@+id/btnSaveTargetPosition"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginBottom="6dp"
+                    android:backgroundTint="#2563EB"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="📍 화면에서 타겟 위치 지정하기"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+                <Button
+                    android:id="@+id/btnStartRallyReservation"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:backgroundTint="#059669"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="🚀 오토클릭 자동 출발 예약"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </LinearLayout>
+        <!-- ===== 집결장 전용 영역 끝 ===== -->
 
-        <!-- 도착 시간 읽기 전용 표시 -->
-        <TextView
-            android:id="@+id/tvLeaderTargetTime"
-            android:layout_width="wrap_content"
+        <!-- ===== 현황판 전용 영역 시작 ===== -->
+        <LinearLayout
+            android:id="@+id/groupStatusOnly"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="⏰ 도착 시간: --:--:--"
-            android:textColor="#94A3B8"
-            android:textSize="11sp" />
+            android:orientation="vertical"
+            android:visibility="gone">
 
-        <!-- 전체 군단 현황 뱃지 -->
-        <TextView
-            android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/layoutAllArmiesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="4dp"
+                    android:orientation="horizontal">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="군단 명 (군장)" android:textColor="#94A3B8" android:textSize="10.5sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="출발 시간" android:textColor="#94A3B8" android:textSize="10.5sp" />
+                </LinearLayout>
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="120dp">
+                    <ScrollView
+                        android:id="@+id/scrollAllArmies"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:fadeScrollbars="false">
+                        <LinearLayout
+                            android:id="@+id/layoutAllArmiesList"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </ScrollView>
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+        <!-- ===== 현황판 전용 영역 끝 ===== -->
+
+        <!-- 실시간 전광판 (공지사항) -->
+        <LinearLayout
+            android:id="@+id/marqueeContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="전체 군단 현황"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            android:background="@drawable/bg_compact_picker"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="6dp">
+            <ImageButton
+                android:id="@+id/btnAnnounce"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:background="@null"
+                android:src="@drawable/ic_speaker"
+                android:contentDescription="공지"
+                android:tint="#F59E0B" />
+            <TextView
+                android:id="@+id/tvMarquee"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:text="공지사항이 없습니다."
+                android:textColor="#EF4444"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 글로벌 전체 군단 출발 현황 뱃지 영역 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📋 전체 군단 현황"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+            <ImageButton
+                android:id="@+id/btnCopyAllSchedule"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="@null"
+                android:src="@drawable/ic_copy"
+                android:tint="#94A3B8" />
+        </LinearLayout>
 
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="6dp"
             android:scrollbars="none">
             <LinearLayout
                 android:id="@+id/layoutArmyStatusBadges"
@@ -700,408 +753,5 @@
                 android:orientation="horizontal" />
         </HorizontalScrollView>
 
-    </LinearLayout>
-    <!-- ===== 집결장 전용 영역 끝 ===== -->
-
-
-
-    <!-- 5. 행군 시간 & 미세 타격 보정 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🏃 행군 시간"
-            android:textColor="#CBD5E1"
-            android:textSize="11.5sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/etMarchDuration"
-            android:layout_width="60dp"
-            android:layout_height="30dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/bg_compact_picker"
-            android:gravity="center"
-            android:inputType="numberDecimal"
-            android:maxLength="7"
-            android:text="120"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="2dp"
-            android:text="초"
-            android:textColor="#94A3B8"
-            android:textSize="11.5sp" />
-            
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="보정:"
-            android:textColor="#94A3B8"
-            android:textSize="11sp" />
-
-        <EditText
-            android:id="@+id/etClickOffsetMs"
-            android:layout_width="45dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="4dp"
-            android:background="@drawable/bg_compact_picker"
-            android:gravity="center"
-            android:inputType="numberSigned"
-            android:maxLength="5"
-            android:text="0"
-            android:textColor="#FBBF24"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="2dp"
-            android:text="ms"
-            android:textColor="#94A3B8"
-            android:textSize="11sp" />
-
-    </LinearLayout>
-
-
-
-    <!-- 행군 시간 프리셋 버튼: -10초 / -1초 / -0.1초 / +0.1초 / +1초 / +10초 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/btnMarchMinus10"
-            android:layout_width="0dp"
-            android:layout_height="26dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="2dp"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="-10"
-            android:textColor="#94A3B8"
-            android:textSize="10.5sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/btnMarchMinus1"
-            android:layout_width="0dp"
-            android:layout_height="26dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="2dp"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="-1"
-            android:textColor="#94A3B8"
-            android:textSize="10.5sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/btnMarchMinus01"
-            android:layout_width="0dp"
-            android:layout_height="26dp"
-            android:layout_weight="1.1"
-            android:layout_marginEnd="2dp"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="-0.1"
-            android:textColor="#F59E0B"
-            android:textSize="10.5sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/btnMarchPlus01"
-            android:layout_width="0dp"
-            android:layout_height="26dp"
-            android:layout_weight="1.1"
-            android:layout_marginEnd="2dp"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="+0.1"
-            android:textColor="#F59E0B"
-            android:textSize="10.5sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/btnMarchPlus1"
-            android:layout_width="0dp"
-            android:layout_height="26dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="2dp"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="+1"
-            android:textColor="#38BDF8"
-            android:textSize="10.5sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/btnMarchPlus10"
-            android:layout_width="0dp"
-            android:layout_height="26dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="+10"
-            android:textColor="#38BDF8"
-            android:textSize="10.5sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="7dp"
-        android:background="#334155" />
-
-    <!-- 6. 내 출발 예정 정보 (한 줄 심플 표기) -->
-    <TextView
-        android:id="@+id/tvMyDepartureInfo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="집결 오픈 21:23:00 (5분) | 대기"
-        android:textColor="#E2E8F0"
-        android:textSize="11sp"
-        android:singleLine="true"
-        android:ellipsize="end" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="8dp"
-        android:background="#334155" />
-
-    <!-- 7. 전체 군단 출발 목록 -->
-    <LinearLayout
-        android:id="@+id/btnToggleAllArmies"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:background="?android:attr/selectableItemBackground"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-        
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="전체 군단 출발 목록"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <ImageView
-            android:id="@+id/ivToggleArmiesIcon"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_marginStart="2dp"
-            android:src="@drawable/ic_arrow_drop_down"
-            android:tint="#94A3B8" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <ImageButton
-            android:id="@+id/btnCopyAllSchedule"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:background="@null"
-            android:src="@drawable/ic_copy"
-            android:tint="#94A3B8" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/layoutAllArmiesContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="군단 명 (군장)"
-                android:textColor="#94A3B8"
-                android:textSize="10.5sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="출발 시간"
-                android:textColor="#94A3B8"
-                android:textSize="10.5sp" />
-        </LinearLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="120dp">
-
-            <ScrollView
-                android:id="@+id/scrollAllArmies"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:fadeScrollbars="false">
-
-                <LinearLayout
-                    android:id="@+id/layoutAllArmiesList"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
-        </FrameLayout>
-    </LinearLayout>
-
-    <!-- 8. 타겟 위치 저장 상태 안내 및 대기 모드 (통합 한 줄) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tvSavedTargetLocation"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🎯 저장된 타겟 : 위치 미지정"
-            android:textColor="#94A3B8"
-            android:textSize="11sp" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/btnModeAuto"
-                android:layout_width="wrap_content"
-                android:layout_height="26dp"
-                android:gravity="center"
-                android:paddingHorizontal="6dp"
-                android:text="🤖 자동 (5초전)"
-                android:textColor="#FFFFFF"
-                android:textSize="10.5sp"
-                android:background="@drawable/bg_chip_normal" />
-
-            <TextView
-                android:id="@+id/btnModeManual"
-                android:layout_width="wrap_content"
-                android:layout_height="26dp"
-                android:layout_marginStart="4dp"
-                android:gravity="center"
-                android:paddingHorizontal="6dp"
-                android:text="🖐️ 수동"
-                android:textColor="#FFFFFF"
-                android:textSize="10.5sp"
-                android:background="@drawable/bg_chip_selected" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- 9. 메인 액션 버튼 바: [📍 타겟위치 저장] + [🚀 예약 대기 시작] -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/btnSaveTargetPosition"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:backgroundTint="#2563EB"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:paddingHorizontal="2dp"
-            android:text="📍 타겟위치 저장"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnStartRallyReservation"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1"
-            android:backgroundTint="#16A34A"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:paddingHorizontal="2dp"
-            android:text="🚀 예약 대기 시작"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- 실시간 전광판 (공지사항) -->
-    <LinearLayout
-        android:id="@+id/marqueeContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/bg_compact_picker"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="6dp">
-        
-        <ImageButton
-            android:id="@+id/btnAnnounce"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:background="@null"
-            android:src="@drawable/ic_speaker"
-            android:contentDescription="공지"
-            android:tint="#F59E0B" />
-
-        <TextView
-            android:id="@+id/tvMarquee"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:ellipsize="marquee"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:singleLine="true"
-            android:text="공지사항이 없습니다."
-            android:textColor="#EF4444"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
     </LinearLayout><!-- rallyDialogContent 끝 -->
-
 </LinearLayout>
-
-

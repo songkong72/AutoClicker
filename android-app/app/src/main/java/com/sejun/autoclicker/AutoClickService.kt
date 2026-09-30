@@ -17,6 +17,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
+import android.content.res.ColorStateList
 import android.graphics.Path
 import android.graphics.PixelFormat
 import android.os.Build
@@ -1292,12 +1293,13 @@ class AutoClickService : AccessibilityService() {
 
         // 내 군단 출발 정보 섹터 (한 줄 심플 표기)
         val tvMyDepartureInfo = view.findViewById<TextView>(R.id.tvMyDepartureInfo)
+        val tvAdminDepartureInfo = view.findViewById<TextView>(R.id.tvAdminDepartureInfo)
 
         // 전체 군단 스케줄 리스트
         val btnCopyAllSchedule = view.findViewById<ImageButton>(R.id.btnCopyAllSchedule)
         val layoutAllArmiesList = view.findViewById<LinearLayout>(R.id.layoutAllArmiesList)
-        val btnToggleAllArmies = view.findViewById<LinearLayout>(R.id.btnToggleAllArmies)
-        val ivToggleArmiesIcon = view.findViewById<ImageView>(R.id.ivToggleArmiesIcon)
+        
+        
         val layoutAllArmiesContainer = view.findViewById<LinearLayout>(R.id.layoutAllArmiesContainer)
 
         // 집결원 입력란
@@ -1311,21 +1313,71 @@ class AutoClickService : AccessibilityService() {
         // ⚙️ 집결 설정 통합 토글 (기본 닫힘)
         sectionHeaderRallySettings.setOnClickListener {
             vibrate(10)
+            val tvToggleRallySettingsText = view.findViewById<TextView>(R.id.tvToggleRallySettingsText)
             val expanding = sectionBodyRallySettings.visibility == View.GONE
             sectionBodyRallySettings.visibility = if (expanding) View.VISIBLE else View.GONE
-            ivToggleRallySettings.setImageResource(if (expanding) R.drawable.ic_arrow_drop_up else R.drawable.ic_arrow_drop_down)
+            if (expanding) {
+                tvToggleRallySettingsText?.text = "▲ 접기"
+                tvToggleRallySettingsText?.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+            } else {
+                tvToggleRallySettingsText?.text = "▼ 펼치기"
+                tvToggleRallySettingsText?.setTextColor(android.graphics.Color.parseColor("#38BDF8"))
+            }
         }
 
-        var isArmiesListExpanded = false
-        btnToggleAllArmies.setOnClickListener {
-            isArmiesListExpanded = !isArmiesListExpanded
-            if (isArmiesListExpanded) {
-                layoutAllArmiesContainer.visibility = View.VISIBLE
-                ivToggleArmiesIcon.setImageResource(R.drawable.ic_arrow_drop_up)
+        // 간편 모드 스위치 처리
+        val switchSimpleMode = view.findViewById<android.widget.Switch>(R.id.switchSimpleMode)
+        val layoutAdvancedSettings = view.findViewById<LinearLayout>(R.id.layoutAdvancedSettings)
+        val tvSimpleModeTitle = view.findViewById<TextView>(R.id.tvSimpleModeTitle)
+        val btnStartRallyReservationUi = view.findViewById<Button>(R.id.btnStartRallyReservation)
+        
+        
+        
+        fun updateSimpleModeUi(isChecked: Boolean) {
+            layoutAdvancedSettings.visibility = if (isChecked) View.GONE else View.VISIBLE
+            btnStartRallyReservationUi?.visibility = if (isChecked) View.GONE else View.VISIBLE
+            
+            if (isChecked) {
+                tvSimpleModeTitle?.text = "⚡ 간편 모드 ON"
+                tvSimpleModeTitle?.setTextColor(Color.parseColor("#34D399"))
+                switchSimpleMode.thumbTintList = ColorStateList.valueOf(Color.parseColor("#34D399"))
+                switchSimpleMode.trackTintList = ColorStateList.valueOf(Color.parseColor("#065F46"))
             } else {
-                layoutAllArmiesContainer.visibility = View.GONE
-                ivToggleArmiesIcon.setImageResource(R.drawable.ic_arrow_drop_down)
+                tvSimpleModeTitle?.text = "⚡ 간편 모드 OFF (고급)"
+                tvSimpleModeTitle?.setTextColor(Color.parseColor("#94A3B8"))
+                switchSimpleMode.thumbTintList = ColorStateList.valueOf(Color.parseColor("#94A3B8"))
+                switchSimpleMode.trackTintList = ColorStateList.valueOf(Color.parseColor("#475569"))
             }
+        }
+        
+        // 기본값: 간편 모드 ON
+        switchSimpleMode.isChecked = true
+        updateSimpleModeUi(true)
+        
+        var groups = RallyGroupManager.getGroups(this)
+        var selectedGroup = RallyGroupManager.getSelectedGroup(this)
+
+        fun autoArmIfSimpleMode() {
+            if (switchSimpleMode.isChecked) {
+                val saved = PreferencesHelper.getSavedRallyTargetPosition(this@AutoClickService)
+                if (saved != null && selectedGroup.marchDurationSec > 0) {
+                    val remainMs = selectedGroup.getRemainingMillis()
+                    if (remainMs > 5000L) { // Only auto-arm if at least 5 seconds left
+                        RallyGroupManager.updateGroup(this@AutoClickService, selectedGroup)
+                        startRallyReservation(selectedGroup, isAutoReservation = true)
+                    } else if (isRallyReserved && reservedGroupName == selectedGroup.getDisplayName()) {
+                        // Time passed, but it was armed? Let's just not auto-arm and not cancel if it's already running.
+                        // Actually if we type something that makes it past, we should cancel it.
+                        cancelRallyReservation()
+                    }
+                }
+            }
+        }
+
+        switchSimpleMode.setOnCheckedChangeListener { _, isChecked ->
+            vibrate(10)
+            updateSimpleModeUi(isChecked)
+            if (isChecked) autoArmIfSimpleMode() else cancelRallyReservation()
         }
 
         val btnStart = view.findViewById<Button>(R.id.btnStartRallyReservation)
@@ -1346,8 +1398,7 @@ class AutoClickService : AccessibilityService() {
         }
         updateSavedTargetLocationUi()
 
-        var groups = RallyGroupManager.getGroups(this)
-        var selectedGroup = RallyGroupManager.getSelectedGroup(this)
+
 
         var renderArmyChipsFunc: (() -> Unit)? = null
 
@@ -1491,8 +1542,12 @@ class AutoClickService : AccessibilityService() {
             // ── 내 출발 예정 정보 (한 줄 심플 표기) ──
             val depStr = currentG.getDepartureTimeString()
             val statusPart = statusInfo.text  // 예: "⚔️ 집결대기중 (대기)", "⏳ 집결중 (122초)"
-            tvMyDepartureInfo.text = "오픈 $depStr (${currentG.rallyWaitMinutes}분) | $statusPart"
-            tvMyDepartureInfo.setTextColor(Color.parseColor(statusInfo.color))
+            val statusText = "오픈 $depStr (${currentG.rallyWaitMinutes}분) | $statusPart"
+            val statusColor = Color.parseColor(statusInfo.color)
+            tvMyDepartureInfo.text = statusText
+            tvMyDepartureInfo.setTextColor(statusColor)
+            tvAdminDepartureInfo?.text = statusText
+            tvAdminDepartureInfo?.setTextColor(statusColor)
 
             // 모든 군단 리스트 텍스트 업데이트
             val all = RallyGroupManager.getGroups(this)
@@ -1583,7 +1638,7 @@ class AutoClickService : AccessibilityService() {
         val btnWait3Min = view.findViewById<TextView>(R.id.btnWait3Min)
         val btnWait5Min = view.findViewById<TextView>(R.id.btnWait5Min)
         val btnWait10Min = view.findViewById<TextView>(R.id.btnWait10Min)
-        val tvRallyWaitNote = view.findViewById<TextView>(R.id.tvRallyWaitNote)
+        
 
         fun updateWaitMinutesUi(minutes: Int) {
             btnWait1Min.setBackgroundResource(if (minutes == 1) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
@@ -1598,7 +1653,7 @@ class AutoClickService : AccessibilityService() {
             btnWait10Min.setBackgroundResource(if (minutes == 10) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
             btnWait10Min.setTextColor(if (minutes == 10) Color.WHITE else Color.parseColor("#94A3B8"))
 
-            tvRallyWaitNote.text = "(오픈 후 ${minutes}분 뒤 자동 출발)"
+            
         }
 
         fun loadGroupToUi(g: RallyGroup) {
@@ -1709,78 +1764,70 @@ class AutoClickService : AccessibilityService() {
         }
         // ── 관리자 / 집결장 모드 토글 ─────────────────────────
         val tabAdmin = view.findViewById<TextView>(R.id.tabAdmin)
+        val tabStatus = view.findViewById<TextView>(R.id.tabStatus)
         val tabRallyLeader = view.findViewById<TextView>(R.id.tabRallyLeader)
         val groupAdminOnly = view.findViewById<android.widget.LinearLayout>(R.id.groupAdminOnly)
         val groupLeaderOnly = view.findViewById<android.widget.LinearLayout>(R.id.groupLeaderOnly)
+        val groupStatusOnly = view.findViewById<android.widget.LinearLayout>(R.id.groupStatusOnly)
         val btnGenerateRoomRef = view.findViewById<android.widget.Button>(R.id.btnGenerateRoom)
         val btnAnnounceRef = view.findViewById<android.widget.ImageButton>(R.id.btnAnnounce)
 
-        fun applyMode(admin: Boolean) {
+        fun applyMode(mode: Int) { // 0: Admin, 1: Leader, 2: Status
             getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
-                .edit().putBoolean("is_admin_mode", admin).apply()
-            if (admin) {
-                tabAdmin?.setBackgroundResource(R.drawable.bg_chip_selected)
-                tabAdmin?.setTextColor(android.graphics.Color.WHITE)
-                tabRallyLeader?.setBackgroundResource(0)
-                tabRallyLeader?.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
-                groupAdminOnly?.visibility = android.view.View.VISIBLE
-                groupLeaderOnly?.visibility = android.view.View.GONE
-                btnGenerateRoomRef?.visibility = android.view.View.VISIBLE
-                btnAnnounceRef?.visibility = android.view.View.VISIBLE
-            } else {
-                tabRallyLeader?.setBackgroundResource(R.drawable.bg_chip_selected)
-                tabRallyLeader?.setTextColor(android.graphics.Color.WHITE)
-                tabAdmin?.setBackgroundResource(0)
-                tabAdmin?.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
-                groupAdminOnly?.visibility = android.view.View.GONE
-                groupLeaderOnly?.visibility = android.view.View.VISIBLE
-                btnGenerateRoomRef?.visibility = android.view.View.GONE
-                btnAnnounceRef?.visibility = android.view.View.GONE
-                val tvLeaderGroupName = view.findViewById<TextView>(R.id.tvLeaderGroupName)
-                val tvLeaderNameView = view.findViewById<TextView>(R.id.tvLeaderName)
-                val tvLeaderTargetTime = view.findViewById<TextView>(R.id.tvLeaderTargetTime)
-                tvLeaderGroupName?.text = selectedGroup.name
-                tvLeaderNameView?.text = selectedGroup.leaderName.ifEmpty { "집결장 미지정" }
-                tvLeaderTargetTime?.text = "⏰ 도착 시간: %02d:%02d:%02d".format(
-                    selectedGroup.targetHour, selectedGroup.targetMinute, selectedGroup.targetSecond)
-                val leaderChipContainer = view.findViewById<android.widget.LinearLayout>(R.id.layoutArmyChipsContainerLeader)
-                leaderChipContainer?.removeAllViews()
-                RallyGroupManager.getGroups(this).forEach { g ->
-                    val chip = TextView(this).apply {
-                        text = g.name; textSize = 11f
-                        setTextColor(android.graphics.Color.parseColor(if (g.id == selectedGroup.id) "#FFFFFF" else "#94A3B8"))
-                        setBackgroundResource(if (g.id == selectedGroup.id) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
-                        setPadding(dpToPx(8), 0, dpToPx(8), 0); gravity = android.view.Gravity.CENTER
-                        layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, dpToPx(28)).also { it.marginEnd = dpToPx(4) }
-                        setOnClickListener { selectedGroup = g; applyMode(false) }
-                    }
-                    leaderChipContainer?.addView(chip)
+                .edit().putInt("rally_tab_mode", mode).apply()
+            
+            tabAdmin?.setBackgroundResource(if (mode == 0) R.drawable.bg_chip_selected else 0)
+            tabAdmin?.setTextColor(android.graphics.Color.parseColor(if (mode == 0) "#FFFFFF" else "#94A3B8"))
+            tabRallyLeader?.setBackgroundResource(if (mode == 1) R.drawable.bg_chip_selected else 0)
+            tabRallyLeader?.setTextColor(android.graphics.Color.parseColor(if (mode == 1) "#FFFFFF" else "#94A3B8"))
+            tabStatus?.setBackgroundResource(if (mode == 2) R.drawable.bg_chip_selected else 0)
+            tabStatus?.setTextColor(android.graphics.Color.parseColor(if (mode == 2) "#FFFFFF" else "#94A3B8"))
+            
+            groupAdminOnly?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
+            groupLeaderOnly?.visibility = if (mode == 1) android.view.View.VISIBLE else android.view.View.GONE
+            groupStatusOnly?.visibility = if (mode == 2) android.view.View.VISIBLE else android.view.View.GONE
+            
+            view.findViewById<android.view.View>(R.id.btnAddGroup)?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
+            view.findViewById<android.view.View>(R.id.btnDeleteGroup)?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
+            
+            btnGenerateRoomRef?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
+            btnAnnounceRef?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
+
+            val layoutRoomCode = view.findViewById<android.widget.LinearLayout>(R.id.layoutRoomCode)
+            val marqueeContainer = view.findViewById<android.widget.LinearLayout>(R.id.marqueeContainer)
+            // 방 코드는 관리자 탭(0)에서만 보임
+            layoutRoomCode?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
+            marqueeContainer?.visibility = if (mode == 2) android.view.View.GONE else android.view.View.VISIBLE
+            
+            // "오픈 19:xx 시간지남" 텍스트(tvMyDepartureInfo)는 집결장 탭(1)에서 숨김
+            view.findViewById<android.widget.TextView>(R.id.tvMyDepartureInfo)?.visibility = if (mode == 1) android.view.View.GONE else android.view.View.VISIBLE
+
+
+            val badgesContainer = view.findViewById<android.widget.LinearLayout>(R.id.layoutArmyStatusBadges)
+            badgesContainer?.removeAllViews()
+            RallyGroupManager.getGroups(this@AutoClickService).forEach { g ->
+                val now = System.currentTimeMillis(); val departTs = g.lastDepartedTimestamp; val marchMs = (g.marchDurationSec * 1000).toLong()
+                val (statusText, statusColor) = when {
+                    departTs > 0 && now < departTs + marchMs -> "🚶행군중" to "#F59E0B"
+                    departTs > 0 -> "✅출발" to "#10B981"
+                    else -> "🕐대기" to "#38BDF8"
                 }
-                val badgesContainer = view.findViewById<android.widget.LinearLayout>(R.id.layoutArmyStatusBadges)
-                badgesContainer?.removeAllViews()
-                RallyGroupManager.getGroups(this).forEach { g ->
-                    val now = System.currentTimeMillis(); val departTs = g.lastDepartedTimestamp; val marchMs = (g.marchDurationSec * 1000).toLong()
-                    val (statusText, statusColor) = when {
-                        departTs > 0 && now < departTs + marchMs -> "🚶행군중" to "#F59E0B"
-                        departTs > 0 -> "✅출발" to "#10B981"
-                        else -> "🕐대기" to "#38BDF8"
-                    }
-                    val badge = TextView(this).apply {
-                        text = "${g.name} $statusText"; textSize = 10f
-                        setBackgroundResource(R.drawable.bg_chip_normal)
-                        setPadding(dpToPx(6), dpToPx(3), dpToPx(6), dpToPx(3))
-                        layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).also { it.marginEnd = dpToPx(4) }
-                        setTextColor(android.graphics.Color.parseColor(statusColor))
-                    }
-                    badgesContainer?.addView(badge)
+                val badge = TextView(this@AutoClickService).apply {
+                    text = "${g.name} $statusText"; textSize = 10f
+                    setBackgroundResource(R.drawable.bg_chip_normal)
+                    setPadding(dpToPx(6), dpToPx(3), dpToPx(6), dpToPx(3))
+                    layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).also { it.marginEnd = dpToPx(4) }
+                    setTextColor(android.graphics.Color.parseColor(statusColor))
                 }
+                badgesContainer?.addView(badge)
             }
         }
 
-        val isAdminMode = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("is_admin_mode", true)
-        applyMode(isAdminMode)
-        tabAdmin?.setOnClickListener { applyMode(true) }
-        tabRallyLeader?.setOnClickListener { applyMode(false) }
+        val currentMode = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getInt("rally_tab_mode", 0)
+        applyMode(currentMode)
+        tabAdmin?.setOnClickListener { applyMode(0) }
+        tabRallyLeader?.setOnClickListener { applyMode(1) }
+        tabStatus?.setOnClickListener { applyMode(2) }
 
         tvMarquee?.setOnClickListener {
             val p = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
@@ -2277,16 +2324,8 @@ class AutoClickService : AccessibilityService() {
         updateNotification()
 
         // 자동예약(T-5초) 시 팝업이 열려 있으면 자동 최소화
-        if (isAutoReservation && rallyDialogView != null) {
-            mainHandler.post {
-                val contentView = rallyDialogView?.findViewById<LinearLayout>(R.id.rallyDialogContent)
-                val titleView = rallyDialogView?.findViewById<TextView>(R.id.tvRallyDialogTitle)
-                val minBtn = rallyDialogView?.findViewById<TextView>(R.id.btnRallyMinimize)
-                if (contentView?.visibility != View.GONE) {
-                    minBtn?.performClick()
-                }
-            }
-        }
+        /* Auto-minimize removed */
+        
 
         val location = IntArray(2)
         target?.getLocationOnScreen(location)
@@ -2303,7 +2342,9 @@ class AutoClickService : AccessibilityService() {
         val targetPy = savedPos.second
 
         // 예약 시작 즉시 타겟 뷰를 '최근에 저장된 위치'로 이동
-        moveTargetViewTo(targetPx, targetPy)
+        if (!isAutoReservation) {
+            moveTargetViewTo(targetPx, targetPy)
+        }
 
         // 저장된 위치(Window 좌표)에 앞서 구한 오프셋을 더해 절대 물리 좌표 환산
         val absoluteX = targetPx + offsetX
@@ -2318,7 +2359,9 @@ class AutoClickService : AccessibilityService() {
             setDialogTouchable(false) // 팝업창이 타겟 위치를 가리더라도 100% 뚫고 통과되도록 터치 투과 설정!
         }
 
-        showToast("🚀 [${group.getDisplayName()}] 예약 대기 시작!\n집결 오픈: ${group.getDepartureTimeString()} (${group.rallyWaitMinutes}분 집결 후 자동출발)\n🎯 저장된 위치(${clickX.toInt()}, ${clickY.toInt()}) 정시 자동 클릭 대기")
+        if (!isAutoReservation) {
+            showToast("🚀 [${group.getDisplayName()}] 예약 대기 시작!\n집결 오픈: ${group.getDepartureTimeString()} (${group.rallyWaitMinutes}분 집결 후 자동출발)\n🎯 저장된 위치(${clickX.toInt()}, ${clickY.toInt()}) 정시 자동 클릭 대기")
+        }
 
         rallyJob = serviceScope.launch {
             val pulseRunnable = Runnable {
@@ -2334,12 +2377,12 @@ class AutoClickService : AccessibilityService() {
                 val now = System.currentTimeMillis()
                 val remain = effectiveDepartureTime - now
 
-                if (remain <= 1000L) {
-                    // 클릭 1초 전: 타겟이 혹시 다른 곳으로 옮겨졌더라도 무조건 저장된 위치로 다시 이동 보장!
+                if (remain <= 10000L && remain > 9900L) {
                     moveTargetViewTo(targetPx, targetPy)
-                    mainHandler.post {
-                        setDialogTouchable(false)
-                    }
+                    mainHandler.post { setDialogTouchable(false) }
+                } else if (remain <= 1000L && remain > 900L) {
+                    moveTargetViewTo(targetPx, targetPy)
+                    mainHandler.post { setDialogTouchable(false) }
                 }
 
                 if (remain <= 20L) {
