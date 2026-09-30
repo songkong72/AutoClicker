@@ -42,6 +42,7 @@ import android.text.TextWatcher
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.HorizontalScrollView
 import android.widget.ImageButton
@@ -1204,6 +1205,7 @@ class AutoClickService : AccessibilityService() {
         // ── ─ 최소화 / 복원 상태 플래그 및 함수 ───────────────────────────
         var isMinimized = false
         var savedYBeforeMinimize: Int? = null
+        var autoMinimizedForDepTs: Long = 0L
         var onUpdateCountdown: (() -> Unit)? = null
 
         fun minimizeDialog() {
@@ -1286,7 +1288,10 @@ class AutoClickService : AccessibilityService() {
         val etLeaderName = view.findViewById<EditText>(R.id.etLeaderName)
         val btnApplyAllOrder = view.findViewById<Button>(R.id.btnApplyAllOrder)
 
-        val etTargetHour = view.findViewById<EditText>(R.id.etTargetHour)
+        
+        val cbAutoTargetTime = view.findViewById<CheckBox>(R.id.cbAutoTargetTime)
+        val etTimeOffset = view.findViewById<EditText>(R.id.etTimeOffset)
+val etTargetHour = view.findViewById<EditText>(R.id.etTargetHour)
         val etTargetMin = view.findViewById<EditText>(R.id.etTargetMin)
         val etTargetSec = view.findViewById<EditText>(R.id.etTargetSec)
         val etMarchDuration = view.findViewById<EditText>(R.id.etMarchDuration)
@@ -1497,6 +1502,14 @@ class AutoClickService : AccessibilityService() {
 
             val currentG = RallyGroupManager.getGroups(this@AutoClickService).find { it.id == selectedGroup.id } ?: selectedGroup
             val remMs = currentG.getRemainingMillis()
+            if (remMs in 1L..10000L && !isMinimized) {
+                val depTs = currentG.calculateDepartureTimestamp()
+                if (autoMinimizedForDepTs != depTs) {
+                    minimizeDialog()
+                    autoMinimizedForDepTs = depTs
+                }
+            }
+
             val waitMs = currentG.rallyWaitMinutes * 60_000L
             val marchMs = (currentG.marchDurationSec * 1000.0).toLong()
             val depTs = currentG.calculateDepartureTimestamp()
@@ -1546,6 +1559,37 @@ class AutoClickService : AccessibilityService() {
             val statusColor = Color.parseColor(statusInfo.color)
             tvMyDepartureInfo.text = statusText
             tvMyDepartureInfo.setTextColor(statusColor)
+
+              if (currentG.isAutoTargetTime && rallyDialogContent.visibility == View.VISIBLE) {
+                  val cal = Calendar.getInstance()
+                  cal.add(Calendar.MINUTE, currentG.rallyWaitMinutes)
+                  cal.add(Calendar.SECOND, currentG.targetTimeOffsetSec)
+                  val newH = cal.get(Calendar.HOUR_OF_DAY)
+                  val newM = cal.get(Calendar.MINUTE)
+                  val newS = cal.get(Calendar.SECOND)
+                  
+                  val strH = String.format("%02d", newH)
+                  val strM = String.format("%02d", newM)
+                  val strS = String.format("%02d", newS)
+                  
+                  var updated = false
+                  if (etTargetHour.text.toString() != strH && !etTargetHour.isFocused) {
+                      etTargetHour.setText(strH)
+                      updated = true
+                  }
+                  if (etTargetMin.text.toString() != strM && !etTargetMin.isFocused) {
+                      etTargetMin.setText(strM)
+                      updated = true
+                  }
+                  if (etTargetSec.text.toString() != strS && !etTargetSec.isFocused) {
+                      etTargetSec.setText(strS)
+                      updated = true
+                  }
+                  if (updated) {
+                      // It will automatically trigger textWatcher and save
+                  }
+              }
+
             tvAdminDepartureInfo?.text = statusText
             tvAdminDepartureInfo?.setTextColor(statusColor)
 
@@ -1564,7 +1608,7 @@ class AutoClickService : AccessibilityService() {
                     val htmlName = "<font color='$nameColor'>${g.name} $leaderStr</font>"
                     views.tvName.text = android.text.Html.fromHtml(htmlName, android.text.Html.FROM_HTML_MODE_COMPACT)
 
-                    val remMs = g.getRemainingMillis()
+                    val groupRemMs = g.getRemainingMillis()
                     val waitMs = g.rallyWaitMinutes * 60_000L
                     val marchMs = (g.marchDurationSec * 1000.0).toLong()
                     
@@ -1574,8 +1618,8 @@ class AutoClickService : AccessibilityService() {
                     val depTs = g.calculateDepartureTimestamp()
                     val hasExecutedClick = g.hasExecutedClick(depTs)
 
-                    if (remMs > 0) {
-                        val totalSec = (remMs + 999L) / 1000L
+                    if (groupRemMs > 0) {
+                        val totalSec = (groupRemMs + 999L) / 1000L
                         val mm = totalSec / 60
                         val ss = totalSec % 60
                         statusText = if (mm > 0) String.format("대기중(%02d:%02d)", mm, ss) else "대기중(${ss}초)"
@@ -1585,7 +1629,7 @@ class AutoClickService : AccessibilityService() {
                             statusText = "미지정"
                             statusColor = "#EF4444"
                         } else {
-                            val elapsedSinceOpen = -remMs
+                            val elapsedSinceOpen = -groupRemMs
                             if (elapsedSinceOpen < waitMs) {
                                 val waitRemainSec = ((waitMs - elapsedSinceOpen + 999L) / 1000L).coerceAtLeast(0L)
                                 statusText = "⏳집결중(${waitRemainSec}초)"
@@ -1615,11 +1659,13 @@ class AutoClickService : AccessibilityService() {
             val m = etTargetMin.text.toString().toIntOrNull() ?: selectedGroup.targetMinute
             val s = etTargetSec.text.toString().toIntOrNull() ?: selectedGroup.targetSecond
             val march = etMarchDuration.text.toString().toDoubleOrNull() ?: selectedGroup.marchDurationSec
+            val timeOffset = etTimeOffset.text.toString().toIntOrNull() ?: selectedGroup.targetTimeOffsetSec
 
             selectedGroup.targetHour = h.coerceIn(0, 23)
             selectedGroup.targetMinute = m.coerceIn(0, 59)
             selectedGroup.targetSecond = s.coerceIn(0, 59)
             selectedGroup.marchDurationSec = (Math.round(march * 10.0) / 10.0).coerceAtLeast(0.1)
+            selectedGroup.targetTimeOffsetSec = timeOffset
             selectedGroup.name = etGroupName.text.toString().ifBlank { selectedGroup.name }
             selectedGroup.leaderName = etLeaderName.text.toString().trim()
             selectedGroup.members = etMembers.text.toString().trim()
@@ -1663,7 +1709,10 @@ class AutoClickService : AccessibilityService() {
             etGroupName.setText(g.name)
             etLeaderName.setText(g.leaderName)
             etMembers.setText(g.members)
-            etTargetHour.setText("%02d".format(g.targetHour))
+            
+            cbAutoTargetTime.isChecked = g.isAutoTargetTime
+            etTimeOffset.setText(g.targetTimeOffsetSec.toString())
+etTargetHour.setText("%02d".format(g.targetHour))
             etTargetMin.setText("%02d".format(g.targetMinute))
             etTargetSec.setText("%02d".format(g.targetSecond))
             val marchStr = if (g.marchDurationSec % 1.0 == 0.0) g.marchDurationSec.toInt().toString() else String.format(Locale.US, "%.1f", g.marchDurationSec)
@@ -1755,13 +1804,11 @@ class AutoClickService : AccessibilityService() {
         // 클라우드 동기화 UI 연동
         val etRoomNumber = view.findViewById<EditText>(R.id.etRoomNumber)
         val tvSyncStatus = view.findViewById<TextView>(R.id.tvSyncStatus)
-        val tvMarquee = view.findViewById<TextView>(R.id.tvMarquee)
-        val btnAnnounce = view.findViewById<android.widget.ImageButton>(R.id.btnAnnounce)
-        tvMarquee?.isSelected = true
         
-        btnAnnounce?.setOnClickListener {
-            tvMarquee?.performClick()
-        }
+        
+        
+        
+        
         // ── 관리자 / 집결장 모드 토글 ─────────────────────────
         val tabAdmin = view.findViewById<TextView>(R.id.tabAdmin)
         val tabStatus = view.findViewById<TextView>(R.id.tabStatus)
@@ -1770,7 +1817,7 @@ class AutoClickService : AccessibilityService() {
         val groupLeaderOnly = view.findViewById<android.widget.LinearLayout>(R.id.groupLeaderOnly)
         val groupStatusOnly = view.findViewById<android.widget.LinearLayout>(R.id.groupStatusOnly)
         val btnGenerateRoomRef = view.findViewById<android.widget.Button>(R.id.btnGenerateRoom)
-        val btnAnnounceRef = view.findViewById<android.widget.ImageButton>(R.id.btnAnnounce)
+        
 
         fun applyMode(mode: Int) { // 0: Admin, 1: Leader, 2: Status
             getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
@@ -1787,17 +1834,19 @@ class AutoClickService : AccessibilityService() {
             groupLeaderOnly?.visibility = if (mode == 1) android.view.View.VISIBLE else android.view.View.GONE
             groupStatusOnly?.visibility = if (mode == 2) android.view.View.VISIBLE else android.view.View.GONE
             
+            view.findViewById<android.view.View>(R.id.scrollArmyChips)?.visibility = if (mode == 2) android.view.View.GONE else android.view.View.VISIBLE
+            
             view.findViewById<android.view.View>(R.id.btnAddGroup)?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
             view.findViewById<android.view.View>(R.id.btnDeleteGroup)?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
             
             btnGenerateRoomRef?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
-            btnAnnounceRef?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
+            
 
             val layoutRoomCode = view.findViewById<android.widget.LinearLayout>(R.id.layoutRoomCode)
-            val marqueeContainer = view.findViewById<android.widget.LinearLayout>(R.id.marqueeContainer)
+            
             // 방 코드는 관리자 탭(0)에서만 보임
             layoutRoomCode?.visibility = if (mode == 0) android.view.View.VISIBLE else android.view.View.GONE
-            marqueeContainer?.visibility = if (mode == 2) android.view.View.GONE else android.view.View.VISIBLE
+            
             
             // "오픈 19:xx 시간지남" 텍스트(tvMyDepartureInfo)는 집결장 탭(1)에서 숨김
             view.findViewById<android.widget.TextView>(R.id.tvMyDepartureInfo)?.visibility = if (mode == 1) android.view.View.GONE else android.view.View.VISIBLE
@@ -1829,62 +1878,6 @@ class AutoClickService : AccessibilityService() {
         tabRallyLeader?.setOnClickListener { applyMode(1) }
         tabStatus?.setOnClickListener { applyMode(2) }
 
-        tvMarquee?.setOnClickListener {
-            val p = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
-            val room = p.getString("cloud_room_number", "") ?: ""
-            if (room.isEmpty()) {
-                showToast("방 코드를 먼저 입력/생성해주세요!")
-                return@setOnClickListener
-            }
-            
-            val etInput = EditText(this).apply {
-                hint = "공지 내용을 입력하세요"
-                setTextColor(Color.WHITE)
-            }
-            val dialogView = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dpToPx(20), dpToPx(20), dpToPx(20), dpToPx(20))
-                addView(etInput)
-            }
-            
-            val builder = android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("📢 공지사항 전송")
-                .setView(dialogView)
-                .setPositiveButton("전송") { _, _ ->
-                    val msg = etInput.text.toString().trim()
-                    if (msg.isNotEmpty()) {
-                        Thread {
-                            try {
-                                val url = java.net.URL("$firebaseDbUrl/rooms/$room.json")
-                                val conn = url.openConnection() as java.net.HttpURLConnection
-                                conn.requestMethod = "PATCH"
-                                conn.doOutput = true
-                                conn.setRequestProperty("Content-Type", "application/json")
-                                val jsonStr = "{\"announcement\": \"$msg\"}"
-                                conn.outputStream.write(jsonStr.toByteArray(Charsets.UTF_8))
-                                if (conn.responseCode == 200) {
-                                    Handler(Looper.getMainLooper()).post {
-                                        showToast("공지가 전송되었습니다!")
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e(TAG, "공지 전송 실패", e)
-                            }
-                        }.start()
-                    }
-                }
-                .setNegativeButton("취소", null)
-                
-            val dialog = builder.create()
-            dialog.window?.setType(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
-            dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
-            dialog.show()
-            
-            etInput.requestFocus()
-            setDialogFocusable(true)
-            dialog.setOnDismissListener { setDialogFocusable(false) }
-        }
         val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
         val savedRoom = prefs.getString("cloud_room_number", "") ?: ""
                 etRoomNumber.setText(savedRoom)
@@ -2087,9 +2080,19 @@ class AutoClickService : AccessibilityService() {
         etTargetSec.addTextChangedListener(watcher)
         etMarchDuration.addTextChangedListener(watcher)
 
+        etTimeOffset.addTextChangedListener(watcher)
+        cbAutoTargetTime.setOnCheckedChangeListener { _, isChecked ->
+            if (!isUpdatingUi) {
+                selectedGroup.isAutoTargetTime = isChecked
+                updateCalculationPreview()
+                RallyGroupManager.updateGroup(this, selectedGroup)
+            }
+        }
+
+
         // 모든 입력창 터치 시에만 일시적으로 키보드/입력 포커스를 획득하고,
         // 입력을 마치면 포커스를 해제하여 뒤의 게임 화면/채팅창 입력이 가능하도록 처리
-        val allEditTexts = listOf(etGroupName, etLeaderName, etMembers, etTargetHour, etTargetMin, etTargetSec, etMarchDuration, etRoomNumber, etClickOffsetMs)
+        val allEditTexts = listOf(etGroupName, etLeaderName, etMembers, etTargetHour, etTargetMin, etTargetSec, etMarchDuration, etRoomNumber, etClickOffsetMs, etTimeOffset)
         allEditTexts.forEach { et ->
             et.setOnTouchListener { v, event ->
                 if (event.action == MotionEvent.ACTION_UP) {
@@ -2215,7 +2218,7 @@ class AutoClickService : AccessibilityService() {
             override fun run() {
                 if (rallyDialogView != null) {
                     updateRealtimeCountdown()
-                    mainHandler.postDelayed(this, 1000L)
+                    mainHandler.postDelayed(this, 50L)
                 }
             }
         }
@@ -2225,82 +2228,10 @@ class AutoClickService : AccessibilityService() {
         wm.addView(view, params)
     }
 
-    fun hideRallyHud() {
-        rallyHudView?.let {
-            if (it.isAttachedToWindow) {
-                try { windowManager?.removeView(it) } catch (e: Exception) { Log.e(TAG, "Error removing rally HUD", e) }
-            }
-        }
-        rallyHudView = null
-        rallyHudParams = null
-    }
+    fun hideRallyHud() {}
 
     @SuppressLint("InflateParams", "ClickableViewAccessibility")
-    private fun showRallyHud(group: RallyGroup) {
-        hideRallyHud()
-        val wm = windowManager ?: return
-
-        val themedContext = android.view.ContextThemeWrapper(this, R.style.Theme_AutoClicker)
-        val inflater = LayoutInflater.from(themedContext)
-        val view = inflater.inflate(R.layout.layout_floating_rally_hud, null)
-        this.rallyHudView = view
-
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = dpToPx(50)
-        }
-        this.rallyHudParams = params
-
-        view.findViewById<TextView>(R.id.tvRallyHudText).text = "[${group.getDisplayName()}] 예약 대기 중..."
-        view.findViewById<ImageButton>(R.id.btnCancelRallyHud).setOnClickListener {
-            vibrate(20)
-            cancelRallyReservation()
-            showToast("✕ 집결 출발 예약을 취소했습니다.")
-        }
-
-        // HUD 드래그 지원
-        view.setOnTouchListener(object : View.OnTouchListener {
-            private var startX = 0
-            private var startY = 0
-            private var touchDownX = 0f
-            private var touchDownY = 0f
-
-            override fun onTouch(v: View, event: MotionEvent): Boolean {
-                val p = rallyHudParams ?: return false
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        startX = p.x
-                        startY = p.y
-                        touchDownX = event.rawX
-                        touchDownY = event.rawY
-                        return false
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        val dx = (event.rawX - touchDownX).toInt()
-                        val dy = (event.rawY - touchDownY).toInt()
-                        p.x = startX + dx
-                        p.y = startY + dy
-                        try {
-                            wm.updateViewLayout(view, p)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error updating rally hud layout", e)
-                        }
-                        return true
-                    }
-                }
-                return false
-            }
-        })
-
-        wm.addView(view, params)
-    }
+    private fun showRallyHud(group: RallyGroup) {}
 
     fun startRallyReservation(group: RallyGroup, isAutoReservation: Boolean = false) {
         if (isClicking) {
@@ -2356,7 +2287,7 @@ class AutoClickService : AccessibilityService() {
 
         mainHandler.post {
             setTargetTouchable(false) // 과녁이 터치를 가로채지 않고 게임 내 출발 버튼에 100% 닿도록 통과 설정
-            setDialogTouchable(false) // 팝업창이 타겟 위치를 가리더라도 100% 뚫고 통과되도록 터치 투과 설정!
+            // 팝업창 투과 설정 제거 (예약 중에도 팝업 조작 가능하도록 함)
         }
 
         if (!isAutoReservation) {
@@ -2978,7 +2909,7 @@ class AutoClickService : AccessibilityService() {
                                 val json = org.json.JSONObject(response)
                                 val ann = json.optString("announcement", "공지사항이 없습니다.")
                                 Handler(Looper.getMainLooper()).post {
-                                    rallyDialogView?.findViewById<TextView>(R.id.tvMarquee)?.text = ann
+                                    // marquee text removed
                                 }
                                 val timestamp = json.optLong("timestamp", 0)
                                 val senderId = json.optString("senderId", "")

@@ -23,6 +23,9 @@ data class RallyGroup(
     var rallyWaitMinutes: Int = 5,   // 집결 대기 시간 (1분, 3분, 5분, 10분 - 기본 5분)
     var isAutoMode: Boolean = false, // 해당 군단의 자동 대기 모드 활성화 여부
     var lastDepartedTimestamp: Long = 0L // 클릭 출발이 실제로 실행된 departureTimestamp
+,
+    var isAutoTargetTime: Boolean = false,
+    var targetTimeOffsetSec: Int = 90
 ) {
     /**
      * 해당 출발 시각(depTs)에 실제로 클릭(발사)이 실행되었는지 여부
@@ -155,6 +158,8 @@ data class RallyGroup(
             put("rallyWaitMinutes", rallyWaitMinutes)
             put("isAutoMode", isAutoMode)
             put("lastDepartedTimestamp", lastDepartedTimestamp)
+            put("isAutoTargetTime", isAutoTargetTime)
+            put("targetTimeOffsetSec", targetTimeOffsetSec)
         }
     }
 
@@ -171,7 +176,9 @@ data class RallyGroup(
                 marchDurationSec = json.optDouble("marchDurationSec", 120.0),
                 rallyWaitMinutes = json.optInt("rallyWaitMinutes", 5),
                 isAutoMode = json.optBoolean("isAutoMode", false),
-                lastDepartedTimestamp = json.optLong("lastDepartedTimestamp", 0L)
+                lastDepartedTimestamp = json.optLong("lastDepartedTimestamp", 0L),
+                isAutoTargetTime = json.optBoolean("isAutoTargetTime", false),
+                targetTimeOffsetSec = json.optInt("targetTimeOffsetSec", 90)
             )
         }
 
@@ -263,8 +270,9 @@ object RallyGroupManager {
     }
 
     fun saveGroups(context: Context, groups: List<RallyGroup>) {
+        val sortedGroups = groups.sortedBy { it.name }
         val array = JSONArray()
-        groups.forEach { array.put(it.toJsonObject()) }
+        sortedGroups.forEach { array.put(it.toJsonObject()) }
         getPrefs(context).edit().putString(KEY_GROUPS_JSON, array.toString()).apply()
     }
 
