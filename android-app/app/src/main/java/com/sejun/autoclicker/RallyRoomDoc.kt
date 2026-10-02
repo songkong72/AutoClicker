@@ -74,6 +74,13 @@ object RallyRoomEdit {
      * 서버 문서가 RUNNING이어도 이 기기가 시작 신호를 직접 본 적이 없으면(예전 시도가 끝나지 않은 찌꺼기)
      * 화면은 "대기"로 보인다. 수정도 같은 기준으로 허용해야 버튼이 눌리는데 아무 일도 안 일어나는 일이 없다.
      */
+    /** 진행 중이던 집결이 전원 도착 시각을 지났는가. 이때부터 화면은 "전원 도착"이고 수정도 허용해야 한다. */
+    fun finished(doc: RallyRoomDoc, elapsedSec: Double): Boolean {
+        if (doc.run != "RUNNING") return false
+        val plan = RallySchedule.plan(doc.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) }, doc.prepSec, doc.waitSec)
+        return plan.teams.isNotEmpty() && elapsedSec >= plan.arriveAtSec
+    }
+
     fun unstick(doc: RallyRoomDoc, startSeen: Boolean): RallyRoomDoc =
         if (doc.run == "RUNNING" && !startSeen) doc.copy(run = "IDLE") else doc
 

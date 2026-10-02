@@ -208,7 +208,12 @@ class RallyRoomSync(
     // ---- 내부 ----
 
     /** 화면이 보여주는 상태와 같은 기준의 문서. 끝나지 않은 예전 RUNNING 찌꺼기 때문에 수정이 막히지 않게 한다. */
-    private fun effectiveDoc(): RallyRoomDoc = RallyRoomEdit.unstick(doc, startedAt != null)
+    private fun effectiveDoc(): RallyRoomDoc {
+        // 전원 도착 뒤에는 이 기기에서 그 집결을 끝난 것으로 보고 잊는다(화면도 이미 "전원 도착"이라 수정 가능으로 보인다)
+        val s = startedAt
+        if (s != null && RallyRoomEdit.finished(doc, (SystemClock.elapsedRealtime() - s) / 1000.0)) startedAt = null
+        return RallyRoomEdit.unstick(doc, startedAt != null)
+    }
 
     private fun apply(d: RallyRoomDoc, fromRemote: Boolean = false) {
         doc = d

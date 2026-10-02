@@ -134,4 +134,16 @@ class RallyRoomEditTest {
         val idle = room("IDLE", 3)
         assertSame(idle, RallyRoomEdit.unstick(idle, startSeen = false))
     }
+
+    // 전원 도착 뒤에는 서버 문서가 아직 RUNNING이어도 화면처럼 수정할 수 있어야 한다. room(): 준비 15 + 최대 행군 30 + 대기 300 = 345초
+    @Test fun finishedOnlyAfterEveryTeamArrived() {
+        val running = room("RUNNING", 2)
+        assertEquals(false, RallyRoomEdit.finished(running, 344.9))
+        assertEquals(true, RallyRoomEdit.finished(running, 345.0))
+    }
+
+    @Test fun notRunningIsNeverFinished() {
+        assertEquals(false, RallyRoomEdit.finished(room("IDLE", 2), 9999.0))
+        assertEquals(false, RallyRoomEdit.finished(room("CANCELLED", 2), 9999.0))
+    }
 }
