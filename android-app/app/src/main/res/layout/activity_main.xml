@@ -176,6 +176,26 @@
                     android:textSize="12.5sp" />
             </LinearLayout>
 
+            <!-- 일반 연타 모드: 집결이 주 기능이라 기본은 접어 둔다 -->
+            <TextView
+                android:id="@+id/tvGeneralModeToggle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_card"
+                android:padding="16dp"
+                android:text="일반 연타 모드  ▾"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/layoutGeneralModes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
             <!-- Card 2: Click Speed Settings -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -485,6 +505,8 @@
                             android:textSize="11.5sp" />
                     </LinearLayout>
                 </RadioGroup>
+            </LinearLayout>
+
             </LinearLayout>
 
             <!-- Card 4: 집결 방 (같은 방 = 같은 시각에 성에 도착할 팀들) -->

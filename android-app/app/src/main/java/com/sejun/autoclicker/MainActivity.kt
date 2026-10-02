@@ -126,7 +126,14 @@ class MainActivity : AppCompatActivity() {
 
         // 회원 인증 관리 버튼
         binding.btnAuthAction.setOnClickListener {
-            showVerificationDialog()
+            if (PreferencesHelper.isAdminMode(this)) showAdminMenu() else showVerificationDialog()
+        }
+
+        // 일반 연타 모드 접기/펼치기
+        binding.tvGeneralModeToggle.setOnClickListener {
+            val open = binding.layoutGeneralModes.visibility != View.VISIBLE
+            binding.layoutGeneralModes.visibility = if (open) View.VISIBLE else View.GONE
+            binding.tvGeneralModeToggle.text = if (open) "일반 연타 모드  ▴" else "일반 연타 모드  ▾"
         }
 
         // 상단 관리자 설정 아이콘
@@ -514,7 +521,13 @@ class MainActivity : AppCompatActivity() {
         val isVerified = PreferencesHelper.isVerified(this)
         val userId = PreferencesHelper.getVerifiedUserId(this)
 
-        if (isVerified) {
+        if (PreferencesHelper.isAdminMode(this)) {
+            binding.tvAuthStatusTitle.text = "👑 관리자 모드"
+            binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#2563EB"))
+            binding.tvAuthStatusSubtitle.text = "방을 만들고 팀장에게 방 번호와 초대코드를 공유하세요."
+            binding.btnAuthAction.text = "관리"
+            binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
+        } else if (isVerified) {
             binding.tvAuthStatusTitle.text = "✅ 정회원 인증 완료"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
             binding.tvAuthStatusSubtitle.text = if (userId.isNotEmpty()) "인증된 회원 ID: $userId" else "정회원 인증이 완료되었습니다."
@@ -527,6 +540,24 @@ class MainActivity : AppCompatActivity() {
             binding.btnAuthAction.text = "인증하기"
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#3B82F6"))
         }
+    }
+
+    private fun showAdminMenu() {
+        AlertDialog.Builder(this)
+            .setTitle("관리자")
+            .setItems(arrayOf("초대코드 발급 · 관리자 패널", "관리자 모드 해제 (팀장 화면으로)")) { _, which ->
+                if (which == 0) {
+                    showAdminPanelDialog()
+                } else {
+                    PreferencesHelper.setAdminMode(this, false)
+                    AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
+                    Toast.makeText(this, "관리자 모드를 해제했어요.", Toast.LENGTH_SHORT).show()
+                    updateAuthUI()
+                    updateRallyInfoCard()
+                }
+            }
+            .setNegativeButton("닫기", null)
+            .show()
     }
 
     private fun showVerificationDialog() {
@@ -594,6 +625,7 @@ class MainActivity : AppCompatActivity() {
                 val pass = input.text.toString().trim()
                 if (InvitationManager.checkAdminPassword(this, pass)) {
                     PreferencesHelper.setAdminMode(this, true)
+                    updateAuthUI()
                     updateRallyInfoCard()
                     Toast.makeText(this, "👑 관리자 모드로 진입합니다.", Toast.LENGTH_SHORT).show()
                     d.dismiss()
