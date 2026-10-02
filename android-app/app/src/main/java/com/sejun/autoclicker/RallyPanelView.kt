@@ -28,6 +28,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val themed = ContextThemeWrapper(context, R.style.Theme_AutoClicker)
     val root: View = LayoutInflater.from(themed).inflate(R.layout.layout_rally_panel, null)
 
+    private val title = root.findViewById<TextView>(R.id.rallyTitle)
     private val heroLabel = root.findViewById<TextView>(R.id.rallyHeroLabel)
     private val heroTime = root.findViewById<TextView>(R.id.rallyHeroTime)
     private val heroSub = root.findViewById<TextView>(R.id.rallyHeroSub)
@@ -47,6 +48,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false) {
         val hero = model.hero
+        title.text = if (isAdmin) "집결 · 관리자" else "집결 · 팀장"
         heroLabel.text = hero.label
         heroTime.text = hero.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: "--:--"
         heroTime.setTextColor(heroColor(hero.kind))

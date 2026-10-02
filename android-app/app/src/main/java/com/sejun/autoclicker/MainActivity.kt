@@ -549,6 +549,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("확인") { d, _ ->
                 val pass = input.text.toString().trim()
                 if (InvitationManager.checkAdminPassword(this, pass)) {
+                    PreferencesHelper.setAdminMode(this, true)
                     Toast.makeText(this, "👑 관리자 모드로 진입합니다.", Toast.LENGTH_SHORT).show()
                     d.dismiss()
                     showAdminPanelDialog()

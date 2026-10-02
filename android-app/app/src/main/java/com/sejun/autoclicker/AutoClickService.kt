@@ -113,6 +113,7 @@ class AutoClickService : AccessibilityService() {
     private var rallyHudParams: WindowManager.LayoutParams? = null
     private var rallyPanelHost: RallyPanelHost? = null
     private var rallyRoomSync: RallyRoomSync? = null
+    private var rallyPanelRoleAdmin = false
 
     /** 저장된 타겟 위치를 지금 1회 탭한다 (상대시간 집결의 예약 시각에 호출됨). */
     fun performRallyClickNow() {
@@ -135,17 +136,23 @@ class AutoClickService : AccessibilityService() {
     val useNewRallyPanel = true
 
     fun toggleRallyPanel() {
-        if (!PreferencesHelper.isVerified(this)) {
+        val isAdmin = PreferencesHelper.isAdminMode(this)
+        if (!isAdmin && !PreferencesHelper.isVerified(this)) {
             Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
             return
         }
         val wm = windowManager ?: return
         val room = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
             .getString("cloud_room_number", "") ?: ""
+        if (rallyPanelHost != null && rallyPanelRoleAdmin != isAdmin) { // 권한이 바뀌면 새로 만든다
+            rallyPanelHost?.hide(); rallyRoomSync?.stop()
+            rallyPanelHost = null; rallyRoomSync = null
+        }
+        rallyPanelRoleAdmin = isAdmin
         val host = rallyPanelHost ?: run {
             val source: RallyPanelHost.StateSource = if (room.isNotEmpty()) {
                 RallyRoomSync(
-                    dbUrl = firebaseDbUrl, room = room, isAdmin = true,
+                    dbUrl = firebaseDbUrl, room = room, isAdmin = isAdmin,
                     myTeamIdInit = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getString("rally_my_team", "t3") ?: "t3",
                     saveMyTeam = { id -> getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("rally_my_team", id).apply() },
                     correctionMs = { PreferencesHelper.getClickOffsetMs(this).toLong() },
@@ -160,7 +167,7 @@ class AutoClickService : AccessibilityService() {
                         RallyTeamState("t2", "2군", marchSec = 30.0),
                         RallyTeamState("t3", "3군", marchSec = 50.0)
                     ),
-                    myTeamId = "t3", prepSec = 15.0, waitSec = 300.0
+                    myTeamId = "t3", prepSec = 15.0, waitSec = 300.0, isAdmin = isAdmin
                 )
             }
             RallyPanelHost(this, wm, source).also { rallyPanelHost = it }

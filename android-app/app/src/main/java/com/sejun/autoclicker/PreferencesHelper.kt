@@ -185,6 +185,15 @@ object PreferencesHelper {
             .apply()
     }
 
+    private const val KEY_IS_ADMIN_MODE = "key_is_admin_mode"
+
+    /** 관리자 비밀번호로 로그인한 기기인지. 집결 화면에서 관리자/팀장 권한을 가른다. */
+    fun isAdminMode(context: Context): Boolean = getPrefs(context).getBoolean(KEY_IS_ADMIN_MODE, false)
+
+    fun setAdminMode(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_IS_ADMIN_MODE, enabled).apply()
+    }
+
     fun getVerifiedUserId(context: Context): String {
         return getPrefs(context).getString(KEY_VERIFIED_USER_ID, "") ?: ""
     }
