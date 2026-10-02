@@ -165,13 +165,8 @@ class MainActivity : AppCompatActivity() {
         // Emergency Stop Button
         binding.btnEmergencyStop.setOnClickListener {
             val service = AutoClickService.instance
-            if (service?.isRallyReserved == true) {
-                service.cancelRallyReservation()
-                Toast.makeText(this, "🛑 집결 출발 예약을 취소했습니다.", Toast.LENGTH_SHORT).show()
-            } else {
-                service?.stopAutoClick()
-                Toast.makeText(this, "🛑 치료 연타를 즉시 정지했습니다.", Toast.LENGTH_SHORT).show()
-            }
+            service?.stopAutoClick()
+            Toast.makeText(this, "🛑 치료 연타를 즉시 정지했습니다.", Toast.LENGTH_SHORT).show()
             updateServiceState()
         }
 
@@ -206,7 +201,7 @@ class MainActivity : AppCompatActivity() {
                 saveSettings()
                 service.showOverlays()
             }
-            if (service.useNewRallyPanel) service.toggleRallyPanel() else service.showRallyDialog()
+            service.toggleRallyPanel()
             Toast.makeText(this, "⚔️ 집결 동시 착탄 설정을 띄웠습니다.", Toast.LENGTH_SHORT).show()
             moveTaskToBack(true)
         }
@@ -409,12 +404,8 @@ class MainActivity : AppCompatActivity() {
         val service = AutoClickService.instance
         val isShowing = service?.isOverlaysShowing() == true
         val isClicking = service?.isClicking == true
-        val isRally = service?.isRallyReserved == true
 
-        if (isRally) {
-            binding.btnEmergencyStop.visibility = View.VISIBLE
-            binding.btnEmergencyStop.text = "🛑 [${service?.reservedGroupName}] 출발 예약 취소"
-        } else if (isClicking) {
+        if (isClicking) {
             binding.btnEmergencyStop.visibility = View.VISIBLE
             binding.btnEmergencyStop.text = "🛑 치료 연타 즉시 정지"
         } else {
