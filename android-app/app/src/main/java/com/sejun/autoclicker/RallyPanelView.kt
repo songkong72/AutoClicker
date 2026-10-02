@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -23,6 +22,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onMarchDelta(teamId: String, deltaSec: Double)
         fun onToggleExclude(teamId: String)
         fun onSelectMine(teamId: String)
+        fun onCorrectionDelta(deltaMs: Int)
+        fun onSavePosition()
     }
 
     private val themed = ContextThemeWrapper(context, R.style.Theme_AutoClicker)
@@ -36,14 +37,23 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val warning = root.findViewById<TextView>(R.id.rallyWarning)
     private val rows = root.findViewById<LinearLayout>(R.id.rallyRows)
     private val adminBar = root.findViewById<View>(R.id.rallyAdminBar)
-    private val btnStart = root.findViewById<Button>(R.id.rallyBtnStart)
-    private val btnStop = root.findViewById<Button>(R.id.rallyBtnStop)
+    private val btnStart = root.findViewById<TextView>(R.id.rallyBtnStart)
+    private val btnStop = root.findViewById<TextView>(R.id.rallyBtnStop)
     private val blocked = root.findViewById<TextView>(R.id.rallyBlockedReason)
 
     init {
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
+        root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-10) }
+        root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(10) }
+        root.findViewById<View>(R.id.devSavePos).setOnClickListener { callbacks.onSavePosition() }
+    }
+
+    /** "내 기기" 줄: 현재 ms 보정과 저장된 클릭 위치 표시. */
+    fun renderDevice(correctionMs: Int, posText: String) {
+        root.findViewById<TextView>(R.id.devMs).text = (if (correctionMs > 0) "+" else "") + correctionMs + "ms"
+        root.findViewById<TextView>(R.id.devPosStatus).text = posText
     }
 
     fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false) {
@@ -51,6 +61,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         title.text = if (isAdmin) "집결 · 관리자" else "집결 · 팀장"
         heroLabel.text = hero.label
         heroTime.text = hero.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: "--:--"
+        heroTime.visibility = if (hero.remainingSec == null) View.GONE else View.VISIBLE
         heroTime.setTextColor(heroColor(hero.kind))
         heroSub.text = hero.subLabel
         heroProgress.progress = (hero.progress * 1000).toInt()

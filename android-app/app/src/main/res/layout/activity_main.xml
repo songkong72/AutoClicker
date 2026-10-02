@@ -487,7 +487,7 @@
                 </RadioGroup>
             </LinearLayout>
 
-            <!-- Card 4: Rally Sync & Group Operation (⚔️ 집결 동시 착탄 및 작전 관리) -->
+            <!-- Card 4: 집결 방 (같은 방 = 같은 시각에 성에 도착할 팀들) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -497,69 +497,88 @@
                 android:padding="18dp"
                 android:layout_marginBottom="24dp">
 
-                <LinearLayout
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="⚔️ 집결 동시 착탄 (그룹 작전)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_badge_success"
-                        android:paddingHorizontal="8dp"
-                        android:paddingVertical="3dp"
-                        android:text="정시 1회 출발"
-                        android:textColor="@color/success"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
+                    android:text="집결 방"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="성까지 걸리는 시간에 맞춰 동시에 도착하도록 역산된 시각에 게임의 출발 버튼을 1회 정밀 클릭합니다."
+                    android:text="같은 방에 들어온 팀들이 동시에 성에 도착하도록 집결 클릭 시각이 자동 계산돼요."
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
-                <!-- 현재 작전 요약 캡슐 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_floating_capsule"
-                    android:orientation="vertical"
-                    android:paddingHorizontal="14dp"
-                    android:paddingVertical="10dp">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    <TextView
-                        android:id="@+id/tvMainRallyGroupInfo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🚩 1군 관문 집결"
+                    <EditText
+                        android:id="@+id/etRoomCode"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_compact_picker"
+                        android:hint="방 번호"
+                        android:imeOptions="actionDone"
+                        android:inputType="number"
+                        android:maxLength="8"
+                        android:paddingHorizontal="12dp"
                         android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
+                        android:textColorHint="@color/text_tertiary"
+                        android:textSize="15sp" />
 
-                    <TextView
-                        android:id="@+id/tvMainRallyDetailInfo"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnJoinRoom"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="3dp"
-                        android:text="목표: 21:30:00 (행군 135초) ➔ 출발: 21:27:45"
-                        android:textColor="#38BDF8"
-                        android:textSize="12sp" />
+                        android:layout_height="44dp"
+                        android:layout_marginStart="8dp"
+                        android:text="입장"
+                        android:textSize="13.5sp" />
                 </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutRoomAdmin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNewRoom"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="새 방 만들기"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnShareRoom"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="번호 공유"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvRoomStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/primary"
+                    android:textSize="12.5sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnOpenRallySettings"
@@ -569,7 +588,7 @@
                     android:layout_marginTop="12dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
-                    android:text="⚔️ 집결 작전 설정 및 출발 예약"
+                    android:text="집결 화면 열기"
                     android:textSize="13.5sp"
                     android:textStyle="bold" />
             </LinearLayout>

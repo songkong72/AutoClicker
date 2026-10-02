@@ -135,6 +135,17 @@ class AutoClickService : AccessibilityService() {
     /** 새 통합 집결 화면. false로 바꾸면 기존 다이얼로그로 즉시 되돌아간다. */
     val useNewRallyPanel = true
 
+    private var rallyRoomCode = ""
+
+    /** 방을 떠나거나 바꿀 때: 패널을 닫고 폴링과 예약된 클릭을 모두 멈춘다. */
+    fun leaveRallyRoom() {
+        rallyPanelHost?.hide()
+        rallyRoomSync?.stop()
+        rallyPanelHost = null
+        rallyRoomSync = null
+        rallyRoomCode = ""
+    }
+
     fun toggleRallyPanel() {
         val isAdmin = PreferencesHelper.isAdminMode(this)
         if (!isAdmin && !PreferencesHelper.isVerified(this)) {
@@ -144,32 +155,33 @@ class AutoClickService : AccessibilityService() {
         val wm = windowManager ?: return
         val room = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
             .getString("cloud_room_number", "") ?: ""
-        if (rallyPanelHost != null && rallyPanelRoleAdmin != isAdmin) { // 권한이 바뀌면 새로 만든다
-            rallyPanelHost?.hide(); rallyRoomSync?.stop()
-            rallyPanelHost = null; rallyRoomSync = null
+        if (room.isEmpty()) {
+            showToast("먼저 앱에서 집결 방에 입장해 주세요")
+            return
+        }
+        if (rallyPanelHost != null && (rallyPanelRoleAdmin != isAdmin || rallyRoomCode != room)) { // 권한이나 방이 바뀌면 새로 만든다
+            leaveRallyRoom()
         }
         rallyPanelRoleAdmin = isAdmin
+        rallyRoomCode = room
         val host = rallyPanelHost ?: run {
-            val source: RallyPanelHost.StateSource = if (room.isNotEmpty()) {
-                RallyRoomSync(
-                    dbUrl = firebaseDbUrl, room = room, isAdmin = isAdmin,
-                    myTeamIdInit = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getString("rally_my_team", "t3") ?: "t3",
-                    saveMyTeam = { id -> getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("rally_my_team", id).apply() },
-                    correctionMs = { PreferencesHelper.getClickOffsetMs(this).toLong() },
-                    onClickDue = { performRallyClickNow() },
-                    onCancel = { }
-                ).also { it.start(); rallyRoomSync = it }
-            } else {
-                showToast("집결 방 번호가 없어 연습용 임시 방으로 열어요")
-                RallyPanelHost.LocalDemoSource(
-                    teams = listOf(
-                        RallyTeamState("t1", "1군", marchSec = 10.0),
-                        RallyTeamState("t2", "2군", marchSec = 30.0),
-                        RallyTeamState("t3", "3군", marchSec = 50.0)
-                    ),
-                    myTeamId = "t3", prepSec = 15.0, waitSec = 300.0, isAdmin = isAdmin
-                )
-            }
+            val source = RallyRoomSync(
+                dbUrl = firebaseDbUrl, room = room, isAdmin = isAdmin,
+                myTeamIdInit = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getString("rally_my_team", "t3") ?: "t3",
+                saveMyTeam = { id -> getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("rally_my_team", id).apply() },
+                correctionMs = { PreferencesHelper.getClickOffsetMs(this).toLong() },
+                setCorrectionMs = { ms -> PreferencesHelper.setClickOffsetMs(this, ms) },
+                positionText = {
+                    PreferencesHelper.getSavedRallyTargetPosition(this)?.let { "저장된 클릭 위치 ${it.first}, ${it.second}" }
+                        ?: "클릭 위치 없음 · 과녁을 집결 버튼 위에 놓고 저장하세요"
+                },
+                savePosition = {
+                    PreferencesHelper.setSavedRallyTargetPosition(this, targetParams?.x ?: 0, targetParams?.y ?: 0)
+                    showToast("현재 과녁 위치를 클릭 위치로 저장했어요")
+                },
+                onClickDue = { performRallyClickNow() },
+                onCancel = { }
+            ).also { it.start(); rallyRoomSync = it }
             RallyPanelHost(this, wm, source).also { rallyPanelHost = it }
         }
         host.toggle()

@@ -22,6 +22,9 @@ class RallyRoomSync(
     private val saveMyTeam: (String) -> Unit,
     override val isAdmin: Boolean,
     private val correctionMs: () -> Long,
+    private val setCorrectionMs: (Int) -> Unit,
+    private val positionText: () -> String,
+    private val savePosition: () -> Unit,
     private val onClickDue: () -> Unit,
     private val onCancel: () -> Unit
 ) : RallyPanelHost.StateSource {
@@ -76,6 +79,13 @@ class RallyRoomSync(
         val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded) }
         return RallyRoomState(teams, myTeamId, d.prepSec, d.waitSec, run, elapsed)
     }
+
+    override fun deviceCorrectionMs(): Int = correctionMs().toInt()
+    override fun onCorrectionDelta(deltaMs: Int) = setCorrectionMs(
+        (correctionMs().toInt() + deltaMs).coerceIn(-2000, 2000)
+    )
+    override fun devicePositionText(): String = positionText()
+    override fun onSavePosition() = savePosition()
 
     override fun onStart() = change(RallyRoomEdit::startOrRegroup)
 

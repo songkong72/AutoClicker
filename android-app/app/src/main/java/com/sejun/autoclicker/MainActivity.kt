@@ -122,6 +122,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        setupRoomCard()
+
         // 회원 인증 관리 버튼
         binding.btnAuthAction.setOnClickListener {
             showVerificationDialog()
@@ -183,6 +185,11 @@ class MainActivity : AppCompatActivity() {
             val service = AutoClickService.instance
             if (service == null) {
                 Toast.makeText(this, "서비스를 준비 중입니다. 잠시 후 다시 눌러주세요.\n(계속 안 되면 접근성을 껐다가 다시 켜주세요)", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+
+            if ((roomPrefs().getString("cloud_room_number", "") ?: "").isEmpty()) {
+                Toast.makeText(this, "먼저 집결 방에 입장해 주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -419,15 +426,52 @@ class MainActivity : AppCompatActivity() {
         updateRallyInfoCard()
     }
 
+    private fun roomPrefs() = getSharedPreferences("AutoClickerPrefs", MODE_PRIVATE)
+
     private fun updateRallyInfoCard() {
-        try {
-            val group = RallyGroupManager.getSelectedGroup(this)
-            val leaderDesc = if (group.leaderName.isNotBlank()) " (집결장: ${group.leaderName})" else ""
-            binding.tvMainRallyGroupInfo.text = "🚩 ${group.name}$leaderDesc"
-            val marchStr = if (group.marchDurationSec % 1.0 == 0.0) group.marchDurationSec.toInt().toString() else String.format(java.util.Locale.US, "%.1f", group.marchDurationSec)
-            binding.tvMainRallyDetailInfo.text = "목표: ${group.getTargetTimeString()} (행군 ${marchStr}초) ➔ 출발: ${group.getDepartureTimeString()}"
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val room = roomPrefs().getString("cloud_room_number", "") ?: ""
+        val admin = PreferencesHelper.isAdminMode(this)
+        binding.layoutRoomAdmin.visibility = if (admin) View.VISIBLE else View.GONE
+        if (binding.etRoomCode.text.isNullOrEmpty() && room.isNotEmpty()) binding.etRoomCode.setText(room)
+        binding.tvRoomStatus.text = when {
+            room.isEmpty() && admin -> "아직 방이 없어요. 새 방을 만들어 번호를 팀장에게 공유하세요."
+            room.isEmpty() -> "관리자에게 받은 방 번호를 입력하고 입장하세요."
+            admin -> "방 $room · 관리자"
+            else -> "방 $room · 팀장"
+        }
+    }
+
+    private fun setupRoomCard() {
+        binding.btnJoinRoom.setOnClickListener {
+            val code = binding.etRoomCode.text.toString().trim()
+            if (code.length < 4) {
+                Toast.makeText(this, "방 번호를 4자리 이상 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            roomPrefs().edit().putString("cloud_room_number", code).apply()
+            AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
+            Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
+            updateRallyInfoCard()
+        }
+        binding.btnNewRoom.setOnClickListener {
+            val code = (100000..999999).random().toString()
+            roomPrefs().edit().putString("cloud_room_number", code).apply()
+            AutoClickService.instance?.leaveRallyRoom()
+            binding.etRoomCode.setText(code)
+            Toast.makeText(this, "새 방 $code 을 만들었어요. 팀장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
+            updateRallyInfoCard()
+        }
+        binding.btnShareRoom.setOnClickListener {
+            val code = roomPrefs().getString("cloud_room_number", "") ?: ""
+            if (code.isEmpty()) {
+                Toast.makeText(this, "먼저 방을 만들어 주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, "집결 방 번호: $code (오토클릭커 앱 > 집결 방에 입력)")
+            }
+            startActivity(Intent.createChooser(send, "방 번호 공유"))
         }
     }
 
@@ -550,6 +594,7 @@ class MainActivity : AppCompatActivity() {
                 val pass = input.text.toString().trim()
                 if (InvitationManager.checkAdminPassword(this, pass)) {
                     PreferencesHelper.setAdminMode(this, true)
+                    updateRallyInfoCard()
                     Toast.makeText(this, "👑 관리자 모드로 진입합니다.", Toast.LENGTH_SHORT).show()
                     d.dismiss()
                     showAdminPanelDialog()

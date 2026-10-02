@@ -17,7 +17,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="⚙️ 연타 세부 설정"
+            android:text="연타 세부 설정"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -167,7 +167,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_selected"
             android:gravity="center"
-            android:text="♾️ 무한"
+            android:text="무한"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -180,7 +180,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="🔢 횟수"
+            android:text="횟수"
             android:textColor="#E2E8F0"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -207,7 +207,7 @@
         android:layout_height="38dp"
         android:layout_marginTop="8dp"
         android:gravity="center_vertical"
-        android:text="💡 정지 버튼이나 스마트폰 볼륨 키를 누를 때까지 계속 연타합니다."
+        android:text="정지 버튼이나 스마트폰 볼륨 키를 누를 때까지 계속 연타합니다."
         android:textColor="#94A3B8"
         android:textSize="11.5sp"
         android:visibility="visible" />
@@ -458,7 +458,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="💡 플로팅 바 위에서 위/아래 제스처로 실시간 조절도 가능합니다."
+        android:text="플로팅 바 위에서 위/아래 제스처로 실시간 조절도 가능합니다."
         android:textColor="#94A3B8"
         android:textSize="10.5sp" />
 

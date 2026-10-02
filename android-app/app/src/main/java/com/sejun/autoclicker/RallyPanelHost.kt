@@ -31,6 +31,11 @@ class RallyPanelHost(
         fun onMarchDelta(teamId: String, deltaSec: Double) {}
         fun onToggleExclude(teamId: String) {}
         fun onSelectMine(teamId: String) {}
+        /** 내 기기 설정(좌표, ms 보정). 방 데이터가 아니라 이 기기에만 저장된다. */
+        fun deviceCorrectionMs(): Int = 0
+        fun onCorrectionDelta(deltaMs: Int) {}
+        fun devicePositionText(): String = ""
+        fun onSavePosition() {}
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -57,6 +62,8 @@ class RallyPanelHost(
             override fun onMarchDelta(teamId: String, deltaSec: Double) { stateSource.onMarchDelta(teamId, deltaSec); refresh() }
             override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
             override fun onSelectMine(teamId: String) { stateSource.onSelectMine(teamId); refresh() }
+            override fun onCorrectionDelta(deltaMs: Int) { stateSource.onCorrectionDelta(deltaMs); refresh() }
+            override fun onSavePosition() { stateSource.onSavePosition(); refresh() }
         })
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -88,6 +95,7 @@ class RallyPanelHost(
     private fun refresh() {
         val p = panel ?: return
         val model = RallyScreenModel.build(stateSource.current())
+        p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText())
         p.render(model, stateSource.isAdmin, stateSource.current().runState == RallyRunState.RUNNING)
         if (minimized) p.setMinimized(true, model.hero)
     }
@@ -111,57 +119,5 @@ class RallyPanelHost(
             }
             return false // 자식 버튼의 클릭은 그대로 전달
         }
-    }
-
-    /** 방 번호가 없을 때의 연습용 방. 실제 방과 같은 편집 규칙(RallyRoomEdit)을 쓰고, 이 기기 안에서만 동작한다. */
-    class LocalDemoSource(
-        teams: List<RallyTeamState>,
-        private var myTeamId: String,
-        prepSec: Double,
-        waitSec: Double,
-        override val isAdmin: Boolean = true
-    ) : StateSource {
-        private var doc = RallyRoomDoc(
-            teams.map { RallyTeamDoc(it.id, it.name, it.leaderName, it.marchSec, it.excluded) },
-            prepSec, waitSec, "IDLE", 0L
-        )
-        private var startedAt: Long? = null
-
-        override fun current(): RallyRoomState {
-            val s = startedAt
-            val elapsed = if (s == null) 0.0 else (SystemClock.elapsedRealtime() - s) / 1000.0
-            val run = when (doc.run) {
-                "RUNNING" -> RallyRunState.RUNNING
-                "CANCELLED" -> RallyRunState.CANCELLED
-                else -> RallyRunState.IDLE
-            }
-            val ts = doc.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, true, it.excluded) }
-            return RallyRoomState(ts, myTeamId, doc.prepSec, doc.waitSec, run, elapsed)
-        }
-
-        private fun change(op: (RallyRoomDoc) -> RallyRoomDoc) {
-            val next = op(doc)
-            if (next === doc) return
-            if (next.startSeq != doc.startSeq) startedAt = SystemClock.elapsedRealtime()
-            if (next.run != "RUNNING") startedAt = if (next.run == "CANCELLED") null else startedAt
-            doc = next
-        }
-
-        override fun onStart() { if (isAdmin) change(RallyRoomEdit::startOrRegroup) }
-        override fun onStop() { if (isAdmin) change(RallyRoomEdit::cancel) }
-
-        override fun onMarchDelta(teamId: String, deltaSec: Double) {
-            if (!RallyRoomEdit.canEditMarch(doc, isAdmin, myTeamId, teamId)) return
-            val cur = doc.teams.firstOrNull { it.id == teamId } ?: return
-            change { RallyRoomEdit.setMarch(it, teamId, cur.marchSec + deltaSec) }
-        }
-
-        override fun onToggleExclude(teamId: String) {
-            if (!isAdmin) return
-            val cur = doc.teams.firstOrNull { it.id == teamId } ?: return
-            change { RallyRoomEdit.setExcluded(it, teamId, !cur.excluded) }
-        }
-
-        override fun onSelectMine(teamId: String) { myTeamId = teamId }
     }
 }
