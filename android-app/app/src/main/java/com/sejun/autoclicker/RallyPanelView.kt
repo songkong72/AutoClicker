@@ -76,7 +76,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         warning.visibility = if (model.warnings.isEmpty()) View.GONE else View.VISIBLE
         warning.text = model.warnings.joinToString("\n") { "⚠ $it" }
 
-        renderRows(model.rows, isAdmin, model.editable, model.arriveAtSec, model.nowSec)
+        renderRows(model.rows, isAdmin, model.editable, RallyTimelineScale(model.maxMarchSec), model.nowSec)
 
         adminBar.visibility = if (isAdmin) View.VISIBLE else View.GONE
         val canRegroup = model.hero.kind == HeroKind.ARRIVED || model.hero.kind == HeroKind.CANCELLED
@@ -87,7 +87,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         blocked.text = model.startBlockedReason ?: ""
     }
 
-    private fun renderRows(list: List<TeamRowModel>, isAdmin: Boolean, editable: Boolean, totalSec: Double, nowSec: Double?) {
+    private fun renderRows(list: List<TeamRowModel>, isAdmin: Boolean, editable: Boolean, scale: RallyTimelineScale, nowSec: Double?) {
         // 팀 수가 적고(≤ 몇 개) 1초 단위 갱신이라, 줄 수가 같으면 재사용한다.
         if (rows.childCount != list.size) {
             rows.removeAllViews()
@@ -104,7 +104,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             v.findViewById<TextView>(R.id.rowMarch).text = "행군 ${r.marchSec.toInt()}s"
             v.findViewById<TextView>(R.id.rowStatus).text = r.statusLabel
-            v.findViewById<RallyTimelineBar>(R.id.rowBar).set(totalSec, r.clickAtSec, r.departAtSec, nowSec, r.excluded)
+            v.findViewById<RallyTimelineBar>(R.id.rowBar).set(scale, r.clickAtSec, r.departAtSec, r.arriveAtSec, nowSec, r.excluded)
             val minus = v.findViewById<View>(R.id.rowMinus)
             val plus = v.findViewById<View>(R.id.rowPlus)
             val canEdit = isAdmin && editable
