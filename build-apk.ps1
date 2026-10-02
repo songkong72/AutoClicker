@@ -19,10 +19,12 @@ function Step($label, [scriptblock]$sb) {
 
 $wt = Join-Path $PSScriptRoot '_build'
 
-# keep _build out of "git status" of the main folder
+# keep build output and private keys out of "git status" of the main folder (never commit them by accident)
 $exclude = Join-Path $PSScriptRoot '.git\info\exclude'
 if (Test-Path $exclude) {
-    if (-not (Select-String -Path $exclude -Pattern '^_build/?$' -Quiet)) { Add-Content -Path $exclude -Value "`n_build/" }
+    foreach ($pat in @('_build/', 'keys/', '*.jks', 'setup-signing-log.txt')) {
+        if (-not (Select-String -Path $exclude -SimpleMatch -Pattern $pat -Quiet)) { Add-Content -Path $exclude -Value "`n$pat" }
+    }
 }
 
 if ((Step "git fetch" { git fetch origin }) -ne 0) { Log "RESULT: FAIL (git fetch)"; exit 1 }
