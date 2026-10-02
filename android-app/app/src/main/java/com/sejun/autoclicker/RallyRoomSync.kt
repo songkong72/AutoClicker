@@ -9,11 +9,12 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Firebase REST로 방(rallyRooms/{room})을 1초마다 읽고, 관리자의 시작/취소/다시집결을 반영한다.
+ * Firebase REST로 방(rallyRooms/{room})을 실시간 스트림(SSE)으로 받아 관리자의 시작/취소/다시집결을 즉시 반영한다.
+ * 스트림이 끊기거나 실패하면 1초 폴링으로 버티다가 다시 스트림에 연결한다.
  *
  * 시간 모델: 서버 시간을 쓰지 않는다. 기기가 startSeq 변화를 처음 본 순간이 0초이고,
- * 거기서 RallyClickTiming으로 내 클릭 시점을 예약한다. 폴링 지연만큼 기기 간 오차가 생기므로
- * 내 기기의 ms 보정(correctionMs)으로 맞춘다.
+ * 거기서 RallyClickTiming으로 내 클릭 시점을 예약한다. 수신 지연만큼 기기 간 오차가 생기므로
+ * (스트림이면 수십 ms, 폴링이면 최대 1초) 내 기기의 ms 보정(correctionMs)으로 맞춘다.
  */
 class RallyRoomSync(
     private val dbUrl: String,
@@ -38,6 +39,10 @@ class RallyRoomSync(
     private var startedAt: Long? = null
     private var clickTask: Runnable? = null
     @Volatile private var polling = false
+    @Volatile private var streaming = false
+    @Volatile private var streamConn: HttpURLConnection? = null
+    private var pendingDoc: RallyRoomDoc? = null
+    private var lastDiag = ""
 
     /** 내가 방금 바꾼 값이 서버에 반영되기 전에 도착한 옛 응답이 화면을 되돌리지 않도록, 변경 직후 잠시 서버 응답을 무시한다. */
     @Volatile private var holdRemoteUntil = 0L
@@ -50,16 +55,16 @@ class RallyRoomSync(
         polling = true
         Thread {
             while (polling) {
-                try {
-                    val remote = get()
-                    online = true
-                    val d = RallyRoomCodec.decode(remote)
-                    if (remote == null && isAdmin) put(seedRoom()) // 빈 방이면 기본 팀으로 시작
-                    else main.post { if (SystemClock.elapsedRealtime() >= holdRemoteUntil) apply(d) }
-                } catch (e: Exception) {
-                    online = false
+                try { runStream() } catch (e: Exception) { }
+                streaming = false
+                if (!polling) break
+                // 스트림이 끊기면 몇 번은 폴링으로 버티고 다시 연결을 시도한다.
+                repeat(5) {
+                    if (polling) {
+                        pollOnce()
+                        try { Thread.sleep(1000) } catch (_: InterruptedException) { }
+                    }
                 }
-                try { Thread.sleep(1000) } catch (_: InterruptedException) { }
             }
         }.start()
     }
@@ -67,6 +72,59 @@ class RallyRoomSync(
     fun stop() {
         polling = false
         cancelClick()
+        val c = streamConn
+        if (c != null) Thread { try { c.disconnect() } catch (_: Exception) { } }.start()
+    }
+
+    /** 서버 응답(수신 시점의 방 전체 상태)을 화면에 반영한다. 내가 방금 바꾼 직후에는 잠깐 미뤘다가 최신 상태를 반영한다. */
+    private fun deliver(remote: Map<String, Any?>?) {
+        val d = RallyRoomCodec.decode(remote)
+        if (remote == null && isAdmin) { Thread { try { put(seedRoom()) } catch (_: Exception) { } }.start(); return } // 빈 방이면 기본 팀으로 시작
+        main.post {
+            val wait = holdRemoteUntil - SystemClock.elapsedRealtime()
+            if (wait <= 0) { pendingDoc = null; apply(d) }
+            else { pendingDoc = d; main.postDelayed({ pendingDoc?.let { p -> pendingDoc = null; apply(p) } }, wait + 50) }
+        }
+    }
+
+    private fun pollOnce() {
+        try {
+            val remote = get()
+            online = true
+            deliver(remote)
+        } catch (e: Exception) {
+            online = false
+        }
+    }
+
+    /** 실시간 연결. 끊기거나 오류가 나면 반환/예외로 빠져나가 폴링으로 넘어간다. */
+    private fun runStream() {
+        val c = URL(url).openConnection() as HttpURLConnection
+        c.setRequestProperty("Accept", "text/event-stream")
+        c.connectTimeout = 5000
+        c.readTimeout = 70000 // 서버가 30초마다 keep-alive를 보낸다
+        streamConn = c
+        val tree = RallyStreamTree()
+        val parser = SseLineParser()
+        c.inputStream.bufferedReader().use { r ->
+            online = true
+            streaming = true
+            while (polling) {
+                val line = r.readLine() ?: break
+                val ev = parser.feed(line) ?: continue
+                when (ev.name) {
+                    "put", "patch" -> {
+                        val obj = JSONObject(ev.data)
+                        val path = obj.optString("path", "/")
+                        val data = if (obj.isNull("data")) null else toPlain(obj.get("data"))
+                        if (ev.name == "put") tree.put(path, data)
+                        else (data as? Map<*, *>)?.let { m -> tree.patch(path, m.entries.associate { it.key.toString() to it.value }) }
+                        deliver(tree.snapshot())
+                    }
+                    "cancel", "auth_revoked" -> return
+                }
+            }
+        }
     }
 
     // ---- StateSource ----
@@ -88,7 +146,8 @@ class RallyRoomSync(
     override fun onCorrectionDelta(deltaMs: Int) = setCorrectionMs(
         (correctionMs().toInt() + deltaMs).coerceIn(-2000, 2000)
     )
-    override fun devicePositionText(): String = positionText()
+    override fun devicePositionText(): String =
+        positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인")
     override fun onSavePosition() = savePosition()
 
     override fun onStart() = change(RallyRoomEdit::startOrRegroup)
@@ -169,7 +228,13 @@ class RallyRoomSync(
         )
         val mine = plan.teamPlan(myTeamId) ?: return // 제외된 팀은 클릭하지 않는다
         val delay = RallyClickTiming.delayUntilClickMs(mine.clickAtSec, 0L, correctionMs())
-        val task = Runnable { onClickDue() }
+        val startAtMs = startedAt
+        val task = Runnable {
+            val actual = if (startAtMs == null) 0.0 else (SystemClock.elapsedRealtime() - startAtMs) / 1000.0
+            val wall = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            lastDiag = "마지막 집결: 신호 수신 ${"%.3f".format(actual)}초 뒤 클릭(목표 ${"%.2f".format(mine.clickAtSec)}초 ${correctionMs()}ms 보정) · $wall"
+            onClickDue()
+        }
         clickTask = task
         main.postDelayed(task, delay)
     }
