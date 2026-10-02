@@ -73,4 +73,24 @@ class RallyRoomEditTest {
         val r = room()
         assertSame(r, RallyRoomEdit.cancel(r))
     }
+
+    @Test fun leaderCanEditOnlyOwnMarch() {
+        assertTrue(RallyRoomEdit.canEditMarch(room(), false, "t1", "t1"))
+        assertEquals(false, RallyRoomEdit.canEditMarch(room(), false, "t1", "t2"))
+    }
+
+    @Test fun adminCanEditAnyMarch() {
+        assertTrue(RallyRoomEdit.canEditMarch(room(), true, "t1", "t2"))
+    }
+
+    @Test fun nobodyEditsMarchWhileRunning() {
+        val r = room(run = "RUNNING", seq = 1)
+        assertEquals(false, RallyRoomEdit.canEditMarch(r, true, "t1", "t1"))
+        assertEquals(false, RallyRoomEdit.canEditMarch(r, false, "t1", "t1"))
+    }
+
+    @Test fun excludedTeamMarchIsNotEditable() {
+        val r = RallyRoomEdit.setExcluded(room(), "t1", true)
+        assertEquals(false, RallyRoomEdit.canEditMarch(r, false, "t1", "t1"))
+    }
 }

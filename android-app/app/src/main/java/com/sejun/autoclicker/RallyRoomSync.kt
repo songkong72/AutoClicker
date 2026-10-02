@@ -81,9 +81,17 @@ class RallyRoomSync(
 
     override fun onStop() = change(RallyRoomEdit::cancel)
 
+    /** 행군시간은 관리자(모든 팀) 또는 팀장(내 팀)이 고친다. 서버에는 그 팀의 필드 하나만 써서 다른 변경을 덮어쓰지 않는다. */
     override fun onMarchDelta(teamId: String, deltaSec: Double) {
-        val cur = doc.teams.firstOrNull { it.id == teamId } ?: return
-        change { RallyRoomEdit.setMarch(it, teamId, cur.marchSec + deltaSec) }
+        val d = doc
+        if (!RallyRoomEdit.canEditMarch(d, isAdmin, myTeamId, teamId)) return
+        val idx = d.teams.indexOfFirst { it.id == teamId }
+        if (idx < 0) return
+        val next = RallyRoomEdit.setMarch(d, teamId, d.teams[idx].marchSec + deltaSec)
+        if (next === d) return
+        apply(next)
+        val value = next.teams[idx].marchSec
+        Thread { try { putField("teams/$idx/marchSec", value) } catch (_: Exception) { } }.start()
     }
 
     override fun onToggleExclude(teamId: String) {
@@ -167,6 +175,16 @@ class RallyRoomSync(
         c.connectTimeout = 3000; c.readTimeout = 3000
         c.doOutput = true
         c.outputStream.use { it.write(JSONObject(RallyRoomCodec.encode(d)).toString().toByteArray()) }
+        c.inputStream.close()
+    }
+
+    private fun putField(path: String, value: Double) {
+        val c = URL("$dbUrl/rallyRooms/$room/$path.json").openConnection() as HttpURLConnection
+        c.requestMethod = "PUT"
+        c.setRequestProperty("Content-Type", "application/json")
+        c.connectTimeout = 3000; c.readTimeout = 3000
+        c.doOutput = true
+        c.outputStream.use { it.write(value.toString().toByteArray()) }
         c.inputStream.close()
     }
 

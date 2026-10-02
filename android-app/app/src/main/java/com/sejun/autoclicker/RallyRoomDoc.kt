@@ -95,4 +95,12 @@ object RallyRoomEdit {
 
     fun cancel(doc: RallyRoomDoc): RallyRoomDoc =
         if (doc.run != "RUNNING") doc else doc.copy(run = "CANCELLED")
+
+    /** 관리자는 모든 팀, 팀장은 내 팀의 행군시간만. 진행 중에는 모두 잠긴다. */
+    fun canEditMarch(doc: RallyRoomDoc, isAdmin: Boolean, myTeamId: String, teamId: String): Boolean {
+        if (locked(doc)) return false
+        val team = doc.teams.firstOrNull { it.id == teamId } ?: return false
+        if (team.excluded) return false
+        return isAdmin || teamId == myTeamId
+    }
 }
