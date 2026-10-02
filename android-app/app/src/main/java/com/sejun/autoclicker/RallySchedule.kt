@@ -39,42 +39,11 @@ data class RallyPlan(
 enum class RallyPhase { BEFORE_CLICK, GATHERING, MARCHING, ARRIVED }
 
 object RallySchedule {
+    // RED 확인용 임시 스텁: 구현 전 상태. 테스트가 실패해야 한다.
+    fun plan(teams: List<RallyTeamInput>, prepSec: Double, waitSec: Double): RallyPlan =
+        RallyPlan(0.0, 0.0, emptyList())
 
-    /**
-     * 제외(excluded)된 팀은 최대 행군 계산과 클릭 예약에서 빠진다.
-     * 참여 팀이 없으면 빈 계획을 돌려준다.
-     */
-    fun plan(teams: List<RallyTeamInput>, prepSec: Double, waitSec: Double): RallyPlan {
-        require(prepSec >= 0.0) { "이동 준비시간은 0 이상이어야 합니다: $prepSec" }
-        require(waitSec >= 0.0) { "집결 대기시간은 0 이상이어야 합니다: $waitSec" }
-        teams.forEach { require(it.marchSec >= 0.0) { "행군시간은 0 이상이어야 합니다: ${it.id}=${it.marchSec}" } }
+    fun phaseAt(team: RallyTeamPlan, elapsedSec: Double): RallyPhase = RallyPhase.BEFORE_CLICK
 
-        val active = teams.filter { !it.excluded }
-        if (active.isEmpty()) return RallyPlan(0.0, 0.0, emptyList())
-
-        val maxMarch = active.maxOf { it.marchSec }
-        val arrive = prepSec + maxMarch + waitSec
-        val plans = active.map {
-            val click = prepSec + (maxMarch - it.marchSec)
-            val depart = click + waitSec
-            RallyTeamPlan(it.id, it.marchSec, click, depart, depart + it.marchSec)
-        }.sortedBy { it.clickAtSec }
-        return RallyPlan(maxMarch, arrive, plans)
-    }
-
-    /** 시작 신호 후 elapsedSec 시점에 해당 팀이 어느 단계인지. 경계 시각은 다음 단계로 넘어간다. */
-    fun phaseAt(team: RallyTeamPlan, elapsedSec: Double): RallyPhase = when {
-        elapsedSec < team.clickAtSec -> RallyPhase.BEFORE_CLICK
-        elapsedSec < team.departAtSec -> RallyPhase.GATHERING
-        elapsedSec < team.arriveAtSec -> RallyPhase.MARCHING
-        else -> RallyPhase.ARRIVED
-    }
-
-    /** 현재 단계가 끝날 때까지 남은 초. 도착 후에는 0. */
-    fun remainingInPhaseSec(team: RallyTeamPlan, elapsedSec: Double): Double = when (phaseAt(team, elapsedSec)) {
-        RallyPhase.BEFORE_CLICK -> team.clickAtSec - elapsedSec
-        RallyPhase.GATHERING -> team.departAtSec - elapsedSec
-        RallyPhase.MARCHING -> team.arriveAtSec - elapsedSec
-        RallyPhase.ARRIVED -> 0.0
-    }
+    fun remainingInPhaseSec(team: RallyTeamPlan, elapsedSec: Double): Double = 0.0
 }
