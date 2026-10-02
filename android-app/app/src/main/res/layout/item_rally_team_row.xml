@@ -26,12 +26,33 @@
         android:textSize="14sp" />
 
     <TextView
+        android:id="@+id/rowMinus"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:text="−"
+        android:textColor="#93C5FD"
+        android:textSize="18sp"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/rowMarch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:textColor="#94A3B8"
         android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/rowPlus"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:gravity="center"
+        android:text="+"
+        android:textColor="#93C5FD"
+        android:textSize="18sp"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/rowStatus"

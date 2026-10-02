@@ -18,7 +18,8 @@ import java.net.URL
 class RallyRoomSync(
     private val dbUrl: String,
     private val room: String,
-    private val myTeamId: String,
+    myTeamIdInit: String,
+    private val saveMyTeam: (String) -> Unit,
     override val isAdmin: Boolean,
     private val correctionMs: () -> Long,
     private val onClickDue: () -> Unit,
@@ -26,6 +27,7 @@ class RallyRoomSync(
 ) : RallyPanelHost.StateSource {
 
     private val main = Handler(Looper.getMainLooper())
+    @Volatile private var myTeamId: String = myTeamIdInit
     @Volatile private var doc: RallyRoomDoc = RallyRoomCodec.decode(null)
     @Volatile private var online = false
     private var lastSeq = -1L
@@ -75,16 +77,31 @@ class RallyRoomSync(
         return RallyRoomState(teams, myTeamId, d.prepSec, d.waitSec, run, elapsed)
     }
 
-    override fun onStart() {
-        if (!isAdmin) return
-        val next = doc.copy(run = "RUNNING", startSeq = doc.startSeq + 1)
-        apply(next) // 내 기기는 즉시 반영
-        Thread { try { put(next) } catch (_: Exception) { } }.start()
+    override fun onStart() = change(RallyRoomEdit::startOrRegroup)
+
+    override fun onStop() = change(RallyRoomEdit::cancel)
+
+    override fun onMarchDelta(teamId: String, deltaSec: Double) {
+        val cur = doc.teams.firstOrNull { it.id == teamId } ?: return
+        change { RallyRoomEdit.setMarch(it, teamId, cur.marchSec + deltaSec) }
     }
 
-    override fun onStop() {
+    override fun onToggleExclude(teamId: String) {
+        val cur = doc.teams.firstOrNull { it.id == teamId } ?: return
+        change { RallyRoomEdit.setExcluded(it, teamId, !cur.excluded) }
+    }
+
+    /** 내 팀 선택은 기기 로컬 설정이라 방에는 쓰지 않는다. */
+    override fun onSelectMine(teamId: String) {
+        myTeamId = teamId
+        saveMyTeam(teamId)
+    }
+
+    /** 관리자만 방을 바꾼다. 내 기기는 즉시 반영하고 서버에는 비동기로 쓴다. */
+    private fun change(op: (RallyRoomDoc) -> RallyRoomDoc) {
         if (!isAdmin) return
-        val next = doc.copy(run = "CANCELLED")
+        val next = op(doc)
+        if (next === doc) return
         apply(next)
         Thread { try { put(next) } catch (_: Exception) { } }.start()
     }

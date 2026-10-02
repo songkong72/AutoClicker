@@ -20,6 +20,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onStart()
         fun onStop()
         fun onMinimize()
+        fun onMarchDelta(teamId: String, deltaSec: Double)
+        fun onToggleExclude(teamId: String)
+        fun onSelectMine(teamId: String)
     }
 
     private val themed = ContextThemeWrapper(context, R.style.Theme_AutoClicker)
@@ -42,7 +45,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         btnStop.setOnClickListener { callbacks.onStop() }
     }
 
-    fun render(model: ScreenModel, isAdmin: Boolean) {
+    fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false) {
         val hero = model.hero
         heroLabel.text = hero.label
         heroTime.text = hero.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: "--:--"
@@ -53,16 +56,18 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         warning.visibility = if (model.warnings.isEmpty()) View.GONE else View.VISIBLE
         warning.text = model.warnings.joinToString("\n") { "⚠ $it" }
 
-        renderRows(model.rows)
+        renderRows(model.rows, isAdmin && model.editable)
 
         adminBar.visibility = if (isAdmin) View.VISIBLE else View.GONE
-        btnStart.isEnabled = model.editable && model.startBlockedReason == null
+        val canRegroup = model.hero.kind == HeroKind.ARRIVED || model.hero.kind == HeroKind.CANCELLED
+        btnStart.text = if (canRegroup || hasStarted) "다시 집결" else "집결 시작"
+        btnStart.isEnabled = model.startBlockedReason == null
         btnStop.isEnabled = !model.editable
         blocked.visibility = if (isAdmin && model.startBlockedReason != null) View.VISIBLE else View.GONE
         blocked.text = model.startBlockedReason ?: ""
     }
 
-    private fun renderRows(list: List<TeamRowModel>) {
+    private fun renderRows(list: List<TeamRowModel>, canEdit: Boolean) {
         // 팀 수가 적고(≤ 몇 개) 1초 단위 갱신이라, 줄 수가 같으면 재사용한다.
         if (rows.childCount != list.size) {
             rows.removeAllViews()
@@ -79,6 +84,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             v.findViewById<TextView>(R.id.rowMarch).text = "행군 ${r.marchSec.toInt()}s"
             v.findViewById<TextView>(R.id.rowStatus).text = r.statusLabel
+            val minus = v.findViewById<View>(R.id.rowMinus)
+            val plus = v.findViewById<View>(R.id.rowPlus)
+            minus.visibility = if (canEdit && !r.excluded) View.VISIBLE else View.GONE
+            plus.visibility = minus.visibility
+            minus.setOnClickListener { callbacks.onMarchDelta(r.id, -1.0) }
+            plus.setOnClickListener { callbacks.onMarchDelta(r.id, 1.0) }
+            v.setOnClickListener { if (canEdit) callbacks.onToggleExclude(r.id) }
+            v.setOnLongClickListener { callbacks.onSelectMine(r.id); true }
             v.findViewById<TextView>(R.id.rowRemain).text = r.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""
         }
     }

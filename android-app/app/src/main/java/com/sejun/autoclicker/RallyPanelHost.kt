@@ -28,6 +28,9 @@ class RallyPanelHost(
         val isAdmin: Boolean
         fun onStart()
         fun onStop()
+        fun onMarchDelta(teamId: String, deltaSec: Double) {}
+        fun onToggleExclude(teamId: String) {}
+        fun onSelectMine(teamId: String) {}
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -51,6 +54,9 @@ class RallyPanelHost(
             override fun onStart() { stateSource.onStart(); refresh() }
             override fun onStop() { stateSource.onStop(); refresh() }
             override fun onMinimize() { toggleMinimize() }
+            override fun onMarchDelta(teamId: String, deltaSec: Double) { stateSource.onMarchDelta(teamId, deltaSec); refresh() }
+            override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
+            override fun onSelectMine(teamId: String) { stateSource.onSelectMine(teamId); refresh() }
         })
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -82,7 +88,7 @@ class RallyPanelHost(
     private fun refresh() {
         val p = panel ?: return
         val model = RallyScreenModel.build(stateSource.current())
-        p.render(model, stateSource.isAdmin)
+        p.render(model, stateSource.isAdmin, stateSource.current().runState == RallyRunState.RUNNING)
         if (minimized) p.setMinimized(true, model.hero)
     }
 

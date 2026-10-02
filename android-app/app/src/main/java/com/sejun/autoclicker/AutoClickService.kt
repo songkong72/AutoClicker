@@ -145,7 +145,9 @@ class AutoClickService : AccessibilityService() {
         val host = rallyPanelHost ?: run {
             val source: RallyPanelHost.StateSource = if (room.isNotEmpty()) {
                 RallyRoomSync(
-                    dbUrl = firebaseDbUrl, room = room, myTeamId = "t3", isAdmin = true,
+                    dbUrl = firebaseDbUrl, room = room, isAdmin = true,
+                    myTeamIdInit = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getString("rally_my_team", "t3") ?: "t3",
+                    saveMyTeam = { id -> getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("rally_my_team", id).apply() },
                     correctionMs = { PreferencesHelper.getClickOffsetMs(this).toLong() },
                     onClickDue = { performRallyClickNow() },
                     onCancel = { }

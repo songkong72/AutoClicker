@@ -65,3 +65,34 @@ object RallyClickTiming {
     fun delayUntilClickMs(clickAtSec: Double, elapsedMs: Long, correctionMs: Long): Long =
         Math.max(0L, Math.round(clickAtSec * 1000.0) - elapsedMs + correctionMs)
 }
+
+/** 관리자 편집. 진행 중(RUNNING)에는 잠기고, 잠긴 상태의 요청은 문서를 그대로 돌려준다. */
+object RallyRoomEdit {
+    private fun locked(d: RallyRoomDoc) = d.run == "RUNNING"
+
+    private fun mapTeam(d: RallyRoomDoc, id: String, f: (RallyTeamDoc) -> RallyTeamDoc): RallyRoomDoc =
+        if (locked(d)) d else d.copy(teams = d.teams.map { if (it.id == id) f(it) else it })
+
+    fun setMarch(doc: RallyRoomDoc, teamId: String, marchSec: Double): RallyRoomDoc =
+        mapTeam(doc, teamId) { it.copy(marchSec = Math.max(0.0, marchSec)) }
+
+    fun setExcluded(doc: RallyRoomDoc, teamId: String, excluded: Boolean): RallyRoomDoc =
+        mapTeam(doc, teamId) { it.copy(excluded = excluded) }
+
+    fun addTeam(doc: RallyRoomDoc, name: String, marchSec: Double): RallyRoomDoc {
+        if (locked(doc)) return doc
+        var n = doc.teams.size + 1
+        while (doc.teams.any { it.id == "t$n" }) n++
+        return doc.copy(teams = doc.teams + RallyTeamDoc("t$n", name, "", Math.max(0.0, marchSec)))
+    }
+
+    fun removeTeam(doc: RallyRoomDoc, teamId: String): RallyRoomDoc =
+        if (locked(doc)) doc else doc.copy(teams = doc.teams.filter { it.id != teamId })
+
+    /** 시작 또는 다시 집결: 항상 RUNNING + startSeq 증가. 참여 팀이 없으면 그대로. */
+    fun startOrRegroup(doc: RallyRoomDoc): RallyRoomDoc =
+        if (doc.teams.none { !it.excluded }) doc else doc.copy(run = "RUNNING", startSeq = doc.startSeq + 1)
+
+    fun cancel(doc: RallyRoomDoc): RallyRoomDoc =
+        if (doc.run != "RUNNING") doc else doc.copy(run = "CANCELLED")
+}
