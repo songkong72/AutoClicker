@@ -1,5 +1,6 @@
-﻿# build-apk.ps1 - build a debug APK of origin/feature/relative-rally in a SEPARATE folder (_build).
+﻿# build-apk.ps1 [branch] - build a debug APK of origin/<branch> (default: main) in a SEPARATE folder (_build).
 # Your current working folder, branch and uncommitted changes are NOT touched.
+param([string]$Branch = 'main')
 $ErrorActionPreference = 'Continue'
 Set-Location -Path $PSScriptRoot
 $log = Join-Path $PSScriptRoot 'build-log.txt'
@@ -31,10 +32,11 @@ if ((Step "git fetch" { git fetch origin }) -ne 0) { Log "RESULT: FAIL (git fetc
 Step "git worktree prune" { git worktree prune } | Out-Null
 
 if (-not (Test-Path (Join-Path $wt '.git'))) {
-    if ((Step "create build folder" { git worktree add --detach _build origin/feature/relative-rally }) -ne 0) { Log "RESULT: FAIL (worktree add)"; exit 1 }
+    if ((Step "create build folder" { git worktree add --detach _build origin/$Branch }) -ne 0) { Log "RESULT: FAIL (worktree add)"; exit 1 }
 } else {
-    if ((Step "update build folder" { git -C _build checkout --force --detach origin/feature/relative-rally }) -ne 0) { Log "RESULT: FAIL (checkout)"; exit 1 }
+    if ((Step "update build folder" { git -C _build checkout --force --detach origin/$Branch }) -ne 0) { Log "RESULT: FAIL (checkout)"; exit 1 }
 }
+Log "branch: origin/$Branch"
 Step "commit being built" { git -C _build log -1 --oneline } | Out-Null
 
 # local.properties (SDK path) is not in git: copy it from the main folder if it exists
