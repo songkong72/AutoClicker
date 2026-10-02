@@ -31,6 +31,9 @@ class RallyPanelHost(
         fun onMarchDelta(teamId: String, deltaSec: Double) {}
         fun onToggleExclude(teamId: String) {}
         fun onSelectMine(teamId: String) {}
+        fun onSetMarch(teamId: String, sec: Double) {}
+        fun onAddTeam() {}
+        fun onRemoveTeam(teamId: String) {}
         /** 내 기기 설정(좌표, ms 보정). 방 데이터가 아니라 이 기기에만 저장된다. */
         fun deviceCorrectionMs(): Int = 0
         fun onCorrectionDelta(deltaMs: Int) {}
@@ -42,6 +45,7 @@ class RallyPanelHost(
     private var panel: RallyPanelView? = null
     private var params: WindowManager.LayoutParams? = null
     private var minimized = false
+    private val input = RallyInputPopup(context, wm)
 
     val isShowing: Boolean get() = panel != null
 
@@ -62,6 +66,15 @@ class RallyPanelHost(
             override fun onMarchDelta(teamId: String, deltaSec: Double) { stateSource.onMarchDelta(teamId, deltaSec); refresh() }
             override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
             override fun onSelectMine(teamId: String) { stateSource.onSelectMine(teamId); refresh() }
+            override fun onEditMarch(teamId: String, currentSec: Double) {
+                val shown = if (currentSec % 1.0 == 0.0) currentSec.toInt().toString() else currentSec.toString()
+                input.show("행군시간(초)", shown) { text ->
+                    val sec = RallyInputParse.marchSeconds(text) ?: return@show false
+                    stateSource.onSetMarch(teamId, sec); refresh(); true
+                }
+            }
+            override fun onAddTeam() { stateSource.onAddTeam(); refresh() }
+            override fun onRemoveTeam(teamId: String) { stateSource.onRemoveTeam(teamId); refresh() }
             override fun onCorrectionDelta(deltaMs: Int) { stateSource.onCorrectionDelta(deltaMs); refresh() }
             override fun onSavePosition() { stateSource.onSavePosition(); refresh() }
         })
@@ -81,6 +94,7 @@ class RallyPanelHost(
     }
 
     fun hide() {
+        input.dismiss()
         handler.removeCallbacks(tick)
         panel?.root?.let { v ->
             try { wm.removeView(v) } catch (_: Exception) { }

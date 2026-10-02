@@ -68,6 +68,16 @@
         android:textSize="12sp" />
 
     <TextView
+        android:id="@+id/rowDel"
+        android:layout_width="28dp"
+        android:layout_height="32dp"
+        android:gravity="center"
+        android:text="✕"
+        android:textColor="#F87171"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/rowRemain"
         android:layout_width="48dp"
         android:layout_height="wrap_content"

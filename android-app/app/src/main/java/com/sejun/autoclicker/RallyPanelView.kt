@@ -23,6 +23,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onToggleExclude(teamId: String)
         fun onSelectMine(teamId: String)
         fun onCorrectionDelta(deltaMs: Int)
+        fun onEditMarch(teamId: String, currentSec: Double)
+        fun onAddTeam()
+        fun onRemoveTeam(teamId: String)
         fun onSavePosition()
     }
 
@@ -45,6 +48,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
+        root.findViewById<View>(R.id.rallyAddTeam).setOnClickListener { callbacks.onAddTeam() }
         root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-10) }
         root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(10) }
         root.findViewById<View>(R.id.devSavePos).setOnClickListener { callbacks.onSavePosition() }
@@ -79,6 +83,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         renderRows(model.rows, isAdmin, model.editable, RallyTimelineScale(model.maxMarchSec), model.nowSec)
 
         adminBar.visibility = if (isAdmin) View.VISIBLE else View.GONE
+        root.findViewById<View>(R.id.rallyAddTeam).visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
         val canRegroup = model.hero.kind == HeroKind.ARRIVED || model.hero.kind == HeroKind.CANCELLED
         btnStart.text = if (canRegroup || hasStarted) "다시 집결" else "집결 시작"
         btnStart.isEnabled = model.startBlockedReason == null
@@ -111,6 +116,11 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val canMarch = editable && !r.excluded && (isAdmin || r.isMine) // 팀장은 내 팀만
             minus.visibility = if (canMarch) View.VISIBLE else View.GONE
             plus.visibility = minus.visibility
+            v.findViewById<View>(R.id.rowDel).apply {
+                visibility = if (canEdit) View.VISIBLE else View.GONE
+                setOnClickListener { callbacks.onRemoveTeam(r.id) }
+            }
+            v.findViewById<TextView>(R.id.rowMarch).setOnClickListener { if (canMarch) callbacks.onEditMarch(r.id, r.marchSec) }
             minus.setOnClickListener { callbacks.onMarchDelta(r.id, -1.0) }
             plus.setOnClickListener { callbacks.onMarchDelta(r.id, 1.0) }
             v.setOnClickListener { if (canEdit) callbacks.onToggleExclude(r.id) }
