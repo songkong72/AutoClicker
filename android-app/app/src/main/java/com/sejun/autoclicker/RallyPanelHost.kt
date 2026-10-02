@@ -113,29 +113,55 @@ class RallyPanelHost(
         }
     }
 
-    /** 앱 내부 로컬 상태: 시작 버튼을 누른 순간부터 경과 시간을 센다 (Firebase 연결 전 임시). */
+    /** 방 번호가 없을 때의 연습용 방. 실제 방과 같은 편집 규칙(RallyRoomEdit)을 쓰고, 이 기기 안에서만 동작한다. */
     class LocalDemoSource(
-        private val teams: List<RallyTeamState>,
-        private val myTeamId: String,
-        private val prepSec: Double,
-        private val waitSec: Double,
+        teams: List<RallyTeamState>,
+        private var myTeamId: String,
+        prepSec: Double,
+        waitSec: Double,
         override val isAdmin: Boolean = true
     ) : StateSource {
+        private var doc = RallyRoomDoc(
+            teams.map { RallyTeamDoc(it.id, it.name, it.leaderName, it.marchSec, it.excluded) },
+            prepSec, waitSec, "IDLE", 0L
+        )
         private var startedAt: Long? = null
-        private var cancelled = false
 
         override fun current(): RallyRoomState {
             val s = startedAt
             val elapsed = if (s == null) 0.0 else (SystemClock.elapsedRealtime() - s) / 1000.0
-            val run = when {
-                cancelled -> RallyRunState.CANCELLED
-                s == null -> RallyRunState.IDLE
-                else -> RallyRunState.RUNNING
+            val run = when (doc.run) {
+                "RUNNING" -> RallyRunState.RUNNING
+                "CANCELLED" -> RallyRunState.CANCELLED
+                else -> RallyRunState.IDLE
             }
-            return RallyRoomState(teams, myTeamId, prepSec, waitSec, run, elapsed)
+            val ts = doc.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, true, it.excluded) }
+            return RallyRoomState(ts, myTeamId, doc.prepSec, doc.waitSec, run, elapsed)
         }
 
-        override fun onStart() { startedAt = SystemClock.elapsedRealtime(); cancelled = false }
-        override fun onStop() { startedAt = null; cancelled = true }
+        private fun change(op: (RallyRoomDoc) -> RallyRoomDoc) {
+            val next = op(doc)
+            if (next === doc) return
+            if (next.startSeq != doc.startSeq) startedAt = SystemClock.elapsedRealtime()
+            if (next.run != "RUNNING") startedAt = if (next.run == "CANCELLED") null else startedAt
+            doc = next
+        }
+
+        override fun onStart() { if (isAdmin) change(RallyRoomEdit::startOrRegroup) }
+        override fun onStop() { if (isAdmin) change(RallyRoomEdit::cancel) }
+
+        override fun onMarchDelta(teamId: String, deltaSec: Double) {
+            if (!RallyRoomEdit.canEditMarch(doc, isAdmin, myTeamId, teamId)) return
+            val cur = doc.teams.firstOrNull { it.id == teamId } ?: return
+            change { RallyRoomEdit.setMarch(it, teamId, cur.marchSec + deltaSec) }
+        }
+
+        override fun onToggleExclude(teamId: String) {
+            if (!isAdmin) return
+            val cur = doc.teams.firstOrNull { it.id == teamId } ?: return
+            change { RallyRoomEdit.setExcluded(it, teamId, !cur.excluded) }
+        }
+
+        override fun onSelectMine(teamId: String) { myTeamId = teamId }
     }
 }
