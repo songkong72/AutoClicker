@@ -222,6 +222,18 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
     )
 
+    /** 알약에서는 한 줄에 들어가도록 단계명을 짧게 줄인다. */
+    private fun minLabel(h: HeroModel): String = when (h.kind) {
+        HeroKind.MOVE -> "이동 준비"
+        HeroKind.WAIT_CLICK -> "집결 대기"
+        HeroKind.GATHERING -> "집결 중"
+        HeroKind.MARCHING -> "행군 중"
+        HeroKind.ARRIVED -> "전원 도착"
+        HeroKind.CANCELLED -> "작전 취소"
+        HeroKind.EXCLUDED -> "제외됨"
+        HeroKind.IDLE -> if (h.label.contains("내 팀")) "내 팀 선택" else if (h.label.contains("구성")) "팀 구성 중" else "시작 대기"
+    }
+
     /** 최소화: 카운트다운 한 줄만 남기고 나머지는 숨긴다. */
     private var isMinimized = false
 
@@ -244,15 +256,28 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             warning.visibility = View.GONE
             blocked.visibility = View.GONE
         }
+        val dp = root.resources.displayMetrics.density
         if (min) {
-            // 알약: [단계명(단계 색)            — ✕]  아래에 큰 시간. 제목 줄을 단계명으로 바꿔 한 덩어리로 보이게 한다.
-            title.text = hero.label
-            title.setTextColor(heroColor(hero.kind))
+            // 알약: 단계 색 점 + 짧은 단계명 한 줄, 아래에 큰 시간. 테두리도 단계 색으로 은은하게 칠한다.
+            val c = heroColor(hero.kind)
+            title.text = "●  " + minLabel(hero)
+            title.setTextColor(c)
             title.textSize = 13f
+            title.maxLines = 1
+            title.ellipsize = android.text.TextUtils.TruncateAt.END
             heroLabel.visibility = View.GONE
             heroTime.textSize = 28f
             heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
+            root.background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.parseColor("#F20F172A"))
+                cornerRadius = 22 * dp
+                setStroke((1.5f * dp).toInt(), (c and 0x00FFFFFF) or (0x99 shl 24))
+            }
+            root.setPadding((12 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt(), (8 * dp).toInt())
         } else {
+            root.setBackgroundResource(R.drawable.bg_rally_panel)
+            root.setPadding((12 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt())
+            title.maxLines = Int.MAX_VALUE
             title.setTextColor(Color.parseColor("#F8FAFC"))
             title.textSize = 14f
             heroLabel.visibility = View.VISIBLE
