@@ -32,3 +32,4 @@ AutoClicker-debug.apk
 keys/
 *.jks
 *.keystore
+setup-signing-log.txt
