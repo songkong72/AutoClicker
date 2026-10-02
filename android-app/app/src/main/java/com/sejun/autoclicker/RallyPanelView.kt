@@ -59,6 +59,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         listOf<View>(heroLabel, title, heroTime).forEach { v -> v.setOnClickListener { if (isMinimized) callbacks.onMinimize() } }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
+        listOf<View>(btnStart, btnStop).forEach { pressFeel(it) }
         root.findViewById<TextView>(R.id.devToggle).setOnClickListener { t ->
             val sec = root.findViewById<View>(R.id.devSection)
             val open = sec.visibility != View.VISIBLE
@@ -85,6 +86,22 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 b.removeCallbacks(restore)
                 b.postDelayed(restore, 1500L)
             }
+        }
+    }
+
+    /** 눌린 느낌: 누르는 동안 살짝 작아지고 어두워지며, 뗄 때 짧게 진동한다. 비활성 버튼은 반응하지 않는다. */
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    private fun pressFeel(v: View) {
+        v.setOnTouchListener { view, e ->
+            if (view.isEnabled) when (e.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    view.animate().scaleX(0.94f).scaleY(0.94f).alpha(0.75f).setDuration(60).start()
+                    view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
+                    view.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start()
+            }
+            false // 클릭 이벤트는 그대로 전달
         }
     }
 
