@@ -29,6 +29,11 @@ object HunterModeManager {
     private var lastScanTime = 0L
     private val COOL_DOWN_MS = 3000L
 
+    // 화면 캡처 결과(전체 화면 비트맵 복사와 픽셀 검사)는 메인 스레드가 아니라 전용 스레드에서 처리한다. 앱 멈춤("앱 대기") 방지.
+    private val worker = java.util.concurrent.Executors.newSingleThreadExecutor()
+    /** 캡처 요청이 아직 끝나지 않았으면 새로 요청하지 않는다(요청이 겹쳐 쌓이는 것을 막는다). */
+    @Volatile private var scanning = false
+
     fun loadSettings(service: AutoClickService) {
         val prefs = service.getSharedPreferences("HunterPrefs", android.content.Context.MODE_PRIVATE)
         flag1X = prefs.getInt("flag1X", 0)
@@ -56,39 +61,47 @@ object HunterModeManager {
         Toast.makeText(service, "🐻 헌터 타겟 저장 완료!", Toast.LENGTH_SHORT).show()
     }
 
+    /** 헌터 모드를 끄고 진행 중인 감시 요청 표시를 지운다. */
+    fun stop() { isHunterModeEnabled = false }
+
     fun triggerScan(service: AutoClickService) {
         if (!isHunterModeEnabled) return
         if (System.currentTimeMillis() - lastScanTime < COOL_DOWN_MS) return
+        if (scanning) return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val executor = service.mainExecutor
-            service.takeScreenshot(
-                android.view.Display.DEFAULT_DISPLAY,
-                executor,
-                object : AccessibilityService.TakeScreenshotCallback {
-                    override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
-                        try {
+            scanning = true
+            try {
+                service.takeScreenshot(
+                    android.view.Display.DEFAULT_DISPLAY,
+                    worker,
+                    object : AccessibilityService.TakeScreenshotCallback {
+                        override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
                             val hwBuffer = screenshot.hardwareBuffer
-                            val colorSpace = screenshot.colorSpace
-                            val bitmap = Bitmap.wrapHardwareBuffer(hwBuffer, colorSpace)
-                            
-                            val swBitmap = bitmap?.copy(Bitmap.Config.ARGB_8888, false)
-                            hwBuffer.close()
-                            
-                            if (swBitmap != null) {
-                                analyzeAndClick(service, swBitmap)
-                                swBitmap.recycle()
+                            try {
+                                val bitmap = Bitmap.wrapHardwareBuffer(hwBuffer, screenshot.colorSpace)
+                                val swBitmap = bitmap?.copy(Bitmap.Config.ARGB_8888, false)
+                                if (swBitmap != null) {
+                                    analyzeAndClick(service, swBitmap)
+                                    swBitmap.recycle()
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Screenshot processing failed", e)
+                            } finally {
+                                try { hwBuffer.close() } catch (_: Exception) { }
+                                scanning = false
                             }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Screenshot processing failed", e)
+                        }
+
+                        override fun onFailure(errorCode: Int) {
+                            scanning = false
                         }
                     }
-
-                    override fun onFailure(errorCode: Int) {
-                        Log.e(TAG, "Screenshot failed with error code: $errorCode")
-                    }
-                }
-            )
+                )
+            } catch (e: Exception) {
+                scanning = false
+                Log.e(TAG, "takeScreenshot request failed", e)
+            }
         } else {
             Toast.makeText(service, "화면 캡처 스캔은 안드로이드 11 이상부터 지원됩니다.", Toast.LENGTH_SHORT).show()
         }
@@ -170,11 +183,10 @@ object HunterModeManager {
         // 3. 클릭 발사
         lastScanTime = System.currentTimeMillis() // 쿨타임 시작
         
-        // 클릭 1: 깃발
-        dispatchSingleClick(service, targetFlagX.toFloat(), targetFlagY.toFloat())
-        
-        // 클릭 2: 출정 버튼 (0.15초 뒤)
-        Handler(Looper.getMainLooper()).postDelayed({
+        // 클릭은 메인 스레드에서 보낸다. 1) 깃발, 2) 0.15초 뒤 출정 버튼
+        val main = Handler(Looper.getMainLooper())
+        main.post { dispatchSingleClick(service, targetFlagX.toFloat(), targetFlagY.toFloat()) }
+        main.postDelayed({
             dispatchSingleClick(service, dispatchX.toFloat(), dispatchY.toFloat())
             Toast.makeText(service, "🐻 헌터 발사 완료!", Toast.LENGTH_SHORT).show()
         }, 150)

@@ -82,7 +82,7 @@ class AutoClickService : AccessibilityService() {
             if (HunterModeManager.isHunterModeEnabled && HunterModeManager.isAutoScanActive) {
                 HunterModeManager.triggerScan(this@AutoClickService)
             }
-            mainHandler.postDelayed(this, 50) // 0.3초마다 검사
+            mainHandler.postDelayed(this, 350) // 안드로이드는 화면 캡처를 약 0.33초에 한 번만 허용한다
         }
     }
 
@@ -415,6 +415,12 @@ class AutoClickService : AccessibilityService() {
      * 오토클리커 플로팅 위젯들을 화면에서 완전히 닫고 제거합니다.
      */
     fun hideOverlays() {
+        // 오버레이를 끌 때 헌터 감시도 같이 끈다(안 끄면 보이지 않는 채로 계속 캡처하고 클릭할 수 있다)
+        if (HunterModeManager.isHunterModeEnabled) {
+            HunterModeManager.stop()
+            mainHandler.removeCallbacks(hunterScanRunnable)
+        }
+        hideBearSetupUi()
         autoStartWatcherJob?.cancel()
         autoStartWatcherJob = null
         stopCloudSyncPolling()
