@@ -118,7 +118,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<TextView>(R.id.devPosStatus).text = posText
     }
 
-    fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false) {
+    fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "") {
         val hero = model.hero
         title.text = if (isAdmin) "집결 · 관리자" else "집결 · 팀장"
         heroLabel.text = hero.label
@@ -131,7 +131,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
         heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
         heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else heroColor(hero.kind))
-        heroSub.text = if (previewTotal) hero.subLabel + " · 전원 ${RallyScreenModel.formatMmSs(model.arriveAtSec)} 후 도착" else hero.subLabel
+        val sub = if (previewTotal) hero.subLabel + " · 전원 ${RallyScreenModel.formatMmSs(model.arriveAtSec)} 후 도착" else hero.subLabel
+        heroSub.text = if (arrivalNote.isEmpty()) sub else "$sub\n$arrivalNote"
         renderPhases(hero.kind)
         heroProgress.progress = (hero.progress * 1000).toInt()
 

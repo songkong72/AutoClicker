@@ -37,6 +37,7 @@ class RallyRoomSync(
     private val startDetector = RallyStartDetector()
     private var lastRun = "IDLE"
     private var startedAt: Long? = null
+    @Volatile private var arriveWallMs: Long? = null // 이 기기 시계 기준 전원 도착 시각(안내용)
     private var clickTask: Runnable? = null
     @Volatile private var polling = false
     @Volatile private var streaming = false
@@ -144,6 +145,7 @@ class RallyRoomSync(
     }
 
     override fun deviceCorrectionMs(): Int = correctionMs().toInt()
+    override fun arrivalNote(): String = RallyArrivalNote.text(arriveWallMs, System.currentTimeMillis())
     override fun onSetCorrectionMs(ms: Int) = setCorrectionMs(ms.coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS))
     override fun onCorrectionDelta(deltaMs: Int) = setCorrectionMs(
         (correctionMs().toInt() + deltaMs).coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS)
@@ -220,11 +222,14 @@ class RallyRoomSync(
         doc = d
         if (startDetector.onDoc(d.startSeq, d.run, fromRemote)) {
             startedAt = SystemClock.elapsedRealtime()
+            val plan = RallySchedule.plan(d.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) }, d.prepSec, d.waitSec)
+            arriveWallMs = RallyArrivalNote.arriveAtMs(System.currentTimeMillis(), plan.arriveAtSec)
             scheduleMyClick(d)
         }
         if (d.run == "CANCELLED" && lastRun != "CANCELLED") {
             cancelClick()
             startedAt = null
+            arriveWallMs = null
             onCancel()
         }
         lastRun = d.run

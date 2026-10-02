@@ -41,6 +41,8 @@ class RallyPanelHost(
         fun onCorrectionDelta(deltaMs: Int) {}
         fun onSetCorrectionMs(ms: Int) {}
         fun devicePositionText(): String = ""
+        /** "도착 예정 12:34:12" / "12:34:12 도착". 진행한 집결이 없으면 빈 문자열. */
+        fun arrivalNote(): String = ""
         fun onSavePosition() {}
     }
 
@@ -161,7 +163,7 @@ class RallyPanelHost(
         }
         val model = RallyScreenModel.build(state)
         p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText())
-        p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING)
+        p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING, stateSource.arrivalNote())
         if (minimized) p.setMinimized(true, model.hero)
     }
 
