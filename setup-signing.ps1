@@ -14,9 +14,15 @@ $keytool = $null
 if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin\keytool.exe'))) { $keytool = Join-Path $env:JAVA_HOME 'bin\keytool.exe' }
 if (-not $keytool) { $c = Get-Command keytool -ErrorAction SilentlyContinue; if ($c) { $keytool = $c.Source } }
 if (-not $keytool) {
-    foreach ($p in @("$env:ProgramFiles\Android\Android Studio\jbr\bin\keytool.exe", "$env:ProgramFiles\Android\Android Studio\jre\bin\keytool.exe")) { if (Test-Path $p) { $keytool = $p; break } }
+    $roots = @("$env:ProgramFiles\Android\Android Studio", "$env:ProgramFiles\Java", "$env:ProgramFiles\Eclipse Adoptium", "$env:ProgramFiles\Microsoft", "$env:ProgramFiles\Zulu", "$env:ProgramFiles\BellSoft", "$env:USERPROFILE\.jdks", "$env:LOCALAPPDATA\Programs", "${env:ProgramFiles(x86)}\Java")
+    foreach ($r in $roots) {
+        if (Test-Path $r) {
+            $hit = Get-ChildItem -Path $r -Filter keytool.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($hit) { $keytool = $hit.FullName; break }
+        }
+    }
 }
-if (-not $keytool) { Write-Host "keytool not found. Install a JDK (or Android Studio) and try again."; exit 1 }
+if (-not $keytool) { Write-Host "keytool not found. Install a JDK (or Android Studio) and try again."; Write-Host "(JAVA_HOME=$env:JAVA_HOME)"; exit 1 }
 Write-Host "Using: $keytool"
 
 New-Item -ItemType Directory -Path $keysDir -Force | Out-Null
