@@ -288,6 +288,7 @@ class AutoClickService : AccessibilityService() {
             val code = event.keyCode
             if (code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_VOLUME_UP) {
                 if (HunterModeManager.isHunterModeEnabled && code == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                    if (event.repeatCount == 0) showToast("🔑 볼륨 ↓ 입력 감지")
                     HunterModeManager.fire(this, event.repeatCount)
                     return true // 헌터 모드 중 볼륨 아래는 발사 키다(볼륨은 바뀌지 않는다)
                 }
@@ -409,6 +410,7 @@ class AutoClickService : AccessibilityService() {
     fun hideOverlays() {
         // 오버레이를 끌 때 헌터 감시도 같이 끈다(안 끄면 보이지 않는 채로 계속 캡처하고 클릭할 수 있다)
         HunterModeManager.stop()
+        hideHunterFireButton()
         hideBearSetupUi()
         autoStartWatcherJob?.cancel()
         autoStartWatcherJob = null
@@ -2797,11 +2799,59 @@ etTargetHour.setText("%02d".format(g.targetHour))
     private var targetFlag1View: View? = null
     private var targetFlag1Params: WindowManager.LayoutParams? = null
 
+    private var hunterFireView: View? = null
+
+    /** 볼륨 키를 쓸 수 없을 때(에뮬레이터 등)를 위한 화면 발사 버튼. 눌러서 발사, 끌어서 이동한다. */
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    private fun showHunterFireButton() {
+        if (hunterFireView != null) return
+        val wm = windowManager ?: return
+        val dp = resources.displayMetrics.density
+        val v = android.widget.TextView(this).apply {
+            text = "🐻\n발사"
+            textSize = 11f
+            gravity = android.view.Gravity.CENTER
+            setTextColor(Color.WHITE)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(Color.parseColor("#E610B981"))
+            }
+        }
+        val size = (56 * dp).toInt()
+        val lp = WindowManager.LayoutParams(
+            size, size, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT
+        ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = (12 * dp).toInt(); y = (220 * dp).toInt() }
+        var sx = 0; var sy = 0; var tx = 0f; var ty = 0f; var moved = false
+        v.setOnTouchListener { _, e ->
+            when (e.action) {
+                android.view.MotionEvent.ACTION_DOWN -> { sx = lp.x; sy = lp.y; tx = e.rawX; ty = e.rawY; moved = false }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val dx = e.rawX - tx; val dy = e.rawY - ty
+                    if (moved || Math.abs(dx) > 12 * dp || Math.abs(dy) > 12 * dp) {
+                        moved = true
+                        lp.x = sx + dx.toInt(); lp.y = sy + dy.toInt()
+                        try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP -> if (!moved) { vibrate(30); HunterModeManager.fire(this, 0) }
+            }
+            true
+        }
+        try { wm.addView(v, lp); hunterFireView = v } catch (e: Exception) { Log.w(TAG, "헌터 발사 버튼 추가 실패", e) }
+    }
+
+    private fun hideHunterFireButton() {
+        hunterFireView?.let { try { windowManager?.removeView(it) } catch (_: Exception) { } }
+        hunterFireView = null
+    }
+
     private fun toggleBearMode() {
         HunterModeManager.isHunterModeEnabled = !HunterModeManager.isHunterModeEnabled
         val btnBearMode = controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)
         if (HunterModeManager.isHunterModeEnabled) {
             btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#10B981")) // 초록: 켜짐
+            showHunterFireButton()
             if (HunterModeManager.hasTargets) {
                 showToast("🐻 헌터 모드 켜짐 · 집결을 고른 뒤 볼륨 ↓ 키를 누르세요 (위치를 다시 잡으려면 🐻 길게 누르기)")
             } else {
@@ -2812,6 +2862,7 @@ etTargetHour.setText("%02d".format(g.targetHour))
             showToast("🐻 헌터 모드 종료!")
             btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#F59E0B")) // 노랑: 꺼짐
             hideBearSetupUi()
+            hideHunterFireButton()
         }
     }
 
