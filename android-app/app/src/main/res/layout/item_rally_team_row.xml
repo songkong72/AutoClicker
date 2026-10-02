@@ -67,6 +67,8 @@
         android:minWidth="30dp"
         android:layout_height="wrap_content"
         android:gravity="end"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="6dp"
         android:textColor="#CBD5E1"
         android:textSize="12sp" />
 

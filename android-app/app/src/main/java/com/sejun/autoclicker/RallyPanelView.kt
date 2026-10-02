@@ -184,6 +184,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 text = if (r.adminAdjustMs == 0) r.statusLabel else r.statusLabel + "\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
                 // 관리자는 상태 글자를 눌러 그 군단의 보정을 정한다(진행 중에는 잠김)
                 setOnClickListener { if (isAdmin && editable) callbacks.onEditAdminAdjust(r.id, r.name, r.adminAdjustMs) }
+                // 눌러서 보정을 정할 수 있다는 표시: 관리자이고 수정 가능할 때만 밑줄
+                paintFlags = if (isAdmin && editable) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                else paintFlags and android.graphics.Paint.UNDERLINE_TEXT_FLAG.inv()
             }
             v.findViewById<RallyTimelineBar>(R.id.rowBar).set(scale, r.clickAtSec, r.departAtSec, r.arriveAtSec, nowSec, r.excluded)
             val minus = v.findViewById<View>(R.id.rowMinus)
