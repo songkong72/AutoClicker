@@ -844,7 +844,15 @@ class AutoClickService : AccessibilityService() {
         controlView?.alpha = a
         targetView?.alpha = a
         rallyPanelHost?.applyAlpha(a)
+        rallyHudView?.alpha = a
+        // 입력/설정 창은 너무 흐려서 조작 못 하는 일이 없도록 최소 40%까지만 흐려진다.
+        val dialogA = a.coerceAtLeast(0.4f)
+        settingsDialogView?.alpha = dialogA
+        opacityPanelView?.alpha = dialogA
+        rallyDialogView?.alpha = dialogA
     }
+
+    private fun dialogAlpha() = currentOverlayAlpha.coerceAtLeast(0.4f)
 
     fun showOpacityPanel() {
         if (opacityPanelView != null) {
@@ -860,6 +868,7 @@ class AutoClickService : AccessibilityService() {
         val inflater = LayoutInflater.from(themedContext)
         val view = inflater.inflate(R.layout.layout_floating_opacity_panel, null)
         this.opacityPanelView = view
+        view.alpha = dialogAlpha()
 
         val metrics = DisplayMetrics()
         wm.defaultDisplay.getRealMetrics(metrics)
@@ -972,6 +981,7 @@ class AutoClickService : AccessibilityService() {
         val inflater = LayoutInflater.from(themedContext)
         val view = inflater.inflate(R.layout.layout_dialog_floating_settings, null)
         this.settingsDialogView = view
+        view.alpha = dialogAlpha()
 
         // 명시적으로 320dp 폭 지정하여 찌그러짐 완벽 방지!
         val params = WindowManager.LayoutParams(
@@ -1198,6 +1208,7 @@ class AutoClickService : AccessibilityService() {
         val inflater = LayoutInflater.from(themedContext)
         val view = inflater.inflate(R.layout.layout_dialog_rally_sync, null)
         this.rallyDialogView = view
+        view.alpha = dialogAlpha()
 
         val params = WindowManager.LayoutParams(
             dpToPx(310),

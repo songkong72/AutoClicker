@@ -60,7 +60,7 @@ class RallyPanelHost(
 
     @SuppressLint("ClickableViewAccessibility")
     /** 설정의 오버레이 투명도를 패널에 반영한다. */
-    fun applyAlpha(a: Float) { panel?.root?.alpha = a }
+    fun applyAlpha(a: Float) { panel?.root?.alpha = a; input.applyAlpha(a) }
 
     fun show() {
         if (panel != null) return

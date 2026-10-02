@@ -20,6 +20,9 @@ import android.widget.TextView
 class RallyInputPopup(private val context: Context, private val wm: WindowManager) {
     private var view: View? = null
 
+    /** 설정의 투명도를 입력창에 반영한다(최소 40%). */
+    fun applyAlpha(a: Float) { view?.alpha = a.coerceAtLeast(0.4f) }
+
     fun show(title: String, initial: String, onOk: (String) -> Boolean) {
         dismiss()
         fun dp(v: Int) = (v * context.resources.displayMetrics.density).toInt()
@@ -73,6 +76,7 @@ class RallyInputPopup(private val context: Context, private val wm: WindowManage
             gravity = Gravity.CENTER
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN or WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
         }
+        card.alpha = PreferencesHelper.getOverlayAlpha(context).coerceAtLeast(0.4f)
         wm.addView(card, lpWin)
         view = card
         input.requestFocus()
