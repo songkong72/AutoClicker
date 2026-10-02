@@ -165,4 +165,26 @@ class RallyScreenModelTest {
         assertEquals("0:00", RallyScreenModel.formatMmSs(-3.0))
         assertEquals("5:00", RallyScreenModel.formatMmSs(300.0))
     }
+
+    @Test
+    fun `방에 팀이 하나도 없으면 제외가 아니라 관리자 구성 대기 안내를 보여준다`() {
+        val m = build(room(teams = emptyList()))
+        assertEquals(HeroKind.IDLE, m.hero.kind)
+        assertEquals("관리자가 팀을 구성하는 중이에요", m.hero.label)
+        assertNull(m.hero.remainingSec)
+    }
+
+    @Test
+    fun `내 팀이 방 목록에 없으면 내 팀 선택을 안내한다`() {
+        val m = build(room(teams = listOf(t2, t1), mine = "9군"))
+        assertEquals(HeroKind.IDLE, m.hero.kind)
+        assertEquals("내 팀을 선택하세요", m.hero.label)
+        assertEquals("팀 줄을 길게 누르면 내 팀으로 지정돼요", m.hero.subLabel)
+    }
+
+    @Test
+    fun `내 팀이 목록에 있고 제외된 경우에만 제외 안내가 나온다`() {
+        val m = build(room(teams = listOf(t3.copy(excluded = true), t2, t1)))
+        assertEquals(HeroKind.EXCLUDED, m.hero.kind)
+    }
 }

@@ -86,6 +86,10 @@ object RallyScreenModel {
             HeroModel(HeroKind.CANCELLED, "작전 취소됨", null, "예약된 클릭이 모두 멈췄어요", 1.0)
         run == RallyRunState.ARRIVED ->
             HeroModel(HeroKind.ARRIVED, "전원 도착", null, "실패했다면 바로 재집결하세요", 1.0)
+        state.teams.isEmpty() ->
+            HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
+        state.teams.none { it.id == state.myTeamId } ->
+            HeroModel(HeroKind.IDLE, "내 팀을 선택하세요", null, "팀 줄을 길게 누르면 내 팀으로 지정돼요", 0.0)
         my == null ->
             HeroModel(HeroKind.EXCLUDED, "이번 작전에서 제외됐어요", null, "관리자가 다시 포함하면 참여할 수 있어요", 0.0)
         run == RallyRunState.IDLE ->
