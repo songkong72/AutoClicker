@@ -24,6 +24,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onStop()
         fun onMinimize()
         fun onClose()
+        fun onTitleTap()
         fun onMarchDelta(teamId: String, deltaSec: Double)
         fun onToggleExclude(teamId: String)
         fun onSelectMine(teamId: String)
@@ -59,6 +60,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
         // 알약(최소화 상태)의 단계명이나 시간을 탭해도 펼쳐진다
         listOf<View>(heroLabel, title, heroTime).forEach { v -> v.setOnClickListener { if (isMinimized) callbacks.onMinimize() } }
+        title.setOnClickListener { if (isMinimized) callbacks.onMinimize() else callbacks.onTitleTap() }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
         listOf<View>(btnStart, btnStop).forEach { pressFeel(it) }

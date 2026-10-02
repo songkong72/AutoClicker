@@ -20,8 +20,10 @@ import android.view.WindowManager
 class RallyPanelHost(
     private val context: Context,
     private val wm: WindowManager,
-    private val stateSource: StateSource
+    private val stateSource: StateSource,
+    private val onSecretUnlock: () -> Unit = {}
 ) {
+    private val secretTap = RallySecretTap()
     interface StateSource {
         /** elapsedSec 등 현재 시각이 반영된 방 상태 */
         fun current(): RallyRoomState
@@ -72,6 +74,7 @@ class RallyPanelHost(
             override fun onStop() { stateSource.onStop(); refresh() }
             override fun onMinimize() { toggleMinimize() }
             override fun onClose() { hide() }
+            override fun onTitleTap() { if (secretTap.tap(System.currentTimeMillis())) onSecretUnlock() } // 제목 5번 연타: 숨은 기능
             override fun onMarchDelta(teamId: String, deltaSec: Double) { stateSource.onMarchDelta(teamId, deltaSec); refresh() }
             override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
             override fun onSelectMine(teamId: String) { stateSource.onSelectMine(teamId); refresh() }

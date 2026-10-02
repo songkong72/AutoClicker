@@ -155,6 +155,18 @@ class AutoClickService : AccessibilityService() {
         rallyRoomCode = ""
     }
 
+    /** 숨은 곰 사냥 모드를 개방한다. 이미 열려 있으면 안내만 한다. 새 집결 팝업과 옛 대화창 양쪽에서 쓴다. */
+    fun unlockBearMode() {
+        val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("bear_mode_unlocked", false)) {
+            prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
+            controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
+            showToast("🐻 비밀 헌터 모드가 개방되었습니다!")
+        } else {
+            showToast("🐻 이미 헌터 모드가 열려있습니다!")
+        }
+    }
+
     fun toggleRallyPanel() {
         val isAdmin = PreferencesHelper.isAdminMode(this)
         if (!isAdmin && !PreferencesHelper.isVerified(this)) {
@@ -197,7 +209,7 @@ class AutoClickService : AccessibilityService() {
                 onClickDue = { performRallyClickNow() },
                 onCancel = { }
             ).also { it.start(); rallyRoomSync = it }
-            RallyPanelHost(this, wm, source).also { rallyPanelHost = it }
+            RallyPanelHost(this, wm, source, onSecretUnlock = { unlockBearMode() }).also { rallyPanelHost = it }
         }
         host.toggle()
     }
@@ -1277,14 +1289,7 @@ class AutoClickService : AccessibilityService() {
                 if (now - lastSecretTapTime < 800) secretTapCount++ else secretTapCount = 1
                 lastSecretTapTime = now
                 if (secretTapCount == 5) {
-                    val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
-                    if (!prefs.getBoolean("bear_mode_unlocked", false)) {
-                        prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
-                        controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
-                        showToast("🐻 비밀 헌터 모드가 개방되었습니다!")
-                    } else {
-                        showToast("🐻 이미 헌터 모드가 열려있습니다!")
-                    }
+                    unlockBearMode()
                     secretTapCount = 0
                 }
             }
