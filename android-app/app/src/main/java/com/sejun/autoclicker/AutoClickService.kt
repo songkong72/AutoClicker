@@ -99,6 +99,8 @@ class AutoClickService : AccessibilityService() {
     private var rallyPanelHost: RallyPanelHost? = null
     private var rallyRoomSync: RallyRoomSync? = null
     private var rallyPanelRoleAdmin = false
+    /** 내 클릭 직전에 과녁을 미리 터치 통과로 바꿔 둔 상태인지. */
+    @Volatile private var rallyClickArmed = false
 
     /** 저장된 타겟 위치를 지금 1회 탭한다 (상대시간 집결의 예약 시각에 호출됨). */
     fun performRallyClickNow() {
@@ -116,13 +118,14 @@ class AutoClickService : AccessibilityService() {
         val cx = saved.first + offX + w / 2f
         val cy = saved.second + offY + h / 2f
         val dm = resources.displayMetrics
-        val where = "탭 좌표 (${cx.toInt()}, ${cy.toInt()}) · 화면 ${dm.widthPixels}x${dm.heightPixels} · 과녁 ${if (target == null) "없음" else "있음"}"
+        val armed = rallyClickArmed
+        val where = "탭 좌표 (${cx.toInt()}, ${cy.toInt()}) · 화면 ${dm.widthPixels}x${dm.heightPixels} · 과녁 ${if (target == null) "없음" else "있음"} · 투과 ${if (armed) "사전" else "즉시"}"
         rallyRoomSync?.clickResult = "탭 전송 중 · $where"
         // 과녁 오버레이가 터치를 가로채지 않도록 먼저 투과시킨 뒤 탭한다 (기존 예약 클릭과 동일한 방식).
         setTargetTouchable(false)
         mainHandler.postDelayed({
             val path = Path().apply { moveTo(cx, cy) }
-            val stroke = GestureDescription.StrokeDescription(path, 0L, 35L)
+            val stroke = GestureDescription.StrokeDescription(path, 0L, 60L)
             val callback = object : GestureResultCallback() {
                 override fun onCompleted(gestureDescription: GestureDescription?) {
                     rallyRoomSync?.clickResult = "✓ 탭 완료 · $where"
@@ -135,8 +138,8 @@ class AutoClickService : AccessibilityService() {
             Log.d(TAG, "rally click at ($cx, $cy) dispatched=$ok")
             if (!ok) rallyRoomSync?.clickResult = "✗ 탭 전송 거부됨 · $where"
             showToast(if (ok) "🎯 집결 클릭! (${cx.toInt()}, ${cy.toInt()})" else "⚠️ 클릭 전송 실패")
-            mainHandler.postDelayed({ setTargetTouchable(true) }, 500L)
-        }, 40L)
+            mainHandler.postDelayed({ rallyClickArmed = false; setTargetTouchable(true) }, 500L)
+        }, if (armed) 0L else 40L)
     }
 
     private var rallyRoomCode = ""
@@ -206,6 +209,7 @@ class AutoClickService : AccessibilityService() {
                     showToast("현재 과녁 위치를 클릭 위치로 저장했어요")
                 },
                 onClickDue = { performRallyClickNow() },
+                onClickArm = { on -> rallyClickArmed = on; setTargetTouchable(!on) },
                 onCancel = { }
             ).also { it.start(); rallyRoomSync = it }
             RallyPanelHost(this, wm, source, onSecretUnlock = { unlockBearMode() }).also { rallyPanelHost = it }

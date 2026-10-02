@@ -29,6 +29,8 @@ class RallyRoomSync(
     private val positionSaved: () -> Boolean = { true },
     private val savePosition: () -> Unit,
     private val onClickDue: () -> Unit,
+    /** 클릭 약 1.5초 전에 true, 예약이 취소되면 false로 호출된다. 과녁 오버레이를 미리 터치 통과로 바꿔 두어, 느린 기기에서 탭이 오버레이에 걸리지 않게 한다. */
+    private val onClickArm: (Boolean) -> Unit = {},
     private val onCancel: () -> Unit
 ) : RallyPanelHost.StateSource {
 
@@ -42,6 +44,7 @@ class RallyRoomSync(
     @Volatile private var clickWallMs: Long? = null // 이 기기가 내 클릭을 실행한 시계 시각
     @Volatile private var arriveWallMs: Long? = null // 이 기기 시계 기준 전원 도착 시각(안내용)
     private var clickTask: Runnable? = null
+    private var armTask: Runnable? = null
     @Volatile private var polling = false
     @Volatile private var streaming = false
     @Volatile private var streamConn: HttpURLConnection? = null
@@ -287,11 +290,17 @@ class RallyRoomSync(
         }
         clickTask = task
         main.postDelayed(task, delay)
+        val arm = Runnable { onClickArm(true) }
+        armTask = arm
+        main.postDelayed(arm, Math.max(0L, delay - CLICK_ARM_LEAD_MS))
     }
 
     private fun cancelClick() {
         clickTask?.let { main.removeCallbacks(it) }
         clickTask = null
+        armTask?.let { main.removeCallbacks(it) }
+        armTask = null
+        main.post { onClickArm(false) }
     }
 
     private fun seedRoom() = RallyRoomDoc(
@@ -339,3 +348,6 @@ class RallyRoomSync(
         else -> v
     }
 }
+
+/** 내 클릭 몇 ms 전에 과녁을 터치 통과로 바꿔 둘지. */
+private const val CLICK_ARM_LEAD_MS = 1500L
