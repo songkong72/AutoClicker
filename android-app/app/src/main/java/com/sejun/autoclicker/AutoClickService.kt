@@ -289,7 +289,7 @@ class AutoClickService : AccessibilityService() {
             if (code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_VOLUME_UP) {
                 if (HunterModeManager.isHunterModeEnabled && code == KeyEvent.KEYCODE_VOLUME_DOWN) {
                     if (event.repeatCount == 0) showToast("🔑 볼륨 ↓ 입력 감지")
-                    HunterModeManager.fire(this, event.repeatCount)
+                    fireHunter(event.repeatCount)
                     return true // 헌터 모드 중 볼륨 아래는 발사 키다(볼륨은 바뀌지 않는다)
                 }
                 if (isRallyReserved) {
@@ -2801,6 +2801,13 @@ etTargetHour.setText("%02d".format(g.targetHour))
 
     private var hunterFireView: View? = null
 
+    /** 곰 사냥 발사. 과녁이 출정 버튼 위에 떠 있어서, 투과시키지 않으면 클릭을 과녁이 받아 게임에 닿지 않는다. */
+    private fun fireHunter(repeatCount: Int) {
+        HunterModeManager.fire(this, repeatCount,
+            beforeTap = { setTargetTouchable(false) },
+            afterTap = { setTargetTouchable(true) })
+    }
+
     /** 볼륨 키를 쓸 수 없을 때(에뮬레이터 등)를 위한 화면 발사 버튼. 눌러서 발사, 끌어서 이동한다. */
     @android.annotation.SuppressLint("ClickableViewAccessibility")
     private fun showHunterFireButton() {
@@ -2834,7 +2841,7 @@ etTargetHour.setText("%02d".format(g.targetHour))
                         try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
                     }
                 }
-                android.view.MotionEvent.ACTION_UP -> if (!moved) { vibrate(30); HunterModeManager.fire(this, 0) }
+                android.view.MotionEvent.ACTION_UP -> if (!moved) { vibrate(30); fireHunter(0) }
             }
             true
         }

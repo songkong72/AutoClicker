@@ -45,8 +45,11 @@ object HunterModeManager {
     /** 헌터 모드를 끈다. */
     fun stop() { isHunterModeEnabled = false }
 
-    /** 볼륨 아래 키가 눌렸을 때 호출. 발사했으면 true. */
-    fun fire(service: AutoClickService, repeatCount: Int): Boolean {
+    /**
+     * 볼륨 아래 키(또는 화면 발사 버튼)가 눌렸을 때 호출. 발사했으면 true.
+     * [beforeTap]은 첫 클릭 전에, [afterTap]은 모든 클릭이 끝난 뒤에 부른다. 과녁 오버레이가 클릭을 가로채지 않게 투과시키는 데 쓴다.
+     */
+    fun fire(service: AutoClickService, repeatCount: Int, beforeTap: () -> Unit = {}, afterTap: () -> Unit = {}): Boolean {
         val now = System.currentTimeMillis()
         if (!hasTargets) {
             Toast.makeText(service, "🐻 먼저 헌터 위치를 저장해 주세요 (🐻 버튼을 길게 누르기)", Toast.LENGTH_SHORT).show()
@@ -54,14 +57,21 @@ object HunterModeManager {
         }
         if (!HunterFirePolicy.allow(hasTargets, repeatCount, now, lastFireMs)) return false
         lastFireMs = now
+        beforeTap()
         val main = Handler(Looper.getMainLooper())
-        main.post { tap(service, troopX.toFloat(), troopY.toFloat()) }
+        main.postDelayed({ tap(service, troopX.toFloat(), troopY.toFloat()) }, SETTLE_MS)
         main.postDelayed({
             tap(service, dispatchX.toFloat(), dispatchY.toFloat())
             Toast.makeText(service, "🐻 헌터 발사!", Toast.LENGTH_SHORT).show()
-        }, 150)
+        }, SETTLE_MS + GAP_MS)
+        main.postDelayed({ afterTap() }, SETTLE_MS + GAP_MS + 500L)
         return true
     }
+
+    /** 오버레이가 투과 상태로 바뀔 시간. */
+    private const val SETTLE_MS = 40L
+    /** 부대 클릭과 출정 클릭 사이 간격. */
+    const val GAP_MS = 150L
 
     private fun tap(service: AccessibilityService, x: Float, y: Float) {
         val path = Path().apply { moveTo(x, y) }
