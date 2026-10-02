@@ -77,15 +77,6 @@ class AutoClickService : AccessibilityService() {
     private var clickJob: Job? = null
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val hunterScanRunnable = object : Runnable {
-        override fun run() {
-            if (HunterModeManager.isHunterModeEnabled && HunterModeManager.isAutoScanActive) {
-                HunterModeManager.triggerScan(this@AutoClickService)
-            }
-            mainHandler.postDelayed(this, 350) // 안드로이드는 화면 캡처를 약 0.33초에 한 번만 허용한다
-        }
-    }
-
     var isClicking: Boolean = false
         private set
 
@@ -292,12 +283,13 @@ class AutoClickService : AccessibilityService() {
      * 물리 볼륨 버튼(볼륨 업 또는 다운)을 누르면 즉시 긴급 정지!
      */
     override fun onKeyEvent(event: KeyEvent?): Boolean {
+        if (event?.action == KeyEvent.ACTION_UP && event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN && HunterModeManager.isHunterModeEnabled) return true
         if (event?.action == KeyEvent.ACTION_DOWN) {
             val code = event.keyCode
             if (code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_VOLUME_UP) {
-                if (HunterModeManager.isHunterModeEnabled && !HunterModeManager.isAutoScanActive && code == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                    HunterModeManager.triggerScan(this)
-                    return true
+                if (HunterModeManager.isHunterModeEnabled && code == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                    HunterModeManager.fire(this, event.repeatCount)
+                    return true // 헌터 모드 중 볼륨 아래는 발사 키다(볼륨은 바뀌지 않는다)
                 }
                 if (isRallyReserved) {
                     cancelRallyReservation()
@@ -416,10 +408,7 @@ class AutoClickService : AccessibilityService() {
      */
     fun hideOverlays() {
         // 오버레이를 끌 때 헌터 감시도 같이 끈다(안 끄면 보이지 않는 채로 계속 캡처하고 클릭할 수 있다)
-        if (HunterModeManager.isHunterModeEnabled) {
-            HunterModeManager.stop()
-            mainHandler.removeCallbacks(hunterScanRunnable)
-        }
+        HunterModeManager.stop()
         hideBearSetupUi()
         autoStartWatcherJob?.cancel()
         autoStartWatcherJob = null
@@ -598,6 +587,14 @@ class AutoClickService : AccessibilityService() {
             vibrate(20)
             hideOpacityPanel()
             toggleBearMode()
+        }
+        btnBearMode?.setOnLongClickListener {
+            vibrate(30)
+            hideOpacityPanel()
+            if (!HunterModeManager.isHunterModeEnabled) toggleBearMode()
+            hideBearSetupUi()
+            showBearSetupUi() // 위치 다시 잡기
+            true
         }
         val btnSettings = control.findViewById<ImageButton>(R.id.btnSettings)
         val btnOpacity = control.findViewById<ImageButton>(R.id.btnOpacity)
@@ -2798,25 +2795,33 @@ etTargetHour.setText("%02d".format(g.targetHour))
     private var bearSetupView: View? = null
     private var bearSetupParams: WindowManager.LayoutParams? = null
     private var targetFlag1View: View? = null
-    private var targetFlag8View: View? = null
     private var targetFlag1Params: WindowManager.LayoutParams? = null
-    private var targetFlag8Params: WindowManager.LayoutParams? = null
 
     private fun toggleBearMode() {
         HunterModeManager.isHunterModeEnabled = !HunterModeManager.isHunterModeEnabled
         val btnBearMode = controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)
         if (HunterModeManager.isHunterModeEnabled) {
-            showToast("🐻 스마트 헌터 모드 활성화!")
-            btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#10B981")) // 초록색으로 변경
-            HunterModeManager.isAutoScanActive = true
-            mainHandler.post(hunterScanRunnable) // 스캔 시작
-            showBearSetupUi()
+            btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#10B981")) // 초록: 켜짐
+            if (HunterModeManager.hasTargets) {
+                showToast("🐻 헌터 모드 켜짐 · 집결을 고른 뒤 볼륨 ↓ 키를 누르세요 (위치를 다시 잡으려면 🐻 길게 누르기)")
+            } else {
+                showToast("🐻 먼저 쓸 부대와 출정 버튼 위치를 잡아 저장해 주세요")
+                showBearSetupUi()
+            }
         } else {
-            showToast("🐻 스마트 헌터 모드 종료!")
-            btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#F59E0B")) // 노란색으로 복구
-            mainHandler.removeCallbacks(hunterScanRunnable)
+            showToast("🐻 헌터 모드 종료!")
+            btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#F59E0B")) // 노랑: 꺼짐
             hideBearSetupUi()
         }
+    }
+
+    /** 화면 위에 떠 있는 뷰의 중심을 화면 픽셀 좌표로 구한다. */
+    private fun centerOnScreen(v: View?): Pair<Int, Int>? {
+        v ?: return null
+        if (v.width == 0 || v.height == 0) return null
+        val loc = IntArray(2)
+        v.getLocationOnScreen(loc)
+        return Pair(loc[0] + v.width / 2, loc[1] + v.height / 2)
     }
 
     private fun showBearSetupUi() {
@@ -2824,27 +2829,36 @@ etTargetHour.setText("%02d".format(g.targetHour))
             val ctx = this
             bearSetupView = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
-                setBackgroundColor(Color.TRANSPARENT)
-                
-                val btnSave = android.widget.Button(ctx).apply {
-                    text = "헌터 타겟 저장"
+                setBackgroundColor(Color.parseColor("#E60F172A"))
+                setPadding(24, 16, 24, 16)
+
+                addView(android.widget.TextView(ctx).apply {
+                    text = "과녁 → 출정 버튼 위에\n'부대' 표시 → 쓸 부대 깃발 위에 놓고 저장"
+                    setTextColor(Color.WHITE)
+                    textSize = 12f
+                    gravity = android.view.Gravity.CENTER
+                })
+                addView(android.widget.Button(ctx).apply {
+                    text = "헌터 위치 저장"
                     setBackgroundColor(Color.parseColor("#3B82F6"))
                     setTextColor(Color.WHITE)
                     setOnClickListener {
-                        HunterModeManager.flag1X = targetFlag1Params?.x ?: 0
-                        HunterModeManager.flag1Y = targetFlag1Params?.y ?: 0
-                        HunterModeManager.flag8X = targetFlag8Params?.x ?: 0
-                        HunterModeManager.flag8Y = targetFlag8Params?.y ?: 0
-                        HunterModeManager.dispatchX = targetParams?.x ?: 0
-                        HunterModeManager.dispatchY = targetParams?.y ?: 0
-                        HunterModeManager.dispatchColor = Color.BLUE
+                        val troop = centerOnScreen(targetFlag1View)
+                        val dispatch = centerOnScreen(targetView)
+                        if (troop == null || dispatch == null) {
+                            showToast("⚠️ 위치를 읽지 못했어요. 과녁이 보이는지 확인하세요")
+                            return@setOnClickListener
+                        }
+                        HunterModeManager.troopX = troop.first
+                        HunterModeManager.troopY = troop.second
+                        HunterModeManager.dispatchX = dispatch.first
+                        HunterModeManager.dispatchY = dispatch.second
                         HunterModeManager.saveSettings(ctx)
                         hideBearSetupUi()
                     }
-                }
-                addView(btnSave)
+                })
             }
-            
+
             bearSetupParams = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -2856,17 +2870,16 @@ etTargetHour.setText("%02d".format(g.targetHour))
                 y = 200
             }
         }
-        
-        try {
-            windowManager?.addView(bearSetupView, bearSetupParams)
-        } catch (e: Exception) {}
+
+        try { windowManager?.addView(bearSetupView, bearSetupParams) } catch (e: Exception) {}
 
         if (targetFlag1View == null) {
             targetFlag1View = android.widget.TextView(this).apply {
-                text = "1"
-                textSize = 24f
+                text = "부대"
+                textSize = 16f
                 setTextColor(Color.WHITE)
-                setShadowLayer(4f, 0f, 0f, Color.BLACK)
+                setBackgroundColor(Color.parseColor("#CC10B981"))
+                setPadding(20, 12, 20, 12)
             }
             targetFlag1Params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -2877,26 +2890,8 @@ etTargetHour.setText("%02d".format(g.targetHour))
             ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = 100; y = 300 }
             setupDrag(targetFlag1View!!, targetFlag1Params!!)
         }
-        if (targetFlag8View == null) {
-            targetFlag8View = android.widget.TextView(this).apply {
-                text = "8"
-                textSize = 24f
-                setTextColor(Color.WHITE)
-                setShadowLayer(4f, 0f, 0f, Color.BLACK)
-            }
-            targetFlag8Params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT
-            ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = 100; y = 500 }
-            setupDrag(targetFlag8View!!, targetFlag8Params!!)
-        }
-        
         try { windowManager?.addView(targetFlag1View, targetFlag1Params) } catch (e: Exception) {}
-        try { windowManager?.addView(targetFlag8View, targetFlag8Params) } catch (e: Exception) {}
-        
+
         if (!isTargetVisible) {
             toggleTargetVisibility()
         }
@@ -2905,7 +2900,6 @@ etTargetHour.setText("%02d".format(g.targetHour))
     private fun hideBearSetupUi() {
         try { windowManager?.removeView(bearSetupView) } catch (e: Exception) {}
         try { windowManager?.removeView(targetFlag1View) } catch (e: Exception) {}
-        try { windowManager?.removeView(targetFlag8View) } catch (e: Exception) {}
     }
 
     private fun setupDrag(view: View, params: WindowManager.LayoutParams) {
