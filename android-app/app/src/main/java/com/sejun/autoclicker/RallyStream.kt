@@ -104,3 +104,18 @@ class RallyStreamTree {
         }
     }
 }
+
+/**
+ * 방 상태가 "새 집결 시작"인지 판별한다.
+ * 이 기기가 방 상태를 처음 받았을 때(패널을 막 열었거나 늦게 입장) 이미 RUNNING이어도 옛 시작이므로 시작으로 보지 않는다.
+ */
+class RallyStartDetector {
+    private var last = -1L
+
+    fun onDoc(startSeq: Long, run: String, fromRemote: Boolean): Boolean {
+        if (last == -1L && fromRemote) { last = startSeq; return false }
+        val isNew = startSeq != last && run == "RUNNING"
+        last = startSeq
+        return isNew
+    }
+}

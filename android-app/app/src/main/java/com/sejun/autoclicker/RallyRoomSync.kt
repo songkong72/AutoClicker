@@ -34,7 +34,7 @@ class RallyRoomSync(
     @Volatile private var myTeamId: String = myTeamIdInit
     @Volatile private var doc: RallyRoomDoc = RallyRoomCodec.decode(null)
     @Volatile private var online = false
-    private var lastSeq = -1L
+    private val startDetector = RallyStartDetector()
     private var lastRun = "IDLE"
     private var startedAt: Long? = null
     private var clickTask: Runnable? = null
@@ -82,8 +82,8 @@ class RallyRoomSync(
         if (remote == null && isAdmin) { Thread { try { put(seedRoom()) } catch (_: Exception) { } }.start(); return } // 빈 방이면 기본 팀으로 시작
         main.post {
             val wait = holdRemoteUntil - SystemClock.elapsedRealtime()
-            if (wait <= 0) { pendingDoc = null; apply(d) }
-            else { pendingDoc = d; main.postDelayed({ pendingDoc?.let { p -> pendingDoc = null; apply(p) } }, wait + 50) }
+            if (wait <= 0) { pendingDoc = null; apply(d, fromRemote = true) }
+            else { pendingDoc = d; main.postDelayed({ pendingDoc?.let { p -> pendingDoc = null; apply(p, fromRemote = true) } }, wait + 50) }
         }
     }
 
@@ -134,7 +134,8 @@ class RallyRoomSync(
         val s = startedAt
         val elapsed = if (s == null) 0.0 else (SystemClock.elapsedRealtime() - s) / 1000.0
         val run = when (d.run) {
-            "RUNNING" -> RallyRunState.RUNNING
+            // 이 기기가 시작 신호를 직접 받은 적이 없으면(늦게 입장 등) 진행 중으로 보지 않는다
+            "RUNNING" -> if (s == null) RallyRunState.IDLE else RallyRunState.RUNNING
             "CANCELLED" -> RallyRunState.CANCELLED
             else -> RallyRunState.IDLE
         }
@@ -204,14 +205,11 @@ class RallyRoomSync(
 
     // ---- 내부 ----
 
-    private fun apply(d: RallyRoomDoc) {
+    private fun apply(d: RallyRoomDoc, fromRemote: Boolean = false) {
         doc = d
-        if (d.startSeq != lastSeq && d.run == "RUNNING") {
-            lastSeq = d.startSeq
+        if (startDetector.onDoc(d.startSeq, d.run, fromRemote)) {
             startedAt = SystemClock.elapsedRealtime()
             scheduleMyClick(d)
-        } else if (d.startSeq != lastSeq) {
-            lastSeq = d.startSeq
         }
         if (d.run == "CANCELLED" && lastRun != "CANCELLED") {
             cancelClick()
