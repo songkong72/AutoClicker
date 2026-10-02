@@ -111,6 +111,30 @@ class AutoClickService : AccessibilityService() {
 
     private var rallyHudView: View? = null
     private var rallyHudParams: WindowManager.LayoutParams? = null
+    private var rallyPanelHost: RallyPanelHost? = null
+
+    /** 새 통합 집결 화면. false로 바꾸면 기존 다이얼로그로 즉시 되돌아간다. */
+    val useNewRallyPanel = true
+
+    fun toggleRallyPanel() {
+        if (!PreferencesHelper.isVerified(this)) {
+            Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val wm = windowManager ?: return
+        val host = rallyPanelHost ?: RallyPanelHost(
+            this, wm,
+            RallyPanelHost.LocalDemoSource(
+                teams = listOf(
+                    RallyTeamState("t1", "1군", marchSec = 10.0),
+                    RallyTeamState("t2", "2군", marchSec = 30.0),
+                    RallyTeamState("t3", "3군", marchSec = 50.0)
+                ),
+                myTeamId = "t3", prepSec = 15.0, waitSec = 300.0
+            )
+        ).also { rallyPanelHost = it }
+        host.toggle()
+    }
 
     private var rallyJob: Job? = null
     var isRallyReserved: Boolean = false
@@ -224,6 +248,7 @@ class AutoClickService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        rallyPanelHost?.hide()
         stopAutoClick()
         cancelRallyReservation()
         hideOverlays()
@@ -512,7 +537,7 @@ class AutoClickService : AccessibilityService() {
         btnRally?.setOnClickListener {
             vibrate(20)
             hideOpacityPanel()
-            showRallyDialog()
+            if (useNewRallyPanel) toggleRallyPanel() else showRallyDialog()
         }
 
         // 4. 인게임 실시간 설정 팝업 버튼 (⚙️)

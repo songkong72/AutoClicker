@@ -192,7 +192,7 @@ class MainActivity : AppCompatActivity() {
                 saveSettings()
                 service.showOverlays()
             }
-            service.showRallyDialog()
+            if (service.useNewRallyPanel) service.toggleRallyPanel() else service.showRallyDialog()
             Toast.makeText(this, "⚔️ 집결 동시 착탄 설정을 띄웠습니다.", Toast.LENGTH_SHORT).show()
             moveTaskToBack(true)
         }

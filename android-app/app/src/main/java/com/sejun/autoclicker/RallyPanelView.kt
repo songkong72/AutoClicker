@@ -94,4 +94,19 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             else -> "#FFFFFF"
         }
     )
+
+    /** 최소화: 카운트다운 한 줄만 남기고 나머지는 숨긴다. */
+    fun setMinimized(min: Boolean, hero: HeroModel) {
+        val hide = if (min) View.GONE else View.VISIBLE
+        heroSub.visibility = hide
+        heroProgress.visibility = hide
+        rows.visibility = hide
+        if (min) {
+            adminBar.visibility = View.GONE
+            warning.visibility = View.GONE
+            blocked.visibility = View.GONE
+        }
+        heroLabel.text = if (min) "${hero.label}  ${hero.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""}" else hero.label
+        heroTime.visibility = if (min) View.GONE else View.VISIBLE
+    }
 }
