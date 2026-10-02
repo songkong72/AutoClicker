@@ -331,7 +331,7 @@ class AutoClickService : AccessibilityService() {
      * 이미 떠 있다면 기존 상태를 안전하게 리셋하고 새로 띄웁니다!
      */
     fun showOverlays(intervalMs: Long? = null) {
-        if (!PreferencesHelper.isVerified(this)) {
+        if (!PreferencesHelper.hasAccess(this)) {
             Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -1196,7 +1196,7 @@ class AutoClickService : AccessibilityService() {
 
     @SuppressLint("InflateParams", "ClickableViewAccessibility")
     fun showRallyDialog(skipTimeInit: Boolean = false) {
-        if (!PreferencesHelper.isVerified(this)) {
+        if (!PreferencesHelper.hasAccess(this)) {
             Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -2615,7 +2615,7 @@ etTargetHour.setText("%02d".format(g.targetHour))
     }
 
     fun startAutoClick(x: Float, y: Float, intervalMs: Long) {
-        if (!PreferencesHelper.isVerified(this)) {
+        if (!PreferencesHelper.hasAccess(this)) {
             Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
             return
         }

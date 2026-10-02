@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
         setupRepeatConditionListeners()
 
         // 미인증 사용자의 경우 실행 시 인증 다이얼로그 즉시 표시
-        if (!PreferencesHelper.isVerified(this)) {
+        if (!PreferencesHelper.hasAccess(this)) {
             binding.root.post {
                 showVerificationDialog()
             }
@@ -177,7 +177,7 @@ class MainActivity : AppCompatActivity() {
 
         // ⚔️ 집결 동시 착탄 및 그룹 작전 설정 버튼
         binding.btnOpenRallySettings.setOnClickListener {
-            if (!PreferencesHelper.isVerified(this)) {
+            if (!PreferencesHelper.hasAccess(this)) {
                 Toast.makeText(this, "🔒 정회원 초대코드 인증 후 이용 가능합니다.", Toast.LENGTH_SHORT).show()
                 showVerificationDialog()
                 return@setOnClickListener
@@ -213,7 +213,7 @@ class MainActivity : AppCompatActivity() {
 
         // Single Smart Toggle Button: [🚀 오토클리커 띄우기] ↔ [✕ 오토클리커 숨기기]
         binding.btnStartService.setOnClickListener {
-            if (!PreferencesHelper.isVerified(this)) {
+            if (!PreferencesHelper.hasAccess(this)) {
                 Toast.makeText(this, "🔒 정회원 초대코드 인증 후 이용 가능합니다.", Toast.LENGTH_SHORT).show()
                 showVerificationDialog()
                 return@setOnClickListener

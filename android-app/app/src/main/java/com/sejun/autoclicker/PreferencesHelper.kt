@@ -175,6 +175,9 @@ object PreferencesHelper {
     private const val KEY_ADMIN_MASTER_KEY = "key_admin_master_key" // 예전 평문 저장 키(삭제 대상)
     private const val KEY_ADMIN_PW_HASH = "key_admin_pw_hash"
 
+    /** 기능 사용 권한: 초대코드 인증을 했거나 관리자로 로그인한 기기. */
+    fun hasAccess(context: Context): Boolean = isVerified(context) || isAdminMode(context)
+
     fun isVerified(context: Context): Boolean {
         return getPrefs(context).getBoolean(KEY_IS_VERIFIED, false)
     }
