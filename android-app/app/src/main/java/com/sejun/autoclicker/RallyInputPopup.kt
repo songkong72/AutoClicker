@@ -23,7 +23,7 @@ class RallyInputPopup(private val context: Context, private val wm: WindowManage
     /** 설정의 투명도를 입력창에 반영한다(최소 40%). */
     fun applyAlpha(a: Float) { view?.alpha = a.coerceAtLeast(0.4f) }
 
-    fun show(title: String, initial: String, onOk: (String) -> Boolean) {
+    fun show(title: String, initial: String, signed: Boolean = false, errorText: String? = null, onOk: (String) -> Boolean) {
         dismiss()
         fun dp(v: Int) = (v * context.resources.displayMetrics.density).toInt()
 
@@ -40,7 +40,7 @@ class RallyInputPopup(private val context: Context, private val wm: WindowManage
         })
         val input = EditText(context).apply {
             setText(initial); setSelectAllOnFocus(true)
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or (if (signed) InputType.TYPE_NUMBER_FLAG_SIGNED else 0)
             imeOptions = EditorInfo.IME_ACTION_DONE
             setTextColor(Color.WHITE); setHintTextColor(Color.parseColor("#64748B"))
             setPadding(dp(4), dp(10), dp(4), dp(10))
@@ -58,7 +58,7 @@ class RallyInputPopup(private val context: Context, private val wm: WindowManage
         }
         fun submit() {
             if (onOk(input.text.toString())) dismiss()
-            else { error.text = "0 ~ ${RallyInputParse.MAX_MARCH_SEC.toInt()} 사이 숫자를 입력해 주세요"; error.visibility = View.VISIBLE }
+            else { error.text = errorText ?: "0 ~ ${RallyInputParse.MAX_MARCH_SEC.toInt()} 사이 숫자를 입력해 주세요"; error.visibility = View.VISIBLE }
         }
         val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val lp = { m: Int -> LinearLayout.LayoutParams(0, dp(44), 1f).apply { marginStart = m } }

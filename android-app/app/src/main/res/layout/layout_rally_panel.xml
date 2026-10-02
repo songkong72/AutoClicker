@@ -219,7 +219,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="클릭 보정"
+            android:text="클릭 보정 (숫자를 눌러 입력)"
             android:textColor="#94A3B8"
             android:textSize="12sp" />
 
@@ -235,8 +235,8 @@
         <TextView
             android:id="@+id/devMs"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="64dp"
+            android:layout_height="36dp"
+            android:minWidth="72dp"
             android:gravity="center"
             android:textColor="#F1F5F9"
             android:textSize="13sp" />
@@ -281,25 +281,25 @@
             android:textColor="#93C5FD"
             android:textSize="12sp" />
         <TextView
-            android:id="@+id/devMinus100"
+            android:id="@+id/devMinus500"
             android:layout_width="0dp"
             android:layout_height="34dp"
             android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="−0.1초"
+            android:text="−0.5초"
             android:textColor="#93C5FD"
             android:textSize="12sp" />
         <TextView
-            android:id="@+id/devPlus100"
+            android:id="@+id/devPlus500"
             android:layout_width="0dp"
             android:layout_height="34dp"
             android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="+0.1초"
+            android:text="+0.5초"
             android:textColor="#93C5FD"
             android:textSize="12sp" />
         <TextView

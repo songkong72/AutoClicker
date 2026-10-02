@@ -144,8 +144,9 @@ class RallyRoomSync(
     }
 
     override fun deviceCorrectionMs(): Int = correctionMs().toInt()
+    override fun onSetCorrectionMs(ms: Int) = setCorrectionMs(ms.coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS))
     override fun onCorrectionDelta(deltaMs: Int) = setCorrectionMs(
-        (correctionMs().toInt() + deltaMs).coerceIn(-5000, 5000)
+        (correctionMs().toInt() + deltaMs).coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS)
     )
     override fun devicePositionText(): String =
         positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인") +

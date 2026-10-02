@@ -28,6 +28,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onToggleExclude(teamId: String)
         fun onSelectMine(teamId: String)
         fun onCorrectionDelta(deltaMs: Int)
+        fun onEditCorrection(currentMs: Int)
         fun onEditMarch(teamId: String, currentSec: Double)
         fun onAddTeam()
         fun onEditPrep(currentSec: Double)
@@ -40,6 +41,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     val root: View = LayoutInflater.from(themed).inflate(R.layout.layout_rally_panel, null)
 
     private var prepShown = 0.0
+    private var correctionShownMs = 0
     private val title = root.findViewById<TextView>(R.id.rallyTitle)
     private val heroLabel = root.findViewById<TextView>(R.id.rallyHeroLabel)
     private val heroTime = root.findViewById<TextView>(R.id.rallyHeroTime)
@@ -71,9 +73,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.setWait3).setOnClickListener { callbacks.onSetWait(180.0) }
         root.findViewById<View>(R.id.setWait5).setOnClickListener { callbacks.onSetWait(300.0) }
         root.findViewById<View>(R.id.setWait10).setOnClickListener { callbacks.onSetWait(600.0) }
-        root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-10) }
-        root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(10) }
-        listOf(R.id.devMinus1s to -1000, R.id.devMinus100 to -100, R.id.devPlus100 to 100, R.id.devPlus1s to 1000).forEach { (id, ms) ->
+        root.findViewById<View>(R.id.devMs).setOnClickListener { callbacks.onEditCorrection(correctionShownMs) } // 눌러서 초 단위로 직접 입력
+        root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-100) }
+        root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(100) }
+        listOf(R.id.devMinus1s to -1000, R.id.devMinus500 to -500, R.id.devPlus500 to 500, R.id.devPlus1s to 1000).forEach { (id, ms) ->
             root.findViewById<View>(id).setOnClickListener { callbacks.onCorrectionDelta(ms) }
         }
         root.findViewById<TextView>(R.id.devSavePos).let { b ->
@@ -110,7 +113,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     /** "내 기기" 줄: 현재 ms 보정과 저장된 클릭 위치 표시. */
     fun renderDevice(correctionMs: Int, posText: String) {
-        root.findViewById<TextView>(R.id.devMs).text = (if (correctionMs > 0) "+" else "") + correctionMs + "ms"
+        correctionShownMs = correctionMs
+        root.findViewById<TextView>(R.id.devMs).text = RallyInputParse.formatCorrection(correctionMs)
         root.findViewById<TextView>(R.id.devPosStatus).text = posText
     }
 
