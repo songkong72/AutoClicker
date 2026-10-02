@@ -15,6 +15,10 @@ import android.widget.TextView
  */
 class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
+    private companion object {
+        val PHASE_COLORS = listOf("#FBBF24", "#60A5FA", "#A78BFA", "#22C55E")
+    }
+
     interface Callbacks {
         fun onStart()
         fun onStop()
@@ -51,7 +55,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     init {
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
-        heroLabel.setOnClickListener { if (isMinimized) callbacks.onMinimize() } // 알약을 탭해도 펼쳐진다
+        // 알약(최소화 상태)의 단계명이나 시간을 탭해도 펼쳐진다
+        listOf<View>(heroLabel, title, heroTime).forEach { v -> v.setOnClickListener { if (isMinimized) callbacks.onMinimize() } }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
         root.findViewById<TextView>(R.id.devToggle).setOnClickListener { t ->
@@ -179,16 +184,18 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             HeroKind.CANCELLED, HeroKind.EXCLUDED -> -1
             else -> 0
         }
+        // 단계마다 고유 색: 대기 노랑 · 집결 파랑 · 행군 보라 · 도착 초록. 지금 단계만 진하게, 나머지는 같은 색을 흐리게.
         listOf(R.id.phase1, R.id.phase2, R.id.phase3, R.id.phase4).forEachIndexed { i, id ->
             val t = root.findViewById<TextView>(id)
-            t.setTextColor(Color.parseColor(if (i == current) "#FFFFFF" else "#64748B"))
+            val base = Color.parseColor(PHASE_COLORS[i])
+            t.setTextColor(if (i == current) base else (base and 0x00FFFFFF) or (0x66 shl 24))
             t.setTypeface(null, if (i == current) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
         }
     }
 
     private fun heroColor(kind: HeroKind): Int = Color.parseColor(
         when (kind) {
-            HeroKind.MOVE -> "#FBBF24"
+            HeroKind.MOVE, HeroKind.WAIT_CLICK -> "#FBBF24"
             HeroKind.GATHERING -> "#60A5FA"
             HeroKind.MARCHING -> "#A78BFA"
             HeroKind.ARRIVED -> "#22C55E"
@@ -220,7 +227,21 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             warning.visibility = View.GONE
             blocked.visibility = View.GONE
         }
-        heroLabel.text = if (min) "${hero.label}  ${hero.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""}" else hero.label
-        heroTime.visibility = if (min) View.GONE else View.VISIBLE
+        if (min) {
+            // 알약: [단계명(단계 색)            — ✕]  아래에 큰 시간. 제목 줄을 단계명으로 바꿔 한 덩어리로 보이게 한다.
+            title.text = hero.label
+            title.setTextColor(heroColor(hero.kind))
+            title.textSize = 13f
+            heroLabel.visibility = View.GONE
+            heroTime.textSize = 28f
+            heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
+        } else {
+            title.setTextColor(Color.parseColor("#F8FAFC"))
+            title.textSize = 14f
+            heroLabel.visibility = View.VISIBLE
+            heroLabel.text = hero.label
+            heroTime.textSize = 40f
+            heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
+        }
     }
 }
