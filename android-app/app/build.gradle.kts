@@ -30,26 +30,32 @@ android {
         buildConfigField("String", "ADMIN_PASSWORD_HASH", "\"" + secret("admin.password.hash", "ADMIN_PASSWORD_HASH") + "\"")
     }
 
+    // 서명 키는 저장소에 없다. local.properties 의 signing.* 값(setup-signing.bat 이 만든다)으로만 서명한다.
+    // 값이 없으면(예: CI) 안드로이드 기본 디버그 키로 서명한다.
+    val signingFile = localProps.getProperty("signing.store.file")?.trim().orEmpty()
+    val hasSigning = signingFile.isNotEmpty() && file(signingFile).exists()
     signingConfigs {
-        create("release") {
-            storeFile = file("release-key.jks")
-            storePassword = "autoclicker123"
-            keyAlias = "autoclicker"
-            keyPassword = "autoclicker123"
+        if (hasSigning) {
+            create("release") {
+                storeFile = file(signingFile)
+                storePassword = (localProps.getProperty("signing.store.password") ?: "").trim()
+                keyAlias = (localProps.getProperty("signing.key.alias") ?: "").trim()
+                keyPassword = (localProps.getProperty("signing.key.password") ?: "").trim()
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {
