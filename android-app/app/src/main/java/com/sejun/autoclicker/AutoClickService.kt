@@ -112,6 +112,24 @@ class AutoClickService : AccessibilityService() {
     private var rallyHudView: View? = null
     private var rallyHudParams: WindowManager.LayoutParams? = null
     private var rallyPanelHost: RallyPanelHost? = null
+    private var rallyRoomSync: RallyRoomSync? = null
+
+    /** 저장된 타겟 위치를 지금 1회 탭한다 (상대시간 집결의 예약 시각에 호출됨). */
+    fun performRallyClickNow() {
+        val saved = PreferencesHelper.getSavedRallyTargetPosition(this) ?: run {
+            vibrate(80); showToast("⚠️ 저장된 타겟 위치가 없어 클릭하지 못했어요"); return
+        }
+        val target = targetView
+        val loc = IntArray(2)
+        target?.getLocationOnScreen(loc)
+        val offX = loc[0] - (targetParams?.x ?: 0)
+        val offY = loc[1] - (targetParams?.y ?: 0)
+        val w = if (target != null && target.width > 0) target.width else dpToPx(38)
+        val h = if (target != null && target.height > 0) target.height else dpToPx(38)
+        val path = Path().apply { moveTo(saved.first + offX + w / 2f, saved.second + offY + h / 2f) }
+        val stroke = GestureDescription.StrokeDescription(path, 0L, 35L)
+        dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
+    }
 
     /** 새 통합 집결 화면. false로 바꾸면 기존 다이얼로그로 즉시 되돌아간다. */
     val useNewRallyPanel = true
@@ -122,17 +140,29 @@ class AutoClickService : AccessibilityService() {
             return
         }
         val wm = windowManager ?: return
-        val host = rallyPanelHost ?: RallyPanelHost(
-            this, wm,
-            RallyPanelHost.LocalDemoSource(
-                teams = listOf(
-                    RallyTeamState("t1", "1군", marchSec = 10.0),
-                    RallyTeamState("t2", "2군", marchSec = 30.0),
-                    RallyTeamState("t3", "3군", marchSec = 50.0)
-                ),
-                myTeamId = "t3", prepSec = 15.0, waitSec = 300.0
-            )
-        ).also { rallyPanelHost = it }
+        val room = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+            .getString("cloud_room_number", "") ?: ""
+        val host = rallyPanelHost ?: run {
+            val source: RallyPanelHost.StateSource = if (room.isNotEmpty()) {
+                RallyRoomSync(
+                    dbUrl = firebaseDbUrl, room = room, myTeamId = "t3", isAdmin = true,
+                    correctionMs = { PreferencesHelper.getClickOffsetMs(this).toLong() },
+                    onClickDue = { performRallyClickNow() },
+                    onCancel = { }
+                ).also { it.start(); rallyRoomSync = it }
+            } else {
+                showToast("집결 방 번호가 없어 연습용 임시 방으로 열어요")
+                RallyPanelHost.LocalDemoSource(
+                    teams = listOf(
+                        RallyTeamState("t1", "1군", marchSec = 10.0),
+                        RallyTeamState("t2", "2군", marchSec = 30.0),
+                        RallyTeamState("t3", "3군", marchSec = 50.0)
+                    ),
+                    myTeamId = "t3", prepSec = 15.0, waitSec = 300.0
+                )
+            }
+            RallyPanelHost(this, wm, source).also { rallyPanelHost = it }
+        }
         host.toggle()
     }
 
@@ -249,6 +279,7 @@ class AutoClickService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         rallyPanelHost?.hide()
+        rallyRoomSync?.stop()
         stopAutoClick()
         cancelRallyReservation()
         hideOverlays()
