@@ -31,6 +31,15 @@
             android:text="—"
             android:textColor="#94A3B8"
             android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/rallyClose"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="6dp"
+            android:text="✕"
+            android:textColor="#94A3B8"
+            android:textSize="16sp" />
     </LinearLayout>
 
     <!-- 히어로: 큰 카운트다운 -->

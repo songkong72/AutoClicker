@@ -404,6 +404,7 @@ class AutoClickService : AccessibilityService() {
         cancelRallyReservation()
         hideSettingsDialog()
         hideRallyDialog()
+        rallyPanelHost?.hide() // 새 집결 팝업도 함께 닫는다(방 연결은 유지)
         hideOpacityPanel()
         val wm = windowManager ?: return
 

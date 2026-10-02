@@ -19,6 +19,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onStart()
         fun onStop()
         fun onMinimize()
+        fun onClose()
         fun onMarchDelta(teamId: String, deltaSec: Double)
         fun onToggleExclude(teamId: String)
         fun onSelectMine(teamId: String)
@@ -49,6 +50,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     init {
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
+        root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
         heroLabel.setOnClickListener { if (isMinimized) callbacks.onMinimize() } // 알약을 탭해도 펼쳐진다
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }

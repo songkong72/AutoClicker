@@ -68,6 +68,7 @@ class RallyPanelHost(
             override fun onStart() { stateSource.onStart(); refresh() }
             override fun onStop() { stateSource.onStop(); refresh() }
             override fun onMinimize() { toggleMinimize() }
+            override fun onClose() { hide() }
             override fun onMarchDelta(teamId: String, deltaSec: Double) { stateSource.onMarchDelta(teamId, deltaSec); refresh() }
             override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
             override fun onSelectMine(teamId: String) { stateSource.onSelectMine(teamId); refresh() }
