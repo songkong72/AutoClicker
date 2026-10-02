@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="380dp"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_floating_panel"
+    android:background="@drawable/bg_rally_panel"
     android:orientation="vertical"
     android:padding="16dp">
 
