@@ -26,6 +26,8 @@ jobs:
         shell: bash
         run: |
           { echo '```'; tail -n 80 ../gradle.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          MSG=$(grep -E 'FAILED|What went wrong|Could not|error:|BUILD|tests completed|Exception' ../gradle.log | head -n 15 | cut -c1-220 | sed ':a;N;$!ba;s/\n/%0A/g')
+          echo "::error title=gradle-log::${MSG}"
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
