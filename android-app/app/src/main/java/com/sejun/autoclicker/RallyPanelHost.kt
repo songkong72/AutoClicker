@@ -79,7 +79,7 @@ class RallyPanelHost(
             override fun onSavePosition() { stateSource.onSavePosition(); refresh() }
         })
         val lp = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            panelWidthPx(false),
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
@@ -102,13 +102,41 @@ class RallyPanelHost(
         panel = null
         params = null
         minimized = false
+        lastRun = null
     }
 
     fun toggle() { if (isShowing) hide() else show() }
 
+    /** 창 폭은 WindowManager가 정한다(레이아웃의 layout_width는 무시됨). 화면이 좁으면 비율로 줄인다. */
+    private fun panelWidthPx(compact: Boolean): Int {
+        val dm = context.resources.displayMetrics
+        val dp = dm.density
+        val want = if (compact) 168 * dp else 276 * dp
+        return Math.min(want, dm.widthPixels * (if (compact) 0.5f else 0.72f)).toInt()
+    }
+
+    private fun applyWidth() {
+        val v = panel?.root ?: return
+        val lp = params ?: return
+        lp.width = panelWidthPx(minimized)
+        try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
+    }
+
+    private var lastRun: RallyRunState? = null
+
     private fun refresh() {
         val p = panel ?: return
-        val model = RallyScreenModel.build(stateSource.current())
+        val state = stateSource.current()
+        // 집결이 시작되면 카운트다운만 보이는 알약으로 자동 접고, 끝나거나 취소되면 다시 펼친다.
+        if (state.runState != lastRun) {
+            val prev = lastRun
+            lastRun = state.runState
+            if (state.runState == RallyRunState.RUNNING && !minimized) { minimized = true; applyWidth() }
+            else if (prev == RallyRunState.RUNNING && state.runState != RallyRunState.RUNNING && minimized) {
+                minimized = false; p.setMinimized(false, RallyScreenModel.build(state).hero); applyWidth()
+            }
+        }
+        val model = RallyScreenModel.build(state)
         p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText())
         p.render(model, stateSource.isAdmin, stateSource.current().runState == RallyRunState.RUNNING)
         if (minimized) p.setMinimized(true, model.hero)
@@ -117,6 +145,7 @@ class RallyPanelHost(
     private fun toggleMinimize() {
         minimized = !minimized
         panel?.setMinimized(minimized, RallyScreenModel.build(stateSource.current()).hero)
+        applyWidth()
         refresh()
     }
 

@@ -46,6 +46,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     init {
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
+        heroLabel.setOnClickListener { if (isMinimized) callbacks.onMinimize() } // 알약을 탭해도 펼쳐진다
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
         root.findViewById<TextView>(R.id.devToggle).setOnClickListener { t ->
@@ -164,7 +165,11 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     )
 
     /** 최소화: 카운트다운 한 줄만 남기고 나머지는 숨긴다. */
+    private var isMinimized = false
+
     fun setMinimized(min: Boolean, hero: HeroModel) {
+        isMinimized = min
+        root.findViewById<TextView>(R.id.rallyMinimize).text = if (min) "▢" else "—"
         val hide = if (min) View.GONE else View.VISIBLE
         heroSub.visibility = hide
         heroProgress.visibility = hide
