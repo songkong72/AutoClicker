@@ -127,9 +127,18 @@ class AutoClickService : AccessibilityService() {
         val offY = loc[1] - (targetParams?.y ?: 0)
         val w = if (target != null && target.width > 0) target.width else dpToPx(38)
         val h = if (target != null && target.height > 0) target.height else dpToPx(38)
-        val path = Path().apply { moveTo(saved.first + offX + w / 2f, saved.second + offY + h / 2f) }
-        val stroke = GestureDescription.StrokeDescription(path, 0L, 35L)
-        dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
+        val cx = saved.first + offX + w / 2f
+        val cy = saved.second + offY + h / 2f
+        // 과녁 오버레이가 터치를 가로채지 않도록 먼저 투과시킨 뒤 탭한다 (기존 예약 클릭과 동일한 방식).
+        setTargetTouchable(false)
+        mainHandler.postDelayed({
+            val path = Path().apply { moveTo(cx, cy) }
+            val stroke = GestureDescription.StrokeDescription(path, 0L, 35L)
+            val ok = dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
+            Log.d(TAG, "rally click at ($cx, $cy) dispatched=$ok")
+            showToast(if (ok) "🎯 집결 클릭! (${cx.toInt()}, ${cy.toInt()})" else "⚠️ 클릭 전송 실패")
+            mainHandler.postDelayed({ setTargetTouchable(true) }, 500L)
+        }, 40L)
     }
 
     /** 새 통합 집결 화면. false로 바꾸면 기존 다이얼로그로 즉시 되돌아간다. */
