@@ -132,7 +132,7 @@ class RallyPanelHost(
     private fun applyWidth() {
         val v = panel?.root ?: return
         val lp = params ?: return
-        lp.width = panelWidthPx(minimized)
+        lp.width = if (minimized) WindowManager.LayoutParams.WRAP_CONTENT else panelWidthPx(false) // 알약은 글자 크기에 맞춰 늘어나 잘리지 않는다
         try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
     }
 

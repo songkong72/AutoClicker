@@ -265,6 +265,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             title.textSize = 13f
             title.maxLines = 1
             title.ellipsize = android.text.TextUtils.TruncateAt.END
+            (title.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = LinearLayout.LayoutParams.WRAP_CONTENT; it.weight = 0f; it.marginEnd = (10 * dp).toInt(); title.layoutParams = it }
+            root.minimumWidth = (112 * dp).toInt()
             heroLabel.visibility = View.GONE
             heroTime.textSize = 28f
             heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
@@ -278,6 +280,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             root.setBackgroundResource(R.drawable.bg_rally_panel)
             root.setPadding((12 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt())
             title.maxLines = Int.MAX_VALUE
+            (title.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = 0; it.weight = 1f; it.marginEnd = 0; title.layoutParams = it }
+            root.minimumWidth = 0
             title.setTextColor(Color.parseColor("#F8FAFC"))
             title.textSize = 14f
             heroLabel.visibility = View.VISIBLE
