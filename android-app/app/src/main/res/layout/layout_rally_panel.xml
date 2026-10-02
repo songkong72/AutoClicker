@@ -104,6 +104,71 @@
         android:layout_marginTop="6dp"
         android:orientation="vertical" />
 
+    <LinearLayout
+        android:id="@+id/rallySettingsRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/setPrep"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:textColor="#93C5FD"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="집결"
+            android:textColor="#94A3B8"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/setWait3"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="3분"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/setWait5"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="5분"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/setWait10"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:text="10분"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/rallyAddTeam"
         android:layout_width="match_parent"

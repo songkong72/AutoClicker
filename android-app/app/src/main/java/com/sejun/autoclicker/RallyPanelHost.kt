@@ -33,6 +33,8 @@ class RallyPanelHost(
         fun onSelectMine(teamId: String) {}
         fun onSetMarch(teamId: String, sec: Double) {}
         fun onAddTeam() {}
+        fun onSetPrep(sec: Double) {}
+        fun onSetWait(sec: Double) {}
         fun onRemoveTeam(teamId: String) {}
         /** 내 기기 설정(좌표, ms 보정). 방 데이터가 아니라 이 기기에만 저장된다. */
         fun deviceCorrectionMs(): Int = 0
@@ -74,6 +76,13 @@ class RallyPanelHost(
                 }
             }
             override fun onAddTeam() { stateSource.onAddTeam(); refresh() }
+            override fun onEditPrep(currentSec: Double) {
+                input.show("준비 시간(초)", currentSec.toInt().toString()) { text ->
+                    val sec = RallyInputParse.marchSeconds(text) ?: return@show false
+                    stateSource.onSetPrep(sec); refresh(); true
+                }
+            }
+            override fun onSetWait(sec: Double) { stateSource.onSetWait(sec); refresh() }
             override fun onRemoveTeam(teamId: String) { stateSource.onRemoveTeam(teamId); refresh() }
             override fun onCorrectionDelta(deltaMs: Int) { stateSource.onCorrectionDelta(deltaMs); refresh() }
             override fun onSavePosition() { stateSource.onSavePosition(); refresh() }

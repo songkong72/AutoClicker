@@ -58,7 +58,9 @@ data class ScreenModel(
     /** 시작할 수 없는 이유. 시작 가능하면 null */
     val startBlockedReason: String?,
     val arriveAtSec: Double = 0.0,
-    val nowSec: Double? = null
+    val nowSec: Double? = null,
+    val prepSec: Double = 0.0,
+    val waitSec: Double = 0.0
 )
 
 object RallyScreenModel {
@@ -84,7 +86,9 @@ object RallyScreenModel {
             warnings = if (editable) offlineWarnings(state) else emptyList(),
             startBlockedReason = if (plan.teams.isEmpty()) "참여 팀이 없어요" else null,
             arriveAtSec = plan.arriveAtSec,
-            nowSec = if (state.runState == RallyRunState.RUNNING) state.elapsedSec else null
+            nowSec = if (state.runState == RallyRunState.RUNNING) state.elapsedSec else null,
+            prepSec = state.prepSec,
+            waitSec = state.waitSec
         )
     }
 

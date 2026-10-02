@@ -116,6 +116,10 @@ class RallyRoomSync(
 
     override fun onAddTeam() = change { RallyRoomEdit.addTeam(it, "${it.teams.size + 1}군", 30.0) }
 
+    override fun onSetPrep(sec: Double) = change { RallyRoomEdit.setPrep(it, sec) }
+
+    override fun onSetWait(sec: Double) = change { RallyRoomEdit.setWait(it, sec) }
+
     override fun onRemoveTeam(teamId: String) = change { RallyRoomEdit.removeTeam(it, teamId) }
 
     override fun onToggleExclude(teamId: String) {

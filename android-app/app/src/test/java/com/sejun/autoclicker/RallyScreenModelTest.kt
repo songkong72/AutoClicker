@@ -206,4 +206,10 @@ class RallyScreenModelTest {
         assertNull(build(room()).nowSec)
         assertEquals(20.0, build(room(RallyRunState.RUNNING, 20.0)).nowSec!!, d)
     }
+
+    @Test fun screenModelExposesPrepAndWaitForSettingsRow() {
+        val m = build(room())
+        assertEquals(15.0, m.prepSec, 0.0)
+        assertEquals(300.0, m.waitSec, 0.0)
+    }
 }

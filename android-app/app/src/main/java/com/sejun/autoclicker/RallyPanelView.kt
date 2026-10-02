@@ -25,6 +25,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onCorrectionDelta(deltaMs: Int)
         fun onEditMarch(teamId: String, currentSec: Double)
         fun onAddTeam()
+        fun onEditPrep(currentSec: Double)
+        fun onSetWait(sec: Double)
         fun onRemoveTeam(teamId: String)
         fun onSavePosition()
     }
@@ -32,6 +34,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val themed = ContextThemeWrapper(context, R.style.Theme_AutoClicker)
     val root: View = LayoutInflater.from(themed).inflate(R.layout.layout_rally_panel, null)
 
+    private var prepShown = 0.0
     private val title = root.findViewById<TextView>(R.id.rallyTitle)
     private val heroLabel = root.findViewById<TextView>(R.id.rallyHeroLabel)
     private val heroTime = root.findViewById<TextView>(R.id.rallyHeroTime)
@@ -56,6 +59,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             (t as TextView).text = if (open) "내 기기 ▴" else "내 기기 ▾"
         }
         root.findViewById<View>(R.id.rallyAddTeam).setOnClickListener { callbacks.onAddTeam() }
+        root.findViewById<View>(R.id.setPrep).setOnClickListener { callbacks.onEditPrep(prepShown) }
+        root.findViewById<View>(R.id.setWait3).setOnClickListener { callbacks.onSetWait(180.0) }
+        root.findViewById<View>(R.id.setWait5).setOnClickListener { callbacks.onSetWait(300.0) }
+        root.findViewById<View>(R.id.setWait10).setOnClickListener { callbacks.onSetWait(600.0) }
         root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-10) }
         root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(10) }
         root.findViewById<View>(R.id.devSavePos).setOnClickListener { callbacks.onSavePosition() }
@@ -91,6 +98,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
         adminBar.visibility = if (isAdmin) View.VISIBLE else View.GONE
         root.findViewById<View>(R.id.rallyAddTeam).visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
+        prepShown = model.prepSec
+        root.findViewById<View>(R.id.rallySettingsRow).visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
+        root.findViewById<TextView>(R.id.setPrep).text = "준비 ${model.prepSec.toInt()}초"
+        listOf(R.id.setWait3 to 180.0, R.id.setWait5 to 300.0, R.id.setWait10 to 600.0).forEach { (id, sec) ->
+            root.findViewById<TextView>(id).setTextColor(Color.parseColor(if (model.waitSec == sec) "#60A5FA" else "#CBD5E1"))
+        }
         val canRegroup = model.hero.kind == HeroKind.ARRIVED || model.hero.kind == HeroKind.CANCELLED
         btnStart.text = if (canRegroup || hasStarted) "다시 집결" else "집결 시작"
         btnStart.isEnabled = model.startBlockedReason == null
@@ -185,6 +198,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         if (min) {
             root.findViewById<View>(R.id.devSection).visibility = View.GONE
             root.findViewById<View>(R.id.rallyAddTeam).visibility = View.GONE
+            root.findViewById<View>(R.id.rallySettingsRow).visibility = View.GONE
         }
         if (min) {
             adminBar.visibility = View.GONE

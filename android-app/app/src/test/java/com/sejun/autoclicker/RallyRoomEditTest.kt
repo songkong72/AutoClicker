@@ -93,4 +93,26 @@ class RallyRoomEditTest {
         val r = RallyRoomEdit.setExcluded(room(), "t1", true)
         assertEquals(false, RallyRoomEdit.canEditMarch(r, false, "t1", "t1"))
     }
+
+    @Test fun setPrepChangesOnlyPrep() {
+        val d = RallyRoomEdit.setPrep(room(), 20.0)
+        assertEquals(20.0, d.prepSec, 0.0)
+        assertEquals(300.0, d.waitSec, 0.0)
+    }
+
+    @Test fun prepIsClampedAtZero() {
+        assertEquals(0.0, RallyRoomEdit.setPrep(room(), -3.0).prepSec, 0.0)
+    }
+
+    @Test fun waitAcceptsOnlyPresets3_5_10Minutes() {
+        assertEquals(180.0, RallyRoomEdit.setWait(room(), 180.0).waitSec, 0.0)
+        assertEquals(600.0, RallyRoomEdit.setWait(room(), 600.0).waitSec, 0.0)
+        assertEquals(300.0, RallyRoomEdit.setWait(room(), 123.0).waitSec, 0.0) // 프리셋이 아니면 무시
+    }
+
+    @Test fun prepAndWaitLockedWhileRunning() {
+        val r = room("RUNNING", 1)
+        assertSame(r, RallyRoomEdit.setPrep(r, 99.0))
+        assertSame(r, RallyRoomEdit.setWait(r, 600.0))
+    }
 }

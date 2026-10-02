@@ -76,6 +76,15 @@ object RallyRoomEdit {
     fun setMarch(doc: RallyRoomDoc, teamId: String, marchSec: Double): RallyRoomDoc =
         mapTeam(doc, teamId) { it.copy(marchSec = Math.max(0.0, marchSec)) }
 
+    fun setPrep(doc: RallyRoomDoc, prepSec: Double): RallyRoomDoc =
+        if (locked(doc)) doc else doc.copy(prepSec = Math.max(0.0, prepSec))
+
+    /** 집결 대기시간은 게임 규칙상 3분/5분/10분만 허용한다. */
+    val WAIT_PRESETS_SEC = listOf(180.0, 300.0, 600.0)
+
+    fun setWait(doc: RallyRoomDoc, waitSec: Double): RallyRoomDoc =
+        if (locked(doc) || waitSec !in WAIT_PRESETS_SEC) doc else doc.copy(waitSec = waitSec)
+
     fun setExcluded(doc: RallyRoomDoc, teamId: String, excluded: Boolean): RallyRoomDoc =
         mapTeam(doc, teamId) { it.copy(excluded = excluded) }
 
