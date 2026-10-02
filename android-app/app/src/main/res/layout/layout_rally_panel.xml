@@ -208,20 +208,25 @@
         android:visibility="gone">
 
     <!-- 내 기기: 클릭 위치와 ms 보정 -->
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:text="클릭 보정 (숫자를 눌러 입력)"
+        android:textColor="#94A3B8"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <TextView
+        <Space
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="클릭 보정 (숫자를 눌러 입력)"
-            android:textColor="#94A3B8"
-            android:textSize="12sp" />
+            android:layout_height="1dp"
+            android:layout_weight="1" />
 
         <TextView
             android:id="@+id/devMinus"
@@ -258,7 +263,8 @@
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
             android:paddingHorizontal="12dp"
-            android:text="클릭 위치 저장"
+            android:maxLines="1"
+            android:text="위치 저장"
             android:textColor="#E2E8F0"
             android:textSize="12sp" />
     </LinearLayout>
