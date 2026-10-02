@@ -1,1 +1,28 @@
-{"rules":{".read":true,".write":true}}
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rallyRooms": {
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null && $room.length >= 1 && $room.length <= 40",
+        "teams": {
+          "$i": {
+            ".validate": "$i.matches(/^[0-9]{1,2}$/)",
+            "id": { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "name": { ".validate": "newData.isString() && newData.val().length <= 30" },
+            "leaderName": { ".validate": "newData.isString() && newData.val().length <= 40" },
+            "marchSec": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600" },
+            "excluded": { ".validate": "newData.isBoolean()" },
+            "$other": { ".validate": false }
+          }
+        },
+        "prepSec": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600" },
+        "waitSec": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600" },
+        "run": { ".validate": "newData.isString() && newData.val().matches(/^[A-Z_]{1,16}$/)" },
+        "startSeq": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

@@ -28,6 +28,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "INVITE_SECRET", "\"" + secret("invite.secret", "INVITE_SECRET") + "\"")
+        buildConfigField("String", "FIREBASE_API_KEY", "\"" + secret("firebase.api.key", "FIREBASE_API_KEY") + "\"")
         buildConfigField("String", "ADMIN_PASSWORD_HASH", "\"" + secret("admin.password.hash", "ADMIN_PASSWORD_HASH") + "\"")
     }
 

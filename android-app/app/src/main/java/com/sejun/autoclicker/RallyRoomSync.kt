@@ -18,6 +18,7 @@ import java.net.URL
  */
 class RallyRoomSync(
     private val dbUrl: String,
+    private val auth: FirebaseAuthClient? = null,
     private val room: String,
     myTeamIdInit: String,
     private val saveMyTeam: (String) -> Unit,
@@ -49,14 +50,14 @@ class RallyRoomSync(
     @Volatile private var holdRemoteUntil = 0L
     private fun holdRemote() { holdRemoteUntil = SystemClock.elapsedRealtime() + 2500L }
 
-    private val url get() = "$dbUrl/rallyRooms/$room.json"
+    private val url get() = FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room.json", auth?.token())
 
     fun start() {
         if (polling) return
         polling = true
         Thread {
             while (polling) {
-                try { runStream() } catch (e: Exception) { }
+                try { runStream() } catch (e: Exception) { dropTokenIf401(e) }
                 streaming = false
                 if (!polling) break
                 // 스트림이 끊기면 몇 번은 폴링으로 버티고 다시 연결을 시도한다.
@@ -95,7 +96,14 @@ class RallyRoomSync(
             deliver(remote)
         } catch (e: Exception) {
             online = false
+            dropTokenIf401(e)
         }
+    }
+
+    /** 서버가 토큰을 거절하면(401/403) 다음 요청에서 새 토큰을 받는다. */
+    private fun dropTokenIf401(e: Exception) {
+        val m = e.message ?: return
+        if (m.contains("401") || m.contains("403")) auth?.invalidate()
     }
 
     /** 실시간 연결. 끊기거나 오류가 나면 반환/예외로 빠져나가 폴링으로 넘어간다. */
@@ -287,7 +295,7 @@ class RallyRoomSync(
     }
 
     private fun putField(path: String, value: Double) {
-        val c = URL("$dbUrl/rallyRooms/$room/$path.json").openConnection() as HttpURLConnection
+        val c = URL(FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room/$path.json", auth?.token())).openConnection() as HttpURLConnection
         c.requestMethod = "PUT"
         c.setRequestProperty("Content-Type", "application/json")
         c.connectTimeout = 3000; c.readTimeout = 3000
