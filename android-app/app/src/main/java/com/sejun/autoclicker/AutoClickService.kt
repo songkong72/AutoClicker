@@ -165,7 +165,13 @@ class AutoClickService : AccessibilityService() {
         val room = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
             .getString("cloud_room_number", "") ?: ""
         if (room.isEmpty()) {
-            showToast("먼저 앱에서 집결 방에 입장해 주세요")
+            // 깃발이 아무 반응 없는 것처럼 보이지 않게: 안내와 함께 앱 첫 화면을 열어 바로 방에 입장하게 한다.
+            showToast("집결 방에 먼저 입장해 주세요. 앱 화면을 열게요")
+            try {
+                startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+            } catch (e: Exception) {
+                Log.w(TAG, "앱 화면을 열지 못했다", e)
+            }
             return
         }
         if (rallyPanelHost != null && (rallyPanelRoleAdmin != isAdmin || rallyRoomCode != room)) { // 권한이나 방이 바뀌면 새로 만든다
