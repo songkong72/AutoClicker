@@ -67,7 +67,20 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.setWait10).setOnClickListener { callbacks.onSetWait(600.0) }
         root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-10) }
         root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(10) }
-        root.findViewById<View>(R.id.devSavePos).setOnClickListener { callbacks.onSavePosition() }
+        root.findViewById<TextView>(R.id.devSavePos).let { b ->
+            val label = b.text
+            val color = b.currentTextColor
+            val restore = Runnable { b.text = label; b.setTextColor(color) }
+            b.setOnClickListener {
+                callbacks.onSavePosition()
+                // 저장됐다는 걸 눈과 손으로 바로 알 수 있게: 진동 + 버튼이 잠깐 초록 "✓ 저장됨"으로 바뀐다
+                b.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK)
+                b.text = "✓ 저장됨"
+                b.setTextColor(Color.parseColor("#22C55E"))
+                b.removeCallbacks(restore)
+                b.postDelayed(restore, 1500L)
+            }
+        }
     }
 
     /** "내 기기" 줄: 현재 ms 보정과 저장된 클릭 위치 표시. */
