@@ -22,7 +22,9 @@ data class RallyRoomState(
     val waitSec: Double,
     val runState: RallyRunState,
     /** 시작 신호 이후 경과 초. RUNNING일 때만 의미가 있다. */
-    val elapsedSec: Double = 0.0
+    val elapsedSec: Double = 0.0,
+    /** 이 기기에 클릭 위치가 저장되어 있는지 */
+    val positionSaved: Boolean = true
 )
 
 data class HeroModel(
@@ -86,7 +88,7 @@ object RallyScreenModel {
             rows = rows(state, plan, run),
             maxMarchSec = plan.maxMarchSec,
             editable = editable,
-            warnings = if (editable) offlineWarnings(state) else emptyList(),
+            warnings = positionWarnings(state) + (if (editable) offlineWarnings(state) else emptyList()),
             startBlockedReason = if (plan.teams.isEmpty()) "참여 팀이 없어요" else null,
             arriveAtSec = plan.arriveAtSec,
             nowSec = if (state.runState == RallyRunState.RUNNING) state.elapsedSec else null,
@@ -161,6 +163,15 @@ object RallyScreenModel {
             p.clickAtSec, p.departAtSec, p.arriveAtSec, t.adminAdjustMs
         )
     }
+
+    /** 내가 이번 작전에 참여하는데 클릭 위치가 없으면 클릭이 나가지 않는다. 진행 중에도 계속 알린다. */
+    private fun positionWarnings(state: RallyRoomState): List<String> {
+        val me = state.teams.firstOrNull { it.id == state.myTeamId } ?: return emptyList()
+        return if (!state.positionSaved && !me.excluded) listOf("클릭 위치를 먼저 저장하세요 (내 기기 → 위치 저장)") else emptyList()
+    }
+
+    /** 대기 중 흐리게 보이는 큰 숫자가 무엇인지 이름을 붙인다. */
+    fun idleSub(subLabel: String, arriveAtSec: Double): String = "전체 소요 ${formatMmSs(arriveAtSec)} · $subLabel"
 
     private fun offlineWarnings(state: RallyRoomState): List<String> =
         state.teams.filter { !it.excluded && !it.online }

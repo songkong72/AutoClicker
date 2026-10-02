@@ -26,6 +26,7 @@ class RallyRoomSync(
     private val correctionMs: () -> Long,
     private val setCorrectionMs: (Int) -> Unit,
     private val positionText: () -> String,
+    private val positionSaved: () -> Boolean = { true },
     private val savePosition: () -> Unit,
     private val onClickDue: () -> Unit,
     private val onCancel: () -> Unit
@@ -38,6 +39,7 @@ class RallyRoomSync(
     private val startDetector = RallyStartDetector()
     private var lastRun = "IDLE"
     private var startedAt: Long? = null
+    @Volatile private var clickWallMs: Long? = null // 이 기기가 내 클릭을 실행한 시계 시각
     @Volatile private var arriveWallMs: Long? = null // 이 기기 시계 기준 전원 도착 시각(안내용)
     private var clickTask: Runnable? = null
     @Volatile private var polling = false
@@ -149,10 +151,12 @@ class RallyRoomSync(
             else -> RallyRunState.IDLE
         }
         val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded, it.adminAdjustMs) }
-        return RallyRoomState(teams, myTeamId, d.prepSec, d.waitSec, run, elapsed)
+        return RallyRoomState(teams, myTeamId, d.prepSec, d.waitSec, run, elapsed, positionSaved())
     }
 
     override fun deviceCorrectionMs(): Int = correctionMs().toInt()
+    override fun clickNote(): String = RallyClickNote.text(clickWallMs)
+    override fun connection(): RallyConnection = RallyConnection.of(streaming, online)
     override fun arrivalNote(): String = RallyArrivalNote.text(arriveWallMs, System.currentTimeMillis())
     override fun onSetCorrectionMs(ms: Int) = setCorrectionMs(ms.coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS))
     override fun onCorrectionDelta(deltaMs: Int) = setCorrectionMs(
@@ -247,6 +251,7 @@ class RallyRoomSync(
         doc = d
         if (startDetector.onDoc(d.startSeq, d.run, fromRemote)) {
             startedAt = SystemClock.elapsedRealtime()
+            clickWallMs = null
             val plan = RallySchedule.plan(d.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) }, d.prepSec, d.waitSec)
             arriveWallMs = RallyArrivalNote.arriveAtMs(System.currentTimeMillis(), plan.arriveAtSec)
             scheduleMyClick(d)
@@ -255,6 +260,7 @@ class RallyRoomSync(
             cancelClick()
             startedAt = null
             arriveWallMs = null
+            clickWallMs = null
             onCancel()
         }
         lastRun = d.run
@@ -273,6 +279,7 @@ class RallyRoomSync(
             val actual = if (startAtMs == null) 0.0 else (SystemClock.elapsedRealtime() - startAtMs) / 1000.0
             val wall = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
             lastDiag = "마지막 집결: 신호 수신 ${"%.3f".format(actual)}초 뒤 클릭(목표 ${"%.2f".format(mine.clickAtSec)}초 ${totalMs}ms 보정) · $wall"
+            clickWallMs = System.currentTimeMillis()
             onClickDue()
         }
         clickTask = task

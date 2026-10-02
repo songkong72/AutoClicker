@@ -121,9 +121,15 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<TextView>(R.id.devPosStatus).text = posText
     }
 
-    fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "") {
+    fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "",
+               conn: RallyConnection = RallyConnection.LIVE, urgent: Boolean = false) {
         val hero = model.hero
-        title.text = if (isAdmin) "집결 · 관리자" else "집결 · 팀장"
+        val name = if (isAdmin) "집결 · 관리자" else "집결 · 팀장"
+        // 연결 상태 점: 초록=실시간, 주황=1초 확인, 빨강=끊김. 알약(최소화)에서는 단계 표시가 대신 쓴다.
+        title.text = if (isMinimized) name else android.text.SpannableString("● $name").apply {
+            val c = when (conn) { RallyConnection.LIVE -> "#22C55E"; RallyConnection.POLLING -> "#F59E0B"; RallyConnection.OFFLINE -> "#EF4444" }
+            setSpan(android.text.style.ForegroundColorSpan(Color.parseColor(c)), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
         heroLabel.text = hero.label
         // 대기 중에는 "전원 도착 예정" 총 소요 시간을 흐리게 보여준다
         val previewTotal = hero.kind == HeroKind.IDLE && hero.remainingSec == null && model.arriveAtSec > 0.0
@@ -133,8 +139,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             else -> ""
         }
         heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
-        heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else heroColor(hero.kind))
-        val sub = if (previewTotal) hero.subLabel + " · 전원 ${RallyScreenModel.formatMmSs(model.arriveAtSec)} 후 도착" else hero.subLabel
+        heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else if (urgent) Color.parseColor("#F87171") else heroColor(hero.kind))
+        val sub = if (previewTotal) RallyScreenModel.idleSub(hero.subLabel, model.arriveAtSec) else hero.subLabel
         heroSub.text = if (arrivalNote.isEmpty()) sub else "$sub\n$arrivalNote"
         renderPhases(hero.kind)
         heroProgress.progress = (hero.progress * 1000).toInt()

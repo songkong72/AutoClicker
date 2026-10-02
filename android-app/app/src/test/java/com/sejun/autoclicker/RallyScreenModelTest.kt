@@ -222,4 +222,19 @@ class RallyScreenModelTest {
         assertEquals(-300, m.rows.first { it.id == "2군" }.adminAdjustMs)
         assertEquals(0, m.rows.first { it.id == "3군" }.adminAdjustMs)
     }
+
+    @Test
+    fun `내 클릭 위치를 저장하지 않았으면 경고하고 진행 중에도 유지한다`() {
+        val idle = build(room().copy(positionSaved = false))
+        assertTrue(idle.warnings.any { it.contains("클릭 위치") })
+        val running = build(room(run = RallyRunState.RUNNING, elapsed = 3.0).copy(positionSaved = false))
+        assertTrue(running.warnings.any { it.contains("클릭 위치") })
+    }
+
+    @Test
+    fun `위치를 저장했거나 이번 작전에서 제외됐으면 위치 경고가 없다`() {
+        assertFalse(build(room()).warnings.any { it.contains("클릭 위치") })
+        val excluded = room(teams = listOf(t3.copy(excluded = true), t2, t1)).copy(positionSaved = false)
+        assertFalse(build(excluded).warnings.any { it.contains("클릭 위치") })
+    }
 }

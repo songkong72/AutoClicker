@@ -48,6 +48,9 @@ class RallyPanelHost(
         /** "도착 예정 12:34:12" / "12:34:12 도착". 진행한 집결이 없으면 빈 문자열. */
         fun arrivalNote(): String = ""
         fun onSavePosition() {}
+        /** "✓ 클릭함 12:34:56.789". 이번 집결에서 클릭하지 않았으면 빈 문자열. */
+        fun clickNote(): String = ""
+        fun connection(): RallyConnection = RallyConnection.LIVE
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -161,6 +164,7 @@ class RallyPanelHost(
     }
 
     private var lastRun: RallyRunState? = null
+    private val cue = RallyCountdownCue()
 
     private fun refresh() {
         val p = panel ?: return
@@ -176,7 +180,15 @@ class RallyPanelHost(
         }
         val model = RallyScreenModel.build(state)
         p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText())
-        p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING, stateSource.arrivalNote())
+        // 내 클릭을 기다리는 단계에서만: 마지막 5초는 숫자를 붉게, 1초마다 진동(0초 직전은 더 강하게)
+        val waiting = model.hero.kind == HeroKind.WAIT_CLICK || model.hero.kind == HeroKind.MOVE
+        val remain = model.hero.remainingSec
+        cue.onCountdown(waiting, remain ?: 99.0)?.let { n ->
+            p.root.performHapticFeedback(if (n == 1) android.view.HapticFeedbackConstants.LONG_PRESS else android.view.HapticFeedbackConstants.CLOCK_TICK)
+        }
+        val note = listOf(stateSource.arrivalNote(), stateSource.clickNote()).filter { it.isNotEmpty() }.joinToString("\n")
+        p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING, note,
+            stateSource.connection(), RallyCountdownCue.urgent(waiting, remain))
         if (minimized) p.setMinimized(true, model.hero)
     }
 

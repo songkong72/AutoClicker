@@ -196,6 +196,7 @@ class AutoClickService : AccessibilityService() {
                     PreferencesHelper.getSavedRallyTargetPosition(this)?.let { "저장된 클릭 위치 ${it.first}, ${it.second}" }
                         ?: "클릭 위치 없음 · 과녁을 집결 버튼 위에 놓고 저장하세요"
                 },
+                positionSaved = { PreferencesHelper.getSavedRallyTargetPosition(this) != null },
                 savePosition = {
                     PreferencesHelper.setSavedRallyTargetPosition(this, targetParams?.x ?: 0, targetParams?.y ?: 0)
                     showToast("현재 과녁 위치를 클릭 위치로 저장했어요")
