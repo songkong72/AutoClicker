@@ -22,6 +22,7 @@
     <TextView
         android:id="@+id/rowName"
         android:layout_width="0dp"
+        android:minWidth="40dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_weight="1"
@@ -32,7 +33,7 @@
 
     <TextView
         android:id="@+id/rowMinus"
-        android:layout_width="28dp"
+        android:layout_width="24dp"
         android:layout_height="28dp"
         android:layout_marginStart="4dp"
         android:gravity="center"
@@ -45,13 +46,14 @@
         android:id="@+id/rowMarch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="2dp"
         android:textColor="#94A3B8"
         android:textSize="12sp" />
 
     <TextView
         android:id="@+id/rowPlus"
-        android:layout_width="28dp"
+        android:layout_width="24dp"
         android:layout_height="28dp"
         android:gravity="center"
         android:text="+"
@@ -61,7 +63,8 @@
 
     <TextView
         android:id="@+id/rowStatus"
-        android:layout_width="40dp"
+        android:layout_width="wrap_content"
+        android:minWidth="30dp"
         android:layout_height="wrap_content"
         android:gravity="end"
         android:textColor="#CBD5E1"
@@ -69,7 +72,7 @@
 
     <TextView
         android:id="@+id/rowDel"
-        android:layout_width="28dp"
+        android:layout_width="24dp"
         android:layout_height="32dp"
         android:gravity="center"
         android:text="✕"
@@ -79,7 +82,8 @@
 
     <TextView
         android:id="@+id/rowRemain"
-        android:layout_width="40dp"
+        android:layout_width="wrap_content"
+        android:layout_marginStart="4dp"
         android:layout_height="wrap_content"
         android:gravity="end"
         android:textColor="#FFFFFF"

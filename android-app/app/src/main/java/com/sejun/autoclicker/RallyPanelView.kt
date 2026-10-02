@@ -114,7 +114,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 setTextColor(if (r.isMine) Color.parseColor("#60A5FA") else Color.parseColor("#F1F5F9"))
                 alpha = if (r.excluded) 0.45f else 1f
             }
-            v.findViewById<TextView>(R.id.rowMarch).text = "행군 ${r.marchSec.toInt()}s"
+            v.findViewById<TextView>(R.id.rowMarch).text = (if (r.marchSec % 1.0 == 0.0) r.marchSec.toInt().toString() else r.marchSec.toString()) + "s"
             v.findViewById<TextView>(R.id.rowStatus).text = r.statusLabel
             v.findViewById<RallyTimelineBar>(R.id.rowBar).set(scale, r.clickAtSec, r.departAtSec, r.arriveAtSec, nowSec, r.excluded)
             val minus = v.findViewById<View>(R.id.rowMinus)
@@ -132,7 +132,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             plus.setOnClickListener { callbacks.onMarchDelta(r.id, 1.0) }
             v.setOnClickListener { if (canEdit) callbacks.onToggleExclude(r.id) }
             v.setOnLongClickListener { callbacks.onSelectMine(r.id); true }
-            v.findViewById<TextView>(R.id.rowRemain).text = r.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""
+            v.findViewById<TextView>(R.id.rowRemain).apply {
+                text = r.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""
+                visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
+            }
         }
     }
 
