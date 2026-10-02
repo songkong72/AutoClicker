@@ -1,12 +1,16 @@
 package com.sejun.autoclicker
 
-/** 방에서 공유되는 팀 정보. 클릭 좌표와 ms 보정은 기기 로컬이라 여기 없다. */
+/**
+ * 방에서 공유되는 팀 정보. 클릭 좌표와 기기 ms 보정은 기기 로컬이라 여기 없다.
+ * [adminAdjustMs]는 관리자가 그 군단에 더해 주는 보정(+면 더 늦게, -면 더 일찍). 기기 보정과 합산해 적용한다.
+ */
 data class RallyTeamDoc(
     val id: String,
     val name: String,
     val leaderName: String = "",
     val marchSec: Double,
-    val excluded: Boolean = false
+    val excluded: Boolean = false,
+    val adminAdjustMs: Int = 0
 )
 
 /**
@@ -27,7 +31,8 @@ object RallyRoomCodec {
         "teams" to doc.teams.map {
             mapOf(
                 "id" to it.id, "name" to it.name, "leaderName" to it.leaderName,
-                "marchSec" to it.marchSec, "excluded" to it.excluded
+                "marchSec" to it.marchSec, "excluded" to it.excluded,
+                "adminAdjustMs" to it.adminAdjustMs
             )
         },
         "prepSec" to doc.prepSec,
@@ -47,7 +52,8 @@ object RallyRoomCodec {
                 name = t["name"] as? String ?: id,
                 leaderName = t["leaderName"] as? String ?: "",
                 marchSec = (t["marchSec"] as? Number)?.toDouble() ?: 0.0,
-                excluded = t["excluded"] as? Boolean ?: false
+                excluded = t["excluded"] as? Boolean ?: false,
+                adminAdjustMs = (t["adminAdjustMs"] as? Number)?.toInt() ?: 0
             )
         }
         return RallyRoomDoc(
@@ -62,6 +68,9 @@ object RallyRoomCodec {
 
 /** 내 클릭까지 기다릴 시간(ms). correctionMs가 +면 더 늦게, -면 더 일찍 클릭한다. */
 object RallyClickTiming {
+    /** 기기 보정(내가 맞춘 값)과 관리자가 더해 준 보정의 합. */
+    fun totalCorrectionMs(deviceMs: Long, adminMs: Int): Long = deviceMs + adminMs
+
     fun delayUntilClickMs(clickAtSec: Double, elapsedMs: Long, correctionMs: Long): Long =
         Math.max(0L, Math.round(clickAtSec * 1000.0) - elapsedMs + correctionMs)
 }
@@ -89,6 +98,10 @@ object RallyRoomEdit {
 
     fun setMarch(doc: RallyRoomDoc, teamId: String, marchSec: Double): RallyRoomDoc =
         mapTeam(doc, teamId) { it.copy(marchSec = Math.max(0.0, marchSec)) }
+
+    /** 관리자가 군단별로 더하는 클릭 보정(ms). 범위는 기기 보정과 같다. */
+    fun setAdminAdjust(doc: RallyRoomDoc, teamId: String, ms: Int): RallyRoomDoc =
+        mapTeam(doc, teamId) { it.copy(adminAdjustMs = ms.coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS)) }
 
     fun setPrep(doc: RallyRoomDoc, prepSec: Double): RallyRoomDoc =
         if (locked(doc)) doc else doc.copy(prepSec = Math.max(0.0, prepSec))

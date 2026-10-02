@@ -14,6 +14,7 @@
             "leaderName": { ".validate": "newData.isString() && newData.val().length <= 40" },
             "marchSec": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600" },
             "excluded": { ".validate": "newData.isBoolean()" },
+            "adminAdjustMs": { ".validate": "newData.isNumber() && newData.val() >= -5000 && newData.val() <= 5000" },
             "$other": { ".validate": false }
           }
         },

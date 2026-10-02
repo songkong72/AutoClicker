@@ -212,4 +212,14 @@ class RallyScreenModelTest {
         assertEquals(15.0, m.prepSec, 0.0)
         assertEquals(300.0, m.waitSec, 0.0)
     }
+
+    @Test
+    fun `관리자 보정이 행에 실리고 제외된 팀도 값을 유지한다`() {
+        val adj = t1.copy(adminAdjustMs = 700)
+        val ex = t2.copy(excluded = true, adminAdjustMs = -300)
+        val m = build(room(teams = listOf(t3, ex, adj)))
+        assertEquals(700, m.rows.first { it.id == "1군" }.adminAdjustMs)
+        assertEquals(-300, m.rows.first { it.id == "2군" }.adminAdjustMs)
+        assertEquals(0, m.rows.first { it.id == "3군" }.adminAdjustMs)
+    }
 }

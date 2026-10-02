@@ -37,6 +37,8 @@ class RallyPanelHost(
         fun onAddTeam() {}
         fun onSetPrep(sec: Double) {}
         fun onSetWait(sec: Double) {}
+        /** 관리자가 한 군단에 더해 주는 클릭 보정(ms) */
+        fun onSetAdminAdjust(teamId: String, ms: Int) {}
         fun onRemoveTeam(teamId: String) {}
         /** 내 기기 설정(좌표, ms 보정). 방 데이터가 아니라 이 기기에만 저장된다. */
         fun deviceCorrectionMs(): Int = 0
@@ -93,6 +95,14 @@ class RallyPanelHost(
                 }
             }
             override fun onSetWait(sec: Double) { stateSource.onSetWait(sec); refresh() }
+            override fun onEditAdminAdjust(teamId: String, teamName: String, currentMs: Int) {
+                val shown = if (currentMs % 1000 == 0) (currentMs / 1000).toString() else (currentMs / 1000.0).toString()
+                input.show("$teamName 보정(초) · −는 더 일찍, +는 더 늦게", shown, signed = true,
+                    errorText = "−5 ~ +5 사이 숫자를 입력해 주세요 (예: -1.5)") { text ->
+                    val ms = RallyInputParse.correctionMs(text) ?: return@show false
+                    stateSource.onSetAdminAdjust(teamId, ms); refresh(); true
+                }
+            }
             override fun onRemoveTeam(teamId: String) { stateSource.onRemoveTeam(teamId); refresh() }
             override fun onCorrectionDelta(deltaMs: Int) { stateSource.onCorrectionDelta(deltaMs); refresh() }
             override fun onSavePosition() { stateSource.onSavePosition(); refresh() }

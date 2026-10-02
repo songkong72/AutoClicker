@@ -10,7 +10,9 @@ data class RallyTeamState(
     val leaderName: String = "",
     val marchSec: Double,
     val online: Boolean = true,
-    val excluded: Boolean = false
+    val excluded: Boolean = false,
+    /** 관리자가 이 군단에 더해 준 클릭 보정(ms) */
+    val adminAdjustMs: Int = 0
 )
 
 data class RallyRoomState(
@@ -45,7 +47,8 @@ data class TeamRowModel(
     val isMine: Boolean,
     val clickAtSec: Double = 0.0,
     val departAtSec: Double = 0.0,
-    val arriveAtSec: Double = 0.0
+    val arriveAtSec: Double = 0.0,
+    val adminAdjustMs: Int = 0
 )
 
 data class ScreenModel(
@@ -135,7 +138,8 @@ object RallyScreenModel {
         val active = plan.teams.mapNotNull { p -> byId[p.id]?.let { it to p } }
         val excluded = state.teams.filter { it.excluded }
         return active.map { (t, p) -> row(state, t, p, run) } + excluded.map { t ->
-            TeamRowModel(t.id, t.name, t.leaderName, t.marchSec, "제외", null, true, t.online, t.id == state.myTeamId)
+            TeamRowModel(t.id, t.name, t.leaderName, t.marchSec, "제외", null, true, t.online, t.id == state.myTeamId,
+                adminAdjustMs = t.adminAdjustMs)
         }
     }
 
@@ -154,7 +158,7 @@ object RallyScreenModel {
         }
         return TeamRowModel(
             t.id, t.name, t.leaderName, t.marchSec, label, remaining, false, t.online, t.id == state.myTeamId,
-            p.clickAtSec, p.departAtSec, p.arriveAtSec
+            p.clickAtSec, p.departAtSec, p.arriveAtSec, t.adminAdjustMs
         )
     }
 

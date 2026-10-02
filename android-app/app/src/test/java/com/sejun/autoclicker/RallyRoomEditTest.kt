@@ -146,4 +146,17 @@ class RallyRoomEditTest {
         assertEquals(false, RallyRoomEdit.finished(room("IDLE", 2), 9999.0))
         assertEquals(false, RallyRoomEdit.finished(room("CANCELLED", 2), 9999.0))
     }
+
+    @Test fun adminAdjustChangesOnlyThatTeamAndIsClamped() {
+        val d = RallyRoomEdit.setAdminAdjust(room(), "t2", 800)
+        assertEquals(800, d.teams[1].adminAdjustMs)
+        assertEquals(0, d.teams[0].adminAdjustMs)
+        assertEquals(5000, RallyRoomEdit.setAdminAdjust(room(), "t1", 99999).teams[0].adminAdjustMs)
+        assertEquals(-5000, RallyRoomEdit.setAdminAdjust(room(), "t1", -99999).teams[0].adminAdjustMs)
+    }
+
+    @Test fun adminAdjustIsLockedWhileRunning() {
+        val r = room("RUNNING", 1)
+        assertSame(r, RallyRoomEdit.setAdminAdjust(r, "t1", 500))
+    }
 }

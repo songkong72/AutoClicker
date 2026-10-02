@@ -34,6 +34,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onAddTeam()
         fun onEditPrep(currentSec: Double)
         fun onSetWait(sec: Double)
+        fun onEditAdminAdjust(teamId: String, teamName: String, currentMs: Int)
         fun onRemoveTeam(teamId: String)
         fun onSavePosition()
     }
@@ -178,7 +179,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 alpha = if (r.excluded) 0.45f else 1f
             }
             v.findViewById<TextView>(R.id.rowMarch).text = (if (r.marchSec % 1.0 == 0.0) r.marchSec.toInt().toString() else r.marchSec.toString()) + "s"
-            v.findViewById<TextView>(R.id.rowStatus).text = r.statusLabel
+            v.findViewById<TextView>(R.id.rowStatus).apply {
+                // 관리자가 더해 준 보정이 있으면 상태 아래 줄에 작게 보여 준다(줄이 늘어나도 폭은 그대로).
+                text = if (r.adminAdjustMs == 0) r.statusLabel else r.statusLabel + "\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
+                // 관리자는 상태 글자를 눌러 그 군단의 보정을 정한다(진행 중에는 잠김)
+                setOnClickListener { if (isAdmin && editable) callbacks.onEditAdminAdjust(r.id, r.name, r.adminAdjustMs) }
+            }
             v.findViewById<RallyTimelineBar>(R.id.rowBar).set(scale, r.clickAtSec, r.departAtSec, r.arriveAtSec, nowSec, r.excluded)
             val minus = v.findViewById<View>(R.id.rowMinus)
             val plus = v.findViewById<View>(R.id.rowPlus)

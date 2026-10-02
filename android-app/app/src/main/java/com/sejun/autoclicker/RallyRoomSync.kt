@@ -148,7 +148,7 @@ class RallyRoomSync(
             "CANCELLED" -> RallyRunState.CANCELLED
             else -> RallyRunState.IDLE
         }
-        val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded) }
+        val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded, it.adminAdjustMs) }
         return RallyRoomState(teams, myTeamId, d.prepSec, d.waitSec, run, elapsed)
     }
 
@@ -158,7 +158,10 @@ class RallyRoomSync(
     override fun onCorrectionDelta(deltaMs: Int) = setCorrectionMs(
         (correctionMs().toInt() + deltaMs).coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS)
     )
+    private fun myAdminAdjustMs(d: RallyRoomDoc = doc): Int = d.teams.firstOrNull { it.id == myTeamId }?.adminAdjustMs ?: 0
+
     override fun devicePositionText(): String =
+        myAdminAdjustMs().let { a -> if (a == 0) "" else "관리자 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)\n" } +
         positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인") +
         (MainThreadWatchdog.lastStall.let { if (it.isEmpty()) "" else "\n$it" })
     override fun onSavePosition() = savePosition()
@@ -184,6 +187,20 @@ class RallyRoomSync(
     override fun onMarchDelta(teamId: String, deltaSec: Double) {
         val cur = doc.teams.firstOrNull { it.id == teamId } ?: return
         onSetMarch(teamId, cur.marchSec + deltaSec)
+    }
+
+    /** 관리자만: 한 군단의 클릭 보정을 정한다. 그 팀의 필드 하나만 서버에 쓴다. */
+    override fun onSetAdminAdjust(teamId: String, ms: Int) {
+        if (!isAdmin) return
+        val d = effectiveDoc()
+        val idx = d.teams.indexOfFirst { it.id == teamId }
+        if (idx < 0) return
+        val next = RallyRoomEdit.setAdminAdjust(d, teamId, ms)
+        if (next === d) return
+        holdRemote()
+        apply(next)
+        val value = next.teams[idx].adminAdjustMs
+        Thread { try { putField("teams/$idx/adminAdjustMs", value.toDouble()) } catch (_: Exception) { } }.start()
     }
 
     override fun onAddTeam() = change { RallyRoomEdit.addTeam(it, "${it.teams.size + 1}군", 30.0) }
@@ -249,12 +266,13 @@ class RallyRoomSync(
             d.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) }, d.prepSec, d.waitSec
         )
         val mine = plan.teamPlan(myTeamId) ?: return // 제외된 팀은 클릭하지 않는다
-        val delay = RallyClickTiming.delayUntilClickMs(mine.clickAtSec, 0L, correctionMs())
+        val totalMs = RallyClickTiming.totalCorrectionMs(correctionMs(), myAdminAdjustMs(d))
+        val delay = RallyClickTiming.delayUntilClickMs(mine.clickAtSec, 0L, totalMs)
         val startAtMs = startedAt
         val task = Runnable {
             val actual = if (startAtMs == null) 0.0 else (SystemClock.elapsedRealtime() - startAtMs) / 1000.0
             val wall = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
-            lastDiag = "마지막 집결: 신호 수신 ${"%.3f".format(actual)}초 뒤 클릭(목표 ${"%.2f".format(mine.clickAtSec)}초 ${correctionMs()}ms 보정) · $wall"
+            lastDiag = "마지막 집결: 신호 수신 ${"%.3f".format(actual)}초 뒤 클릭(목표 ${"%.2f".format(mine.clickAtSec)}초 ${totalMs}ms 보정) · $wall"
             onClickDue()
         }
         clickTask = task

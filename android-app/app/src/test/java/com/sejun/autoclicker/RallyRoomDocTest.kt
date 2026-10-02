@@ -8,7 +8,7 @@ import org.junit.Test
 class RallyRoomDocTest {
     private val doc = RallyRoomDoc(
         teams = listOf(
-            RallyTeamDoc("t1", "1군", "윈터", 10.0),
+            RallyTeamDoc("t1", "1군", "윈터", 10.0, adminAdjustMs = -1500),
             RallyTeamDoc("t2", "2군", "쿼드", 30.5, excluded = true)
         ),
         prepSec = 15.0, waitSec = 300.0, run = "RUNNING", startSeq = 3L
@@ -60,5 +60,21 @@ class RallyRoomDocTest {
 
     @Test fun pastClickTimeNeverGoesNegative() {
         assertEquals(0L, RallyClickTiming.delayUntilClickMs(15.0, 20_000L, 0L))
+    }
+
+    @Test fun adminAdjustSurvivesRoundTripAndDefaultsToZero() {
+        assertEquals(-1500, RallyRoomCodec.decode(RallyRoomCodec.encode(doc)).teams[0].adminAdjustMs)
+        assertEquals(0, RallyRoomCodec.decode(mapOf("teams" to listOf(mapOf("id" to "a", "marchSec" to 20)))).teams[0].adminAdjustMs)
+    }
+
+    @Test fun adminAdjustAcceptsDoubleFromServer() {
+        val m = mapOf("teams" to listOf(mapOf("id" to "a", "marchSec" to 20, "adminAdjustMs" to 500.0)))
+        assertEquals(500, RallyRoomCodec.decode(m).teams[0].adminAdjustMs)
+    }
+
+    @Test fun clickCorrectionAddsDeviceAndAdminParts() {
+        assertEquals(-700L, RallyClickTiming.totalCorrectionMs(-1000L, 300))
+        assertEquals(1500L, RallyClickTiming.totalCorrectionMs(1000L, 500))
+        assertEquals(19_300L, RallyClickTiming.delayUntilClickMs(35.0, 15_000L, RallyClickTiming.totalCorrectionMs(-1000L, 300)))
     }
 }
