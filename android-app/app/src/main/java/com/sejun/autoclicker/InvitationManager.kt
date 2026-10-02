@@ -1,81 +1,38 @@
 package com.sejun.autoclicker
 
 import android.content.Context
-import java.security.MessageDigest
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
+/**
+ * 초대코드 발급/검증과 관리자 비밀번호. 비밀 값은 코드에 없고 빌드 때 BuildConfig로 주입된다
+ * (android-app/local.properties 의 invite.secret, admin.password.hash).
+ */
 object InvitationManager {
 
-    // 암호화용 비밀키 (앱 내부 및 발급 로직 공통)
-    private const val SECRET_SALT = "AutoClickerPro_Rally_Secret_2026#!"
+    private const val MIN_ADMIN_PASSWORD = 6
 
-    /**
-     * 회원 식별자(이메일, ID, 닉네임 등)를 기반으로 1:1 고유 초대코드를 생성합니다.
-     * 예시 결과 형태: AC-8F3K9A (사용자 친화적 6자리 영문대문자/숫자)
-     */
-    fun generateInviteCode(userId: String): String {
-        val normalized = userId.trim().lowercase()
-        if (normalized.isEmpty()) return ""
+    private val secret: String get() = BuildConfig.INVITE_SECRET
 
-        return try {
-            val sha256Hmac = Mac.getInstance("HmacSHA256")
-            val secretKey = SecretKeySpec(SECRET_SALT.toByteArray(Charsets.UTF_8), "HmacSHA256")
-            sha256Hmac.init(secretKey)
-            val hashBytes = sha256Hmac.doFinal(normalized.toByteArray(Charsets.UTF_8))
+    /** 회원 식별자 기반 1:1 초대코드. 비밀 문자열이 주입되지 않은 빌드에서는 빈 문자열(발급 불가). */
+    fun generateInviteCode(userId: String): String = InviteCodes.generate(userId, secret)
 
-            // 사람이 읽기 쉬운 문자셋 (헷갈리기 쉬운 0, O, 1, I 제외)
-            val charPool = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-            val sb = StringBuilder("AC-")
-            for (i in 0 until 6) {
-                val byteVal = (hashBytes[i].toInt() and 0xFF)
-                sb.append(charPool[byteVal % charPool.length])
-            }
-            sb.toString()
-        } catch (e: Exception) {
-            // Fallback: MD5 기반 6자리
-            val md = MessageDigest.getInstance("MD5")
-            val digest = md.digest((normalized + SECRET_SALT).toByteArray())
-            "AC-" + digest.take(3).joinToString("") { "%02X".format(it) }
-        }
-    }
-
-    /**
-     * 입력된 초대코드가 해당 회원의 고유 코드와 일치하는지 검증합니다.
-     * 관리자 마스터 비밀번호가 입력되었을 경우에도 마스터 통과를 지원합니다.
-     */
+    /** 입력된 초대코드가 해당 회원의 코드이거나, 관리자 비밀번호가 입력됐을 때 통과. */
     fun verifyInviteCode(context: Context, userId: String, inputCode: String): Boolean {
-        val trimmedCode = inputCode.trim()
-        if (trimmedCode.isEmpty() || userId.trim().isEmpty()) return false
-
-        // 1. 관리자 마스터 키 직접 입력 시 마스터 통과
-        val masterKey = PreferencesHelper.getAdminMasterKey(context)
-        if (trimmedCode == masterKey) {
-            return true
-        }
-
-        // 2. 이메일/ID 기반 1:1 전용 코드 일치 여부 확인
-        val expectedCode = generateInviteCode(userId)
-        val cleanInput = trimmedCode.replace("-", "").uppercase()
-        val cleanExpected = expectedCode.replace("-", "").uppercase()
-
-        return cleanInput == cleanExpected
+        val code = inputCode.trim()
+        if (code.isEmpty() || userId.trim().isEmpty()) return false
+        if (checkAdminPassword(context, code)) return true
+        return InviteCodes.verify(userId, code, secret)
     }
 
-    /**
-     * 관리자 마스터 비밀번호 검증
-     */
-    fun checkAdminPassword(context: Context, inputPass: String): Boolean {
-        val currentPass = PreferencesHelper.getAdminMasterKey(context)
-        return inputPass.trim() == currentPass
-    }
+    fun checkAdminPassword(context: Context, inputPass: String): Boolean =
+        AdminAuth.matches(inputPass.trim(), PreferencesHelper.getAdminPasswordHash(context), secret)
 
-    /**
-     * 관리자 마스터 비밀번호 변경
-     */
+    /** 이 기기의 관리자 비밀번호를 바꾼다(해시로 저장). 비밀 문자열이 없는 빌드에서는 바꿀 수 없다. */
     fun updateAdminPassword(context: Context, newPass: String): Boolean {
-        if (newPass.trim().length < 4) return false
-        PreferencesHelper.setAdminMasterKey(context, newPass.trim())
+        val p = newPass.trim()
+        if (p.length < MIN_ADMIN_PASSWORD || secret.isEmpty()) return false
+        PreferencesHelper.setAdminPasswordHash(context, AdminAuth.hash(p, secret))
         return true
     }
+
+    fun minAdminPasswordLength(): Int = MIN_ADMIN_PASSWORD
 }

@@ -144,7 +144,7 @@
             android:layout_height="44dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_list_container"
-            android:hint="새 관리자 비밀번호 입력 (4자 이상)"
+            android:hint="새 관리자 비밀번호 입력 (6자 이상)"
             android:inputType="textPassword"
             android:paddingHorizontal="14dp"
             android:textColor="#FFFFFF"

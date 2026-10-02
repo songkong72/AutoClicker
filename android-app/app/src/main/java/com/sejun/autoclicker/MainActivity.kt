@@ -670,6 +670,10 @@ class MainActivity : AppCompatActivity() {
             }
 
             val code = InvitationManager.generateInviteCode(memberId)
+            if (code.isEmpty()) {
+                Toast.makeText(this, "이 빌드에는 초대코드 비밀 설정이 없어 발급할 수 없어요.", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
             currentGeneratedCode = code
             currentMemberId = memberId
             tvCode.text = code
@@ -688,13 +692,15 @@ class MainActivity : AppCompatActivity() {
 
         btnSavePass.setOnClickListener {
             val newPass = etNewPass.text.toString().trim()
-            if (newPass.length < 4) {
-                Toast.makeText(this, "비밀번호는 최소 4자 이상이어야 합니다.", Toast.LENGTH_SHORT).show()
+            if (newPass.length < InvitationManager.minAdminPasswordLength()) {
+                Toast.makeText(this, "비밀번호는 최소 ${InvitationManager.minAdminPasswordLength()}자 이상이어야 합니다.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (InvitationManager.updateAdminPassword(this, newPass)) {
                 Toast.makeText(this, "🔑 관리자 비밀번호가 성공적으로 변경되었습니다.", Toast.LENGTH_LONG).show()
                 etNewPass.setText("")
+            } else {
+                Toast.makeText(this, "비밀번호를 바꿀 수 없어요. (이 빌드에 비밀 설정이 없어요)", Toast.LENGTH_LONG).show()
             }
         }
 
