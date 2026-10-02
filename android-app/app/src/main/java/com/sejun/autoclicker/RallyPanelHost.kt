@@ -59,6 +59,9 @@ class RallyPanelHost(
     }
 
     @SuppressLint("ClickableViewAccessibility")
+    /** 설정의 오버레이 투명도를 패널에 반영한다. */
+    fun applyAlpha(a: Float) { panel?.root?.alpha = a }
+
     fun show() {
         if (panel != null) return
         val view = RallyPanelView(context, object : RallyPanelView.Callbacks {
@@ -97,6 +100,7 @@ class RallyPanelHost(
         view.root.setOnTouchListener(dragListener(lp))
         wm.addView(view.root, lp)
         panel = view
+        view.root.alpha = PreferencesHelper.getOverlayAlpha(context)
         params = lp
         refresh()
         handler.post(tick)

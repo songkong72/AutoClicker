@@ -833,6 +833,13 @@ class AutoClickService : AccessibilityService() {
     }
 
     @SuppressLint("InflateParams")
+    /** 컨트롤 바, 과녁, 집결 패널에 같은 투명도를 적용한다. */
+    private fun applyOverlayAlpha(a: Float) {
+        controlView?.alpha = a
+        targetView?.alpha = a
+        rallyPanelHost?.applyAlpha(a)
+    }
+
     fun showOpacityPanel() {
         if (opacityPanelView != null) {
             hideOpacityPanel()
@@ -928,8 +935,7 @@ class AutoClickService : AccessibilityService() {
             btn.setOnClickListener {
                 vibrate(20)
                 currentOverlayAlpha = a
-                control.alpha = a
-                targetView?.alpha = a
+                applyOverlayAlpha(a)
                 PreferencesHelper.setOverlayAlpha(this, a)
                 updateLevelHighlight(a)
                 showToast("🌓 투명도 ${(a * 100).toInt()}% 적용")
@@ -1105,30 +1111,25 @@ class AutoClickService : AccessibilityService() {
         // 투명도 프리셋 칩 클릭
         chipAlpha100.setOnClickListener {
             updateAlphaChips(1.0f)
-            controlView?.alpha = 1.0f
-            targetView?.alpha = 1.0f
+            applyOverlayAlpha(1.0f)
         }
         chipAlpha80.setOnClickListener {
             updateAlphaChips(0.8f)
-            controlView?.alpha = 0.8f
-            targetView?.alpha = 0.8f
+            applyOverlayAlpha(0.8f)
         }
         chipAlpha60.setOnClickListener {
             updateAlphaChips(0.6f)
-            controlView?.alpha = 0.6f
-            targetView?.alpha = 0.6f
+            applyOverlayAlpha(0.6f)
         }
         chipAlpha40.setOnClickListener {
             updateAlphaChips(0.4f)
-            controlView?.alpha = 0.4f
-            targetView?.alpha = 0.4f
+            applyOverlayAlpha(0.4f)
         }
 
         btnClose.setOnClickListener {
             vibrate(15)
             // 취소 시 기존 투명도 복원
-            controlView?.alpha = currentOverlayAlpha
-            targetView?.alpha = currentOverlayAlpha
+            applyOverlayAlpha(currentOverlayAlpha)
             hideSettingsDialog()
         }
 
@@ -1149,8 +1150,7 @@ class AutoClickService : AccessibilityService() {
 
             currentOverlayAlpha = selectedAlpha
             PreferencesHelper.setOverlayAlpha(this, selectedAlpha)
-            controlView?.alpha = selectedAlpha
-            targetView?.alpha = selectedAlpha
+            applyOverlayAlpha(selectedAlpha)
 
             showToast("⚙️ 설정 적용 완료! (${newInterval}ms / ${when(selectedMode) {
                 RepeatMode.INFINITE -> "무한"
