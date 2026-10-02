@@ -187,4 +187,23 @@ class RallyScreenModelTest {
         val m = build(room(teams = listOf(t3.copy(excluded = true), t2, t1)))
         assertEquals(HeroKind.EXCLUDED, m.hero.kind)
     }
+
+    @Test
+    fun `전원 도착 예정 시각과 팀별 구간 시각을 알려준다`() {
+        val m = build(room())
+        assertEquals(365.0, m.arriveAtSec, d)
+        val r3 = m.rows.first { it.id == "3군" }
+        assertEquals(15.0, r3.clickAtSec, d)
+        assertEquals(315.0, r3.departAtSec, d)
+        assertEquals(365.0, r3.arriveAtSec, d)
+        val r1 = m.rows.first { it.id == "1군" }
+        assertEquals(55.0, r1.clickAtSec, d)
+        assertEquals(365.0, r1.arriveAtSec, d)
+    }
+
+    @Test
+    fun `진행 중에만 현재 경과 시각을 알려준다`() {
+        assertNull(build(room()).nowSec)
+        assertEquals(20.0, build(room(RallyRunState.RUNNING, 20.0)).nowSec!!, d)
+    }
 }

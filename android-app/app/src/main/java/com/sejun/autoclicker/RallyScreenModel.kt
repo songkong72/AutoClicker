@@ -42,7 +42,10 @@ data class TeamRowModel(
     val remainingSec: Double?,
     val excluded: Boolean,
     val online: Boolean,
-    val isMine: Boolean
+    val isMine: Boolean,
+    val clickAtSec: Double = 0.0,
+    val departAtSec: Double = 0.0,
+    val arriveAtSec: Double = 0.0
 )
 
 data class ScreenModel(
@@ -53,7 +56,9 @@ data class ScreenModel(
     val editable: Boolean,
     val warnings: List<String>,
     /** 시작할 수 없는 이유. 시작 가능하면 null */
-    val startBlockedReason: String?
+    val startBlockedReason: String?,
+    val arriveAtSec: Double = 0.0,
+    val nowSec: Double? = null
 )
 
 object RallyScreenModel {
@@ -77,7 +82,9 @@ object RallyScreenModel {
             maxMarchSec = plan.maxMarchSec,
             editable = editable,
             warnings = if (editable) offlineWarnings(state) else emptyList(),
-            startBlockedReason = if (plan.teams.isEmpty()) "참여 팀이 없어요" else null
+            startBlockedReason = if (plan.teams.isEmpty()) "참여 팀이 없어요" else null,
+            arriveAtSec = plan.arriveAtSec,
+            nowSec = if (state.runState == RallyRunState.RUNNING) state.elapsedSec else null
         )
     }
 
@@ -141,7 +148,10 @@ object RallyScreenModel {
                 RallyPhase.ARRIVED -> "도착" to null
             }
         }
-        return TeamRowModel(t.id, t.name, t.leaderName, t.marchSec, label, remaining, false, t.online, t.id == state.myTeamId)
+        return TeamRowModel(
+            t.id, t.name, t.leaderName, t.marchSec, label, remaining, false, t.online, t.id == state.myTeamId,
+            p.clickAtSec, p.departAtSec, p.arriveAtSec
+        )
     }
 
     private fun offlineWarnings(state: RallyRoomState): List<String> =

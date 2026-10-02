@@ -60,16 +60,23 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val hero = model.hero
         title.text = if (isAdmin) "집결 · 관리자" else "집결 · 팀장"
         heroLabel.text = hero.label
-        heroTime.text = hero.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: "--:--"
-        heroTime.visibility = if (hero.remainingSec == null) View.GONE else View.VISIBLE
-        heroTime.setTextColor(heroColor(hero.kind))
-        heroSub.text = hero.subLabel
+        // 대기 중에는 "전원 도착 예정" 총 소요 시간을 흐리게 보여준다
+        val previewTotal = hero.kind == HeroKind.IDLE && hero.remainingSec == null && model.arriveAtSec > 0.0
+        heroTime.text = when {
+            hero.remainingSec != null -> RallyScreenModel.formatMmSs(hero.remainingSec)
+            previewTotal -> RallyScreenModel.formatMmSs(model.arriveAtSec)
+            else -> ""
+        }
+        heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
+        heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else heroColor(hero.kind))
+        heroSub.text = if (previewTotal) hero.subLabel + " · 전원 ${RallyScreenModel.formatMmSs(model.arriveAtSec)} 후 도착" else hero.subLabel
+        renderPhases(hero.kind)
         heroProgress.progress = (hero.progress * 1000).toInt()
 
         warning.visibility = if (model.warnings.isEmpty()) View.GONE else View.VISIBLE
         warning.text = model.warnings.joinToString("\n") { "⚠ $it" }
 
-        renderRows(model.rows, isAdmin, model.editable)
+        renderRows(model.rows, isAdmin, model.editable, model.arriveAtSec, model.nowSec)
 
         adminBar.visibility = if (isAdmin) View.VISIBLE else View.GONE
         val canRegroup = model.hero.kind == HeroKind.ARRIVED || model.hero.kind == HeroKind.CANCELLED
@@ -80,7 +87,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         blocked.text = model.startBlockedReason ?: ""
     }
 
-    private fun renderRows(list: List<TeamRowModel>, isAdmin: Boolean, editable: Boolean) {
+    private fun renderRows(list: List<TeamRowModel>, isAdmin: Boolean, editable: Boolean, totalSec: Double, nowSec: Double?) {
         // 팀 수가 적고(≤ 몇 개) 1초 단위 갱신이라, 줄 수가 같으면 재사용한다.
         if (rows.childCount != list.size) {
             rows.removeAllViews()
@@ -97,6 +104,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             v.findViewById<TextView>(R.id.rowMarch).text = "행군 ${r.marchSec.toInt()}s"
             v.findViewById<TextView>(R.id.rowStatus).text = r.statusLabel
+            v.findViewById<RallyTimelineBar>(R.id.rowBar).set(totalSec, r.clickAtSec, r.departAtSec, nowSec, r.excluded)
             val minus = v.findViewById<View>(R.id.rowMinus)
             val plus = v.findViewById<View>(R.id.rowPlus)
             val canEdit = isAdmin && editable
@@ -108,6 +116,22 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             v.setOnClickListener { if (canEdit) callbacks.onToggleExclude(r.id) }
             v.setOnLongClickListener { callbacks.onSelectMine(r.id); true }
             v.findViewById<TextView>(R.id.rowRemain).text = r.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""
+        }
+    }
+
+    /** 대기 · 집결 · 행군 · 도착 중 지금 단계만 밝게 보여준다. */
+    private fun renderPhases(kind: HeroKind) {
+        val current = when (kind) {
+            HeroKind.GATHERING -> 1
+            HeroKind.MARCHING -> 2
+            HeroKind.ARRIVED -> 3
+            HeroKind.CANCELLED, HeroKind.EXCLUDED -> -1
+            else -> 0
+        }
+        listOf(R.id.phase1, R.id.phase2, R.id.phase3, R.id.phase4).forEachIndexed { i, id ->
+            val t = root.findViewById<TextView>(id)
+            t.setTextColor(Color.parseColor(if (i == current) "#FFFFFF" else "#64748B"))
+            t.setTypeface(null, if (i == current) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
         }
     }
 
