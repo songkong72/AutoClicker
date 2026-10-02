@@ -148,7 +148,8 @@ class RallyRoomSync(
         (correctionMs().toInt() + deltaMs).coerceIn(-2000, 2000)
     )
     override fun devicePositionText(): String =
-        positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인")
+        positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인") +
+        (MainThreadWatchdog.lastStall.let { if (it.isEmpty()) "" else "\n$it" })
     override fun onSavePosition() = savePosition()
 
     override fun onStart() = change(RallyRoomEdit::startOrRegroup)

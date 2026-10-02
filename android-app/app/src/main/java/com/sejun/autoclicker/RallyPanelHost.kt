@@ -151,7 +151,7 @@ class RallyPanelHost(
         }
         val model = RallyScreenModel.build(state)
         p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText())
-        p.render(model, stateSource.isAdmin, stateSource.current().runState == RallyRunState.RUNNING)
+        p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING)
         if (minimized) p.setMinimized(true, model.hero)
     }
 

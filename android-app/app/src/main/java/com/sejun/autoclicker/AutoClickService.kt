@@ -308,6 +308,7 @@ class AutoClickService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        MainThreadWatchdog.stop()
         rallyPanelHost?.hide()
         rallyRoomSync?.stop()
         stopAutoClick()
@@ -347,8 +348,13 @@ class AutoClickService : AccessibilityService() {
         updateNotification()
         onOverlaysVisibilityChanged?.invoke(true)
         
-        startCloudSyncPolling()
-        startAutoRallyWatcher()
+        // 새 집결 패널을 쓰는 동안에는 옛 방식의 클라우드 폴링/자동 예약 감시를 돌리지 않는다.
+        // (불필요한 백그라운드 작업과 옛 토스트/예약이 새 집결과 겹치지 않도록)
+        if (!useNewRallyPanel) {
+            startCloudSyncPolling()
+            startAutoRallyWatcher()
+        }
+        MainThreadWatchdog.start()
     }
 
     private fun startAutoRallyWatcher() {
