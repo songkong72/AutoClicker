@@ -70,6 +70,13 @@ object RallyClickTiming {
 object RallyRoomEdit {
     private fun locked(d: RallyRoomDoc) = d.run == "RUNNING"
 
+    /**
+     * 서버 문서가 RUNNING이어도 이 기기가 시작 신호를 직접 본 적이 없으면(예전 시도가 끝나지 않은 찌꺼기)
+     * 화면은 "대기"로 보인다. 수정도 같은 기준으로 허용해야 버튼이 눌리는데 아무 일도 안 일어나는 일이 없다.
+     */
+    fun unstick(doc: RallyRoomDoc, startSeen: Boolean): RallyRoomDoc =
+        if (doc.run == "RUNNING" && !startSeen) doc.copy(run = "IDLE") else doc
+
     private fun mapTeam(d: RallyRoomDoc, id: String, f: (RallyTeamDoc) -> RallyTeamDoc): RallyRoomDoc =
         if (locked(d)) d else d.copy(teams = d.teams.map { if (it.id == id) f(it) else it })
 

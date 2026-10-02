@@ -115,4 +115,23 @@ class RallyRoomEditTest {
         assertSame(r, RallyRoomEdit.setPrep(r, 99.0))
         assertSame(r, RallyRoomEdit.setWait(r, 600.0))
     }
+
+    // 서버 문서가 RUNNING인데 이 기기는 시작 신호를 받은 적이 없으면(예전 시도의 찌꺼기) 화면은 대기로 보이므로 수정도 되어야 한다
+    @Test fun staleRunningIsUnstuckWhenThisDeviceNeverSawTheStart() {
+        val stale = room("RUNNING", 3)
+        val eff = RallyRoomEdit.unstick(stale, startSeen = false)
+        assertEquals("IDLE", eff.run)
+        assertEquals(60.0, RallyRoomEdit.setMarch(eff, "t1", 60.0).teams[0].marchSec, 0.0)
+        assertEquals(600.0, RallyRoomEdit.setWait(eff, 600.0).waitSec, 0.0)
+    }
+
+    @Test fun realRunningStaysLockedWhenThisDeviceSawTheStart() {
+        val running = room("RUNNING", 3)
+        assertSame(running, RallyRoomEdit.unstick(running, startSeen = true))
+    }
+
+    @Test fun nonRunningIsUntouchedByUnstick() {
+        val idle = room("IDLE", 3)
+        assertSame(idle, RallyRoomEdit.unstick(idle, startSeen = false))
+    }
 }

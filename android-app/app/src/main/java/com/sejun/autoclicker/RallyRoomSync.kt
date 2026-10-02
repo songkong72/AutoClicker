@@ -158,7 +158,7 @@ class RallyRoomSync(
 
     /** 행군시간은 관리자(모든 팀) 또는 팀장(내 팀)이 고친다. 서버에는 그 팀의 필드 하나만 써서 다른 변경을 덮어쓰지 않는다. */
     override fun onSetMarch(teamId: String, sec: Double) {
-        val d = doc
+        val d = effectiveDoc()
         if (!RallyRoomEdit.canEditMarch(d, isAdmin, myTeamId, teamId)) return
         val idx = d.teams.indexOfFirst { it.id == teamId }
         if (idx < 0) return
@@ -197,14 +197,18 @@ class RallyRoomSync(
     /** 관리자만 방을 바꾼다. 내 기기는 즉시 반영하고 서버에는 비동기로 쓴다. */
     private fun change(op: (RallyRoomDoc) -> RallyRoomDoc) {
         if (!isAdmin) return
-        val next = op(doc)
-        if (next === doc) return
+        val cur = effectiveDoc()
+        val next = op(cur)
+        if (next === cur) return
         holdRemote()
         apply(next)
         Thread { try { put(next) } catch (_: Exception) { } }.start()
     }
 
     // ---- 내부 ----
+
+    /** 화면이 보여주는 상태와 같은 기준의 문서. 끝나지 않은 예전 RUNNING 찌꺼기 때문에 수정이 막히지 않게 한다. */
+    private fun effectiveDoc(): RallyRoomDoc = RallyRoomEdit.unstick(doc, startedAt != null)
 
     private fun apply(d: RallyRoomDoc, fromRemote: Boolean = false) {
         doc = d
