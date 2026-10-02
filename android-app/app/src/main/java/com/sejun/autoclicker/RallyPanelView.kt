@@ -73,6 +73,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.setWait10).setOnClickListener { callbacks.onSetWait(600.0) }
         root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-10) }
         root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(10) }
+        listOf(R.id.devMinus1s to -1000, R.id.devMinus100 to -100, R.id.devPlus100 to 100, R.id.devPlus1s to 1000).forEach { (id, ms) ->
+            root.findViewById<View>(id).setOnClickListener { callbacks.onCorrectionDelta(ms) }
+        }
         root.findViewById<TextView>(R.id.devSavePos).let { b ->
             val label = b.text
             val color = b.currentTextColor
