@@ -108,9 +108,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
         list.forEachIndexed { i, r ->
             val v = rows.getChildAt(i)
+            v.setBackgroundColor(if (r.isMine) Color.parseColor("#1F3B82F6") else Color.TRANSPARENT)
             v.findViewById<TextView>(R.id.rowDot).setTextColor(if (r.online) Color.parseColor("#22C55E") else Color.parseColor("#64748B"))
             v.findViewById<TextView>(R.id.rowName).apply {
-                text = listOf(r.name, r.leaderName).filter { it.isNotBlank() }.joinToString(" ")
+                val base = listOf(r.name, r.leaderName).filter { it.isNotBlank() }.joinToString(" ")
+                text = if (r.isMine) "$base ★나" else base
+                setTypeface(null, if (r.isMine) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
                 setTextColor(if (r.isMine) Color.parseColor("#60A5FA") else Color.parseColor("#F1F5F9"))
                 alpha = if (r.excluded) 0.45f else 1f
             }
