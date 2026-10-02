@@ -260,7 +260,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         if (min) {
             // 알약: 단계 색 점 + 짧은 단계명 한 줄, 아래에 큰 시간. 테두리도 단계 색으로 은은하게 칠한다.
             val c = heroColor(hero.kind)
-            title.text = "●  " + minLabel(hero)
+            title.text = "● " + minLabel(hero)
             title.setTextColor(c)
             title.textSize = 13f
             title.maxLines = 1

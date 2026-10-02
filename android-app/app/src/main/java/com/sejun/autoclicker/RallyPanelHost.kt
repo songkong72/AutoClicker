@@ -125,8 +125,8 @@ class RallyPanelHost(
     private fun panelWidthPx(compact: Boolean): Int {
         val dm = context.resources.displayMetrics
         val dp = dm.density
-        val want = if (compact) 168 * dp else 276 * dp
-        return Math.min(want, dm.widthPixels * (if (compact) 0.5f else 0.72f)).toInt()
+        val want = if (compact) 204 * dp else 276 * dp
+        return Math.min(want, dm.widthPixels * (if (compact) 0.62f else 0.72f)).toInt()
     }
 
     private fun applyWidth() {
