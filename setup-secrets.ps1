@@ -45,6 +45,6 @@ if ($change) {
     Set-Prop 'admin.password.hash' $hash
 }
 
-Set-Content -Path $lp -Value $lines -Encoding utf8
+[System.IO.File]::WriteAllLines($lp, [string[]]$lines, (New-Object System.Text.UTF8Encoding($false))) # no BOM: a BOM breaks sdk.dir
 Write-Host ""
 Write-Host "Saved to $lp . Now run build-apk.bat."

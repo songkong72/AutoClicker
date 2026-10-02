@@ -8,7 +8,7 @@ plugins {
 // 없으면 빈 값 → 초대코드가 발급/인증되지 않고 관리자 로그인이 막힌다(안전 쪽으로 실패).
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
+    if (f.exists()) load(java.io.StringReader(f.readText().removePrefix("\uFEFF")))
 }
 fun secret(prop: String, env: String): String =
     (localProps.getProperty(prop) ?: System.getenv(env) ?: "").trim()

@@ -37,7 +37,7 @@ $lines += "signing.store.file=$jksFwd"
 $lines += "signing.store.password=$pw"
 $lines += "signing.key.alias=autoclicker"
 $lines += "signing.key.password=$pw"
-Set-Content -Path $lp -Value $lines -Encoding utf8
+[System.IO.File]::WriteAllLines($lp, [string[]]$lines, (New-Object System.Text.UTF8Encoding($false))) # no BOM: a BOM breaks sdk.dir
 
 Write-Host ""
 Write-Host "New key created: $jks"
