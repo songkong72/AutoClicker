@@ -103,6 +103,7 @@ class AutoClickService : AccessibilityService() {
     /** 저장된 타겟 위치를 지금 1회 탭한다 (상대시간 집결의 예약 시각에 호출됨). */
     fun performRallyClickNow() {
         val saved = PreferencesHelper.getSavedRallyTargetPosition(this) ?: run {
+            rallyRoomSync?.clickResult = "⚠️ 클릭 안 함: 저장된 위치 없음"
             vibrate(80); showToast("⚠️ 저장된 타겟 위치가 없어 클릭하지 못했어요"); return
         }
         val target = targetView
@@ -114,13 +115,25 @@ class AutoClickService : AccessibilityService() {
         val h = if (target != null && target.height > 0) target.height else dpToPx(38)
         val cx = saved.first + offX + w / 2f
         val cy = saved.second + offY + h / 2f
+        val dm = resources.displayMetrics
+        val where = "탭 좌표 (${cx.toInt()}, ${cy.toInt()}) · 화면 ${dm.widthPixels}x${dm.heightPixels} · 과녁 ${if (target == null) "없음" else "있음"}"
+        rallyRoomSync?.clickResult = "탭 전송 중 · $where"
         // 과녁 오버레이가 터치를 가로채지 않도록 먼저 투과시킨 뒤 탭한다 (기존 예약 클릭과 동일한 방식).
         setTargetTouchable(false)
         mainHandler.postDelayed({
             val path = Path().apply { moveTo(cx, cy) }
             val stroke = GestureDescription.StrokeDescription(path, 0L, 35L)
-            val ok = dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
+            val callback = object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) {
+                    rallyRoomSync?.clickResult = "✓ 탭 완료 · $where"
+                }
+                override fun onCancelled(gestureDescription: GestureDescription?) {
+                    rallyRoomSync?.clickResult = "✗ 탭 취소됨 · $where"
+                }
+            }
+            val ok = dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), callback, null)
             Log.d(TAG, "rally click at ($cx, $cy) dispatched=$ok")
+            if (!ok) rallyRoomSync?.clickResult = "✗ 탭 전송 거부됨 · $where"
             showToast(if (ok) "🎯 집결 클릭! (${cx.toInt()}, ${cy.toInt()})" else "⚠️ 클릭 전송 실패")
             mainHandler.postDelayed({ setTargetTouchable(true) }, 500L)
         }, 40L)

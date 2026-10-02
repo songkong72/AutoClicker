@@ -47,6 +47,8 @@ class RallyRoomSync(
     @Volatile private var streamConn: HttpURLConnection? = null
     private var pendingDoc: RallyRoomDoc? = null
     private var lastDiag = ""
+    /** 마지막 탭의 좌표와 제스처 결과. 토스트가 막히는 기기에서도 패널에서 확인할 수 있게 한다. */
+    @Volatile var clickResult = ""
 
     /** 내가 방금 바꾼 값이 서버에 반영되기 전에 도착한 옛 응답이 화면을 되돌리지 않도록, 변경 직후 잠시 서버 응답을 무시한다. */
     @Volatile private var holdRemoteUntil = 0L
@@ -166,7 +168,7 @@ class RallyRoomSync(
 
     override fun devicePositionText(): String =
         myAdminAdjustMs().let { a -> if (a == 0) "" else "관리자 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)\n" } +
-        positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인") +
+        positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + (if (clickResult.isNotEmpty()) "\n$clickResult" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인") +
         (MainThreadWatchdog.lastStall.let { if (it.isEmpty()) "" else "\n$it" })
     override fun onSavePosition() = savePosition()
 
@@ -280,6 +282,7 @@ class RallyRoomSync(
             val wall = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
             lastDiag = "마지막 집결: 신호 수신 ${"%.3f".format(actual)}초 뒤 클릭(목표 ${"%.2f".format(mine.clickAtSec)}초 ${totalMs}ms 보정) · $wall"
             clickWallMs = System.currentTimeMillis()
+            clickResult = ""
             onClickDue()
         }
         clickTask = task
