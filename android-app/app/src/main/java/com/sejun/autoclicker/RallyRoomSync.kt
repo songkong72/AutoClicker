@@ -39,6 +39,10 @@ class RallyRoomSync(
     private var clickTask: Runnable? = null
     @Volatile private var polling = false
 
+    /** 내가 방금 바꾼 값이 서버에 반영되기 전에 도착한 옛 응답이 화면을 되돌리지 않도록, 변경 직후 잠시 서버 응답을 무시한다. */
+    @Volatile private var holdRemoteUntil = 0L
+    private fun holdRemote() { holdRemoteUntil = SystemClock.elapsedRealtime() + 2500L }
+
     private val url get() = "$dbUrl/rallyRooms/$room.json"
 
     fun start() {
@@ -51,7 +55,7 @@ class RallyRoomSync(
                     online = true
                     val d = RallyRoomCodec.decode(remote)
                     if (remote == null && isAdmin) put(seedRoom()) // 빈 방이면 기본 팀으로 시작
-                    else main.post { apply(d) }
+                    else main.post { if (SystemClock.elapsedRealtime() >= holdRemoteUntil) apply(d) }
                 } catch (e: Exception) {
                     online = false
                 }
@@ -99,6 +103,7 @@ class RallyRoomSync(
         if (idx < 0) return
         val next = RallyRoomEdit.setMarch(d, teamId, sec)
         if (next === d) return
+        holdRemote()
         apply(next)
         val value = next.teams[idx].marchSec
         Thread { try { putField("teams/$idx/marchSec", value) } catch (_: Exception) { } }.start()
@@ -129,6 +134,7 @@ class RallyRoomSync(
         if (!isAdmin) return
         val next = op(doc)
         if (next === doc) return
+        holdRemote()
         apply(next)
         Thread { try { put(next) } catch (_: Exception) { } }.start()
     }
