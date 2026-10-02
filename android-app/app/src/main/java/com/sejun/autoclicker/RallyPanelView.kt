@@ -48,6 +48,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
+        root.findViewById<TextView>(R.id.devToggle).setOnClickListener { t ->
+            val sec = root.findViewById<View>(R.id.devSection)
+            val open = sec.visibility != View.VISIBLE
+            sec.visibility = if (open) View.VISIBLE else View.GONE
+            (t as TextView).text = if (open) "내 기기 ▴" else "내 기기 ▾"
+        }
         root.findViewById<View>(R.id.rallyAddTeam).setOnClickListener { callbacks.onAddTeam() }
         root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-10) }
         root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(10) }
@@ -163,6 +169,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         heroSub.visibility = hide
         heroProgress.visibility = hide
         rows.visibility = hide
+        root.findViewById<View>(R.id.phaseRow).visibility = hide
+        root.findViewById<View>(R.id.devToggle).visibility = hide
+        if (min) {
+            root.findViewById<View>(R.id.devSection).visibility = View.GONE
+            root.findViewById<View>(R.id.rallyAddTeam).visibility = View.GONE
+        }
         if (min) {
             adminBar.visibility = View.GONE
             warning.visibility = View.GONE

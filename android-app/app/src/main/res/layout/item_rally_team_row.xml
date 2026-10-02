@@ -3,8 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp">
+    android:paddingTop="3dp"
+    android:paddingBottom="3dp">
 
   <LinearLayout
     android:layout_width="match_parent"
@@ -28,12 +28,12 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="#F1F5F9"
-        android:textSize="14sp" />
+        android:textSize="13sp" />
 
     <TextView
         android:id="@+id/rowMinus"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:layout_marginStart="4dp"
         android:gravity="center"
         android:text="−"
@@ -51,8 +51,8 @@
 
     <TextView
         android:id="@+id/rowPlus"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:gravity="center"
         android:text="+"
         android:textColor="#93C5FD"
@@ -61,7 +61,7 @@
 
     <TextView
         android:id="@+id/rowStatus"
-        android:layout_width="64dp"
+        android:layout_width="40dp"
         android:layout_height="wrap_content"
         android:gravity="end"
         android:textColor="#CBD5E1"
@@ -79,11 +79,11 @@
 
     <TextView
         android:id="@+id/rowRemain"
-        android:layout_width="48dp"
+        android:layout_width="40dp"
         android:layout_height="wrap_content"
         android:gravity="end"
         android:textColor="#FFFFFF"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textStyle="bold" />
   </LinearLayout>
 
@@ -91,5 +91,5 @@
     android:id="@+id/rowBar"
     android:layout_width="match_parent"
     android:layout_height="6dp"
-    android:layout_marginTop="6dp" />
+    android:layout_marginTop="4dp" />
 </LinearLayout>
