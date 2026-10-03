@@ -33,6 +33,8 @@ class RallyRoomSync(
     private val onClickDue: () -> Unit,
     /** 클릭 약 1.5초 전에 true, 예약이 취소되면 false로 호출된다. 과녁 오버레이를 미리 터치 통과로 바꿔 두어, 느린 기기에서 탭이 오버레이에 걸리지 않게 한다. */
     private val onClickArm: (Boolean) -> Unit = {},
+    /** 시작 신호를 처음 받은 순간. 패널이 닫혀 있으면 다시 띄워 카운트다운이 보이게 한다. */
+    private val onRallyStart: () -> Unit = {},
     private val onCancel: () -> Unit
 ) : RallyPanelHost.StateSource {
 
@@ -311,6 +313,7 @@ class RallyRoomSync(
             val plan = RallySchedule.plan(d.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) }, d.prepSec, d.waitSec)
             arriveWallMs = RallyArrivalNote.arriveAtMs(System.currentTimeMillis(), plan.arriveAtSec)
             scheduleMyClick(d)
+            onRallyStart()
         }
         if (d.run == "CANCELLED" && lastRun != "CANCELLED") {
             cancelClick()

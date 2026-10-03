@@ -111,8 +111,10 @@ class AutoClickService : AccessibilityService() {
         val target = targetView
         val loc = IntArray(2)
         target?.getLocationOnScreen(loc)
-        val offX = loc[0] - (targetParams?.x ?: 0)
-        val offY = loc[1] - (targetParams?.y ?: 0)
+        // 과녁이 화면에 없으면(오버레이를 숨긴 경우) 창 좌표와 화면 좌표의 차이를 알 수 없으므로 0으로 본다.
+        // loc이 [0,0]인 채로 params.x를 빼면 좌표가 화면 왼쪽 위 구석으로 틀어진다.
+        val offX = if (target != null) loc[0] - (targetParams?.x ?: 0) else 0
+        val offY = if (target != null) loc[1] - (targetParams?.y ?: 0) else 0
         val w = if (target != null && target.width > 0) target.width else dpToPx(38)
         val h = if (target != null && target.height > 0) target.height else dpToPx(38)
         val cx = saved.first + offX + w / 2f
@@ -211,6 +213,7 @@ class AutoClickService : AccessibilityService() {
                 },
                 onClickDue = { performRallyClickNow() },
                 onClickArm = { on -> rallyClickArmed = on; setTargetTouchable(!on) },
+                onRallyStart = { rallyPanelHost?.let { if (!it.isShowing) it.show(askName = false) } },
                 onCancel = { }
             ).also { it.start(); rallyRoomSync = it }
             RallyPanelHost(this, wm, source, onSecretUnlock = { unlockBearMode() }).also { rallyPanelHost = it }
