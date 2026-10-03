@@ -186,7 +186,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         list.forEachIndexed { i, r ->
             val v = rows.getChildAt(i)
             v.setBackgroundColor(if (r.isMine) Color.parseColor("#1F3B82F6") else Color.TRANSPARENT)
-            v.findViewById<TextView>(R.id.rowDot).setTextColor(if (r.online) Color.parseColor("#22C55E") else Color.parseColor("#64748B"))
+            v.findViewById<TextView>(R.id.rowDot).apply {
+                setTextColor(if (r.online) Color.parseColor("#22C55E") else Color.parseColor("#64748B"))
+                // 관리자는 ● 를 눌러 이 군단을 제외하거나 다시 포함한다(눌러도 되는 크기로 여백을 준다)
+                val pad = (10 * resources.displayMetrics.density).toInt()
+                setPadding(pad / 2, pad, pad, pad)
+                if (isAdmin && editable) setOnClickListener { callbacks.onToggleExclude(r.id) }
+                else { setOnClickListener(null); isClickable = false }
+            }
             v.findViewById<TextView>(R.id.rowName).apply {
                 // 관리자는 어느 군단이 아직 비었는지 바로 보고, 이름을 눌러 사람을 배정한다.
                 val who = if (isAdmin && r.leaderName.isBlank()) "미배정" else r.leaderName
@@ -205,7 +212,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 // 관리자가 더해 준 보정이 있으면 상태 아래 줄에 작게 보여 준다(줄이 늘어나도 폭은 그대로).
                 text = if (r.adminAdjustMs == 0) r.statusLabel else r.statusLabel + "\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
                 // 관리자는 상태 글자를 눌러 그 군단의 보정을 정한다(진행 중에는 잠김)
-                setOnClickListener { if (isAdmin && editable) callbacks.onEditAdminAdjust(r.id, r.name, r.adminAdjustMs) }
+                // 제외된 군단의 "제외" 글자는 다시 포함시키는 버튼, 그 밖에는 보정 입력
+                setOnClickListener {
+                    if (isAdmin && editable) {
+                        if (r.excluded) callbacks.onToggleExclude(r.id) else callbacks.onEditAdminAdjust(r.id, r.name, r.adminAdjustMs)
+                    }
+                }
                 // 눌러서 보정을 정할 수 있다는 표시: 관리자이고 수정 가능할 때만 밑줄
                 paintFlags = if (isAdmin && editable) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
                 else paintFlags and android.graphics.Paint.UNDERLINE_TEXT_FLAG.inv()
@@ -224,7 +236,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             v.findViewById<TextView>(R.id.rowMarch).setOnClickListener { if (canMarch) callbacks.onEditMarch(r.id, r.marchSec) }
             minus.setOnClickListener { callbacks.onMarchDelta(r.id, -1.0) }
             plus.setOnClickListener { callbacks.onMarchDelta(r.id, 1.0) }
-            v.setOnClickListener { if (canEdit) callbacks.onToggleExclude(r.id) }
+            v.setOnClickListener(null); v.isClickable = false // 줄 빈 곳을 눌러도 아무 일도 없게 한다(실수로 제외되던 문제)
             v.findViewById<TextView>(R.id.rowRemain).apply {
                 text = r.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""
                 visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
