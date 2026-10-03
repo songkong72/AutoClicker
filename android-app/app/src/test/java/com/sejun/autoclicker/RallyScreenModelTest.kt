@@ -175,11 +175,18 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `내 팀이 방 목록에 없으면 내 팀 선택을 안내한다`() {
-        val m = build(room(teams = listOf(t2, t1), mine = "9군"))
+    fun `내 군단이 배정되지 않았으면 관리자의 배정을 기다리라고 안내한다`() {
+        val m = build(room(teams = listOf(t2, t1), mine = ""))
         assertEquals(HeroKind.IDLE, m.hero.kind)
-        assertEquals("내 팀을 선택하세요", m.hero.label)
-        assertEquals("팀 줄을 길게 누르면 내 팀으로 지정돼요", m.hero.subLabel)
+        assertEquals("아직 군단이 배정되지 않았어요", m.hero.label)
+        assertEquals("관리자가 군단을 배정하면 시작할 수 있어요", m.hero.subLabel)
+    }
+
+    @Test
+    fun `캐릭터명을 등록하지 않았으면 경고하고 등록하면 사라진다`() {
+        val missing = build(room().copy(characterNameSet = false))
+        assertTrue(missing.warnings.any { it.contains("캐릭터명") })
+        assertFalse(build(room()).warnings.any { it.contains("캐릭터명") })
     }
 
     @Test

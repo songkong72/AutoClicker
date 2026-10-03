@@ -15,6 +15,7 @@
             "marchSec": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600" },
             "excluded": { ".validate": "newData.isBoolean()" },
             "adminAdjustMs": { ".validate": "newData.isNumber() && newData.val() >= -5000 && newData.val() <= 5000" },
+            "leaderId": { ".validate": "newData.isString() && newData.val().length <= 40" },
             "$other": { ".validate": false }
           }
         },
@@ -23,6 +24,17 @@
         "run": { ".validate": "newData.isString() && newData.val().matches(/^[A-Z_]{1,16}$/)" },
         "startSeq": { ".validate": "newData.isNumber()" },
         "$other": { ".validate": false }
+      }
+    },
+    "rallyMembers": {
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null && $room.length >= 1 && $room.length <= 40",
+        "$id": {
+          ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,40}$/)",
+          "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
+          "$other": { ".validate": false }
+        }
       }
     }
   }

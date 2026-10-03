@@ -10,7 +10,9 @@ data class RallyTeamDoc(
     val leaderName: String = "",
     val marchSec: Double,
     val excluded: Boolean = false,
-    val adminAdjustMs: Int = 0
+    val adminAdjustMs: Int = 0,
+    /** 이 군단에 배정된 사람의 기기 ID. 비어 있으면 아직 배정 전. [leaderName]은 그 사람의 캐릭터명이다. */
+    val leaderId: String = ""
 )
 
 /**
@@ -32,7 +34,7 @@ object RallyRoomCodec {
             mapOf(
                 "id" to it.id, "name" to it.name, "leaderName" to it.leaderName,
                 "marchSec" to it.marchSec, "excluded" to it.excluded,
-                "adminAdjustMs" to it.adminAdjustMs
+                "adminAdjustMs" to it.adminAdjustMs, "leaderId" to it.leaderId
             )
         },
         "prepSec" to doc.prepSec,
@@ -53,7 +55,8 @@ object RallyRoomCodec {
                 leaderName = t["leaderName"] as? String ?: "",
                 marchSec = (t["marchSec"] as? Number)?.toDouble() ?: 0.0,
                 excluded = t["excluded"] as? Boolean ?: false,
-                adminAdjustMs = (t["adminAdjustMs"] as? Number)?.toInt() ?: 0
+                adminAdjustMs = (t["adminAdjustMs"] as? Number)?.toInt() ?: 0,
+                leaderId = t["leaderId"] as? String ?: ""
             )
         }
         return RallyRoomDoc(
@@ -111,6 +114,30 @@ object RallyRoomEdit {
 
     fun setWait(doc: RallyRoomDoc, waitSec: Double): RallyRoomDoc =
         if (locked(doc) || waitSec !in WAIT_PRESETS_SEC) doc else doc.copy(waitSec = waitSec)
+
+    /**
+     * 관리자가 사람(기기 ID)을 군단에 배정한다. 한 사람은 한 군단에만 있을 수 있어서, 다른 군단에 있던 같은 사람은 빠진다.
+     * 진행 중이거나 없는 군단, 빈 ID는 문서를 그대로 돌려준다.
+     */
+    fun assignLeader(doc: RallyRoomDoc, teamId: String, memberId: String, characterName: String): RallyRoomDoc {
+        val id = memberId.trim()
+        if (locked(doc) || id.isEmpty() || doc.teams.none { it.id == teamId }) return doc
+        val name = RallyRoster.cleanName(characterName)
+        return doc.copy(teams = doc.teams.map {
+            when {
+                it.id == teamId -> it.copy(leaderId = id, leaderName = name)
+                it.leaderId == id -> it.copy(leaderId = "", leaderName = "")
+                else -> it
+            }
+        })
+    }
+
+    fun unassignLeader(doc: RallyRoomDoc, teamId: String): RallyRoomDoc =
+        mapTeam(doc, teamId) { it.copy(leaderId = "", leaderName = "") }
+
+    /** 이 기기(사람)에게 배정된 군단 ID. 배정이 없으면 빈 문자열. */
+    fun teamIdOf(doc: RallyRoomDoc, memberId: String): String =
+        if (memberId.isBlank()) "" else doc.teams.firstOrNull { it.leaderId == memberId }?.id ?: ""
 
     fun setExcluded(doc: RallyRoomDoc, teamId: String, excluded: Boolean): RallyRoomDoc =
         mapTeam(doc, teamId) { it.copy(excluded = excluded) }

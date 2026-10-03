@@ -195,8 +195,9 @@ class AutoClickService : AccessibilityService() {
                 auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
                     load = { getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getString("fb_refresh", null) },
                     save = { t -> getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("fb_refresh", t).apply() }),
-                myTeamIdInit = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getString("rally_my_team", "t3") ?: "t3",
-                saveMyTeam = { id -> getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("rally_my_team", id).apply() },
+                memberId = PreferencesHelper.getRallyMemberId(this),
+                getCharacterName = { PreferencesHelper.getRallyCharacterName(this) },
+                saveCharacterName = { name -> PreferencesHelper.setRallyCharacterName(this, name) },
                 correctionMs = { PreferencesHelper.getClickOffsetMs(this).toLong() },
                 setCorrectionMs = { ms -> PreferencesHelper.setClickOffsetMs(this, ms) },
                 positionText = {

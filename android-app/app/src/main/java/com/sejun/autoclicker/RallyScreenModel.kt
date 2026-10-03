@@ -12,7 +12,9 @@ data class RallyTeamState(
     val online: Boolean = true,
     val excluded: Boolean = false,
     /** 관리자가 이 군단에 더해 준 클릭 보정(ms) */
-    val adminAdjustMs: Int = 0
+    val adminAdjustMs: Int = 0,
+    /** 이 군단에 배정된 사람의 기기 ID. 배정 전이면 빈 문자열. */
+    val leaderId: String = ""
 )
 
 data class RallyRoomState(
@@ -24,7 +26,9 @@ data class RallyRoomState(
     /** 시작 신호 이후 경과 초. RUNNING일 때만 의미가 있다. */
     val elapsedSec: Double = 0.0,
     /** 이 기기에 클릭 위치가 저장되어 있는지 */
-    val positionSaved: Boolean = true
+    val positionSaved: Boolean = true,
+    /** 이 기기의 캐릭터명이 등록되어 있는지(관리자는 등록하지 않아도 되므로 true로 넘긴다) */
+    val characterNameSet: Boolean = true
 )
 
 data class HeroModel(
@@ -88,7 +92,7 @@ object RallyScreenModel {
             rows = rows(state, plan, run),
             maxMarchSec = plan.maxMarchSec,
             editable = editable,
-            warnings = positionWarnings(state) + (if (editable) offlineWarnings(state) else emptyList()),
+            warnings = nameWarnings(state) + positionWarnings(state) + (if (editable) offlineWarnings(state) else emptyList()),
             startBlockedReason = if (plan.teams.isEmpty()) "참여 팀이 없어요" else null,
             arriveAtSec = plan.arriveAtSec,
             nowSec = if (state.runState == RallyRunState.RUNNING) state.elapsedSec else null,
@@ -105,7 +109,7 @@ object RallyScreenModel {
         state.teams.isEmpty() ->
             HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
         state.teams.none { it.id == state.myTeamId } ->
-            HeroModel(HeroKind.IDLE, "내 팀을 선택하세요", null, "팀 줄을 길게 누르면 내 팀으로 지정돼요", 0.0)
+            HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "관리자가 군단을 배정하면 시작할 수 있어요", 0.0)
         my == null ->
             HeroModel(HeroKind.EXCLUDED, "이번 작전에서 제외됐어요", null, "관리자가 다시 포함하면 참여할 수 있어요", 0.0)
         run == RallyRunState.IDLE ->
@@ -163,6 +167,10 @@ object RallyScreenModel {
             p.clickAtSec, p.departAtSec, p.arriveAtSec, t.adminAdjustMs
         )
     }
+
+    /** 캐릭터명이 없으면 관리자가 명단에서 나를 찾아 배정할 수 없다. */
+    private fun nameWarnings(state: RallyRoomState): List<String> =
+        if (state.characterNameSet) emptyList() else listOf("캐릭터명을 먼저 등록하세요 (내 기기 → 캐릭터명)")
 
     /** 내가 이번 작전에 참여하는데 클릭 위치가 없으면 클릭이 나가지 않는다. 진행 중에도 계속 알린다. */
     private fun positionWarnings(state: RallyRoomState): List<String> {

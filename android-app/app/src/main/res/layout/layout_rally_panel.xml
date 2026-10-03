@@ -207,11 +207,21 @@
         android:orientation="vertical"
         android:visibility="gone">
 
+    <!-- 내 캐릭터명: 관리자가 군단을 배정할 때 명단에 이 이름으로 보인다 -->
+    <TextView
+        android:id="@+id/devCharName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:paddingVertical="6dp"
+        android:textColor="#E2E8F0"
+        android:textSize="13sp" />
+
     <!-- 내 기기: 클릭 위치와 ms 보정 -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:text="클릭 보정 (숫자를 눌러 입력)"
         android:textColor="#94A3B8"
         android:textSize="12sp" />

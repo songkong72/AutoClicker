@@ -189,6 +189,26 @@ object PreferencesHelper {
             .apply()
     }
 
+    private const val KEY_RALLY_MEMBER_ID = "key_rally_member_id"
+    private const val KEY_RALLY_CHARACTER_NAME = "key_rally_character_name"
+
+    /** 이 기기의 집결 명단 ID. 처음 요청할 때 한 번 만들어 계속 쓴다(앱을 지우고 다시 설치하면 새로 만들어진다). */
+    fun getRallyMemberId(context: Context): String {
+        val prefs = getPrefs(context)
+        val cur = prefs.getString(KEY_RALLY_MEMBER_ID, null)
+        if (cur != null && RallyRoster.isValidMemberId(cur)) return cur
+        val id = RallyRoster.newMemberId()
+        prefs.edit().putString(KEY_RALLY_MEMBER_ID, id).apply()
+        return id
+    }
+
+    /** 게임 캐릭터명. 관리자가 군단을 배정할 때 명단에 이 이름으로 보인다. */
+    fun getRallyCharacterName(context: Context): String = getPrefs(context).getString(KEY_RALLY_CHARACTER_NAME, "") ?: ""
+
+    fun setRallyCharacterName(context: Context, name: String) {
+        getPrefs(context).edit().putString(KEY_RALLY_CHARACTER_NAME, name).apply()
+    }
+
     private const val KEY_IS_ADMIN_MODE = "key_is_admin_mode"
 
     /** 관리자 비밀번호로 로그인한 기기인지. 집결 화면에서 관리자/팀장 권한을 가른다. */

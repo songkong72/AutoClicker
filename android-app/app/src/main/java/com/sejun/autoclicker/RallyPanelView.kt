@@ -27,7 +27,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onTitleTap()
         fun onMarchDelta(teamId: String, deltaSec: Double)
         fun onToggleExclude(teamId: String)
-        fun onSelectMine(teamId: String)
+        /** 관리자가 군단 이름을 눌렀을 때: 그 군단을 맡을 사람을 고른다. */
+        fun onAssignLeader(teamId: String, teamName: String)
+        /** "내 기기"의 캐릭터명 줄을 눌렀을 때 */
+        fun onEditCharacterName(current: String)
         fun onCorrectionDelta(deltaMs: Int)
         fun onEditCorrection(currentMs: Int)
         fun onEditMarch(teamId: String, currentSec: Double)
@@ -44,6 +47,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     private var prepShown = 0.0
     private var correctionShownMs = 0
+    private var charNameShown = ""
     private val title = root.findViewById<TextView>(R.id.rallyTitle)
     private val heroLabel = root.findViewById<TextView>(R.id.rallyHeroLabel)
     private val heroTime = root.findViewById<TextView>(R.id.rallyHeroTime)
@@ -76,6 +80,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.setWait3).setOnClickListener { callbacks.onSetWait(180.0) }
         root.findViewById<View>(R.id.setWait5).setOnClickListener { callbacks.onSetWait(300.0) }
         root.findViewById<View>(R.id.setWait10).setOnClickListener { callbacks.onSetWait(600.0) }
+        root.findViewById<View>(R.id.devCharName).setOnClickListener { callbacks.onEditCharacterName(charNameShown) }
         root.findViewById<View>(R.id.devMs).setOnClickListener { callbacks.onEditCorrection(correctionShownMs) } // 눌러서 초 단위로 직접 입력
         root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-100) }
         root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(100) }
@@ -114,8 +119,13 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
     }
 
-    /** "내 기기" 줄: 현재 ms 보정과 저장된 클릭 위치 표시. */
-    fun renderDevice(correctionMs: Int, posText: String) {
+    /** "내 기기" 줄: 캐릭터명, 현재 ms 보정, 저장된 클릭 위치 표시. */
+    fun renderDevice(correctionMs: Int, posText: String, characterName: String) {
+        charNameShown = characterName
+        root.findViewById<TextView>(R.id.devCharName).apply {
+            text = if (characterName.isBlank()) "캐릭터명 등록하기 (눌러서 입력)" else "캐릭터명  $characterName  (눌러서 변경)"
+            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+        }
         correctionShownMs = correctionMs
         root.findViewById<TextView>(R.id.devMs).text = RallyInputParse.formatCorrection(correctionMs)
         root.findViewById<TextView>(R.id.devPosStatus).text = posText
@@ -178,8 +188,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             v.setBackgroundColor(if (r.isMine) Color.parseColor("#1F3B82F6") else Color.TRANSPARENT)
             v.findViewById<TextView>(R.id.rowDot).setTextColor(if (r.online) Color.parseColor("#22C55E") else Color.parseColor("#64748B"))
             v.findViewById<TextView>(R.id.rowName).apply {
-                val base = listOf(r.name, r.leaderName).filter { it.isNotBlank() }.joinToString(" ")
+                // 관리자는 어느 군단이 아직 비었는지 바로 보고, 이름을 눌러 사람을 배정한다.
+                val who = if (isAdmin && r.leaderName.isBlank()) "미배정" else r.leaderName
+                val base = listOf(r.name, who).filter { it.isNotBlank() }.joinToString(" ")
                 text = if (r.isMine) "$base ★나" else base
+                setOnClickListener { if (isAdmin && editable) callbacks.onAssignLeader(r.id, r.name) }
+                // 눌러서 배정할 수 있다는 표시: 관리자이고 수정 가능할 때만 밑줄
+                paintFlags = if (isAdmin && editable) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                else paintFlags and android.graphics.Paint.UNDERLINE_TEXT_FLAG.inv()
                 setTypeface(null, if (r.isMine) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
                 setTextColor(if (r.isMine) Color.parseColor("#60A5FA") else Color.parseColor("#F1F5F9"))
                 alpha = if (r.excluded) 0.45f else 1f
@@ -209,7 +225,6 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             minus.setOnClickListener { callbacks.onMarchDelta(r.id, -1.0) }
             plus.setOnClickListener { callbacks.onMarchDelta(r.id, 1.0) }
             v.setOnClickListener { if (canEdit) callbacks.onToggleExclude(r.id) }
-            v.setOnLongClickListener { callbacks.onSelectMine(r.id); true }
             v.findViewById<TextView>(R.id.rowRemain).apply {
                 text = r.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""
                 visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
@@ -256,7 +271,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         HeroKind.ARRIVED -> "전원 도착"
         HeroKind.CANCELLED -> "작전 취소"
         HeroKind.EXCLUDED -> "제외됨"
-        HeroKind.IDLE -> if (h.label.contains("내 팀")) "내 팀 선택" else if (h.label.contains("구성")) "팀 구성 중" else "시작 대기"
+        HeroKind.IDLE -> if (h.label.contains("배정")) "군단 배정 대기" else if (h.label.contains("구성")) "팀 구성 중" else "시작 대기"
     }
 
     /** 최소화: 카운트다운 한 줄만 남기고 나머지는 숨긴다. */

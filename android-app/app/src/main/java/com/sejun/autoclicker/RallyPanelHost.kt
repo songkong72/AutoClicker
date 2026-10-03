@@ -32,7 +32,13 @@ class RallyPanelHost(
         fun onStop()
         fun onMarchDelta(teamId: String, deltaSec: Double) {}
         fun onToggleExclude(teamId: String) {}
-        fun onSelectMine(teamId: String) {}
+        /** 이 기기의 캐릭터명. 등록 전이면 빈 문자열. */
+        fun characterName(): String = ""
+        fun onSetCharacterName(name: String) {}
+        /** 관리자가 고를 수 있는 방 명단. 가져오지 못하면 null. */
+        fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) { onLoaded(emptyList()) }
+        fun onAssignLeader(teamId: String, memberId: String, characterName: String) {}
+        fun onUnassignLeader(teamId: String) {}
         fun onSetMarch(teamId: String, sec: Double) {}
         fun onAddTeam() {}
         fun onSetPrep(sec: Double) {}
@@ -58,6 +64,7 @@ class RallyPanelHost(
     private var params: WindowManager.LayoutParams? = null
     private var minimized = false
     private val input = RallyInputPopup(context, wm)
+    private val pick = RallyPickPopup(context, wm)
 
     val isShowing: Boolean get() = panel != null
 
@@ -70,7 +77,7 @@ class RallyPanelHost(
 
     @SuppressLint("ClickableViewAccessibility")
     /** 설정의 오버레이 투명도를 패널에 반영한다. */
-    fun applyAlpha(a: Float) { panel?.root?.alpha = a; input.applyAlpha(a) }
+    fun applyAlpha(a: Float) { panel?.root?.alpha = a; input.applyAlpha(a); pick.applyAlpha(a) }
 
     fun show() {
         if (panel != null) return
@@ -82,7 +89,8 @@ class RallyPanelHost(
             override fun onTitleTap() { if (secretTap.tap(System.currentTimeMillis())) onSecretUnlock() } // 제목 5번 연타: 숨은 기능
             override fun onMarchDelta(teamId: String, deltaSec: Double) { stateSource.onMarchDelta(teamId, deltaSec); refresh() }
             override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
-            override fun onSelectMine(teamId: String) { stateSource.onSelectMine(teamId); refresh() }
+            override fun onAssignLeader(teamId: String, teamName: String) { showAssignPicker(teamId, teamName) }
+            override fun onEditCharacterName(current: String) { promptCharacterName(current) }
             override fun onEditMarch(teamId: String, currentSec: Double) {
                 val shown = if (currentSec % 1.0 == 0.0) currentSec.toInt().toString() else currentSec.toString()
                 input.show("행군시간(초)", shown) { text ->
@@ -132,10 +140,47 @@ class RallyPanelHost(
         params = lp
         refresh()
         handler.post(tick)
+        // 팀장은 캐릭터명을 등록해야 관리자가 명단에서 찾아 군단을 배정할 수 있다. 처음 열 때 바로 묻는다.
+        if (!stateSource.isAdmin && stateSource.characterName().isBlank()) promptCharacterName("")
+    }
+
+    private fun promptCharacterName(current: String) {
+        input.show("게임 캐릭터명 · 관리자가 이 이름을 보고 군단을 배정해요", current, text = true,
+            errorText = "캐릭터명을 입력해 주세요 (최대 ${RallyRoster.MAX_NAME}자)") { text ->
+            val name = RallyRoster.cleanName(text)
+            if (name.isEmpty()) return@show false
+            stateSource.onSetCharacterName(name); refresh(); true
+        }
+    }
+
+    /** 관리자: 방에 등록한 사람 목록에서 이 군단을 맡을 사람을 고른다. 이미 다른 군단에 있는 사람을 고르면 그쪽에서 빠진다. */
+    private fun showAssignPicker(teamId: String, teamName: String) {
+        stateSource.loadRoster { roster ->
+            if (panel == null) return@loadRoster
+            if (roster == null) {
+                android.widget.Toast.makeText(context, "명단을 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요", android.widget.Toast.LENGTH_SHORT).show()
+                return@loadRoster
+            }
+            val teams = stateSource.current().teams
+            val assignedTo = teams.filter { it.leaderId.isNotEmpty() }.associate { it.leaderId to it.name }
+            val items = roster.map { m ->
+                RallyPickPopup.Item(m.name + (assignedTo[m.id]?.let { "  ·  $it" } ?: "")) {
+                    stateSource.onAssignLeader(teamId, m.id, m.name); refresh()
+                }
+            }
+            val footer = mutableListOf<RallyPickPopup.Item>()
+            if (teams.firstOrNull { it.id == teamId }?.leaderId?.isNotEmpty() == true) {
+                footer += RallyPickPopup.Item("배정 해제", "#F87171") { stateSource.onUnassignLeader(teamId); refresh() }
+            }
+            footer += RallyPickPopup.Item("닫기") { }
+            pick.show("$teamName 을(를) 맡을 사람", items,
+                "아직 등록한 사람이 없어요. 팀장이 앱에서 캐릭터명을 등록하면 여기에 나타나요", footer)
+        }
     }
 
     fun hide() {
         input.dismiss()
+        pick.dismiss()
         handler.removeCallbacks(tick)
         panel?.root?.let { v ->
             try { wm.removeView(v) } catch (_: Exception) { }
@@ -179,7 +224,7 @@ class RallyPanelHost(
             }
         }
         val model = RallyScreenModel.build(state)
-        p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText())
+        p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText(), stateSource.characterName())
         // 내 클릭을 기다리는 단계에서만: 마지막 5초는 숫자를 붉게, 1초마다 진동(0초 직전은 더 강하게)
         val waiting = model.hero.kind == HeroKind.WAIT_CLICK || model.hero.kind == HeroKind.MOVE
         val remain = model.hero.remainingSec

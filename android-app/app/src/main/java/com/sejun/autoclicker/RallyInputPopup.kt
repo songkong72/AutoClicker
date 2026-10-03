@@ -14,7 +14,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
- * 숫자 한 칸 입력 팝업. 키보드가 떠야 해서 포커스를 받는 별도 오버레이 창으로 띄운다.
+ * 한 칸 입력 팝업(기본은 숫자, text=true면 글자). 키보드가 떠야 해서 포커스를 받는 별도 오버레이 창으로 띄운다.
  * 패널 본체는 포커스를 받지 않는 창이라(게임 터치를 가로채지 않으려고) 입력은 이 창이 맡는다.
  */
 class RallyInputPopup(private val context: Context, private val wm: WindowManager) {
@@ -23,7 +23,7 @@ class RallyInputPopup(private val context: Context, private val wm: WindowManage
     /** 설정의 투명도를 입력창에 반영한다(최소 40%). */
     fun applyAlpha(a: Float) { view?.alpha = a.coerceAtLeast(0.4f) }
 
-    fun show(title: String, initial: String, signed: Boolean = false, errorText: String? = null, onOk: (String) -> Boolean) {
+    fun show(title: String, initial: String, signed: Boolean = false, text: Boolean = false, errorText: String? = null, onOk: (String) -> Boolean) {
         dismiss()
         fun dp(v: Int) = (v * context.resources.displayMetrics.density).toInt()
 
@@ -40,7 +40,9 @@ class RallyInputPopup(private val context: Context, private val wm: WindowManage
         })
         val input = EditText(context).apply {
             setText(initial); setSelectAllOnFocus(true)
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or (if (signed) InputType.TYPE_NUMBER_FLAG_SIGNED else 0)
+            inputType = if (text) InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+                else InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or (if (signed) InputType.TYPE_NUMBER_FLAG_SIGNED else 0)
+            if (text) filters = arrayOf(android.text.InputFilter.LengthFilter(RallyRoster.MAX_NAME))
             imeOptions = EditorInfo.IME_ACTION_DONE
             setTextColor(Color.WHITE); setHintTextColor(Color.parseColor("#64748B"))
             setPadding(dp(4), dp(10), dp(4), dp(10))

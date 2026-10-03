@@ -20,8 +20,10 @@ class RallyRoomSync(
     private val dbUrl: String,
     private val auth: FirebaseAuthClient? = null,
     private val room: String,
-    myTeamIdInit: String,
-    private val saveMyTeam: (String) -> Unit,
+    /** 이 기기의 고유 ID. 관리자가 군단을 배정할 때 사람을 가리키는 키다. */
+    private val memberId: String,
+    private val getCharacterName: () -> String,
+    private val saveCharacterName: (String) -> Unit,
     override val isAdmin: Boolean,
     private val correctionMs: () -> Long,
     private val setCorrectionMs: (Int) -> Unit,
@@ -35,7 +37,8 @@ class RallyRoomSync(
 ) : RallyPanelHost.StateSource {
 
     private val main = Handler(Looper.getMainLooper())
-    @Volatile private var myTeamId: String = myTeamIdInit
+    /** 내 군단은 관리자의 배정에서 정해진다. 배정이 없으면 빈 문자열. */
+    private val myTeamId: String get() = RallyRoomEdit.teamIdOf(doc, memberId)
     @Volatile private var doc: RallyRoomDoc = RallyRoomCodec.decode(null)
     @Volatile private var online = false
     private val startDetector = RallyStartDetector()
@@ -63,6 +66,7 @@ class RallyRoomSync(
         if (polling) return
         polling = true
         Thread {
+            registerSelf()
             while (polling) {
                 try { runStream() } catch (e: Exception) { dropTokenIf401(e) }
                 streaming = false
@@ -155,8 +159,9 @@ class RallyRoomSync(
             "CANCELLED" -> RallyRunState.CANCELLED
             else -> RallyRunState.IDLE
         }
-        val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded, it.adminAdjustMs) }
-        return RallyRoomState(teams, myTeamId, d.prepSec, d.waitSec, run, elapsed, positionSaved())
+        val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded, it.adminAdjustMs, it.leaderId) }
+        return RallyRoomState(teams, RallyRoomEdit.teamIdOf(d, memberId), d.prepSec, d.waitSec, run, elapsed, positionSaved(),
+            characterNameSet = isAdmin || getCharacterName().isNotBlank())
     }
 
     override fun deviceCorrectionMs(): Int = correctionMs().toInt()
@@ -167,7 +172,8 @@ class RallyRoomSync(
     override fun onCorrectionDelta(deltaMs: Int) = setCorrectionMs(
         (correctionMs().toInt() + deltaMs).coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS)
     )
-    private fun myAdminAdjustMs(d: RallyRoomDoc = doc): Int = d.teams.firstOrNull { it.id == myTeamId }?.adminAdjustMs ?: 0
+    private fun myAdminAdjustMs(d: RallyRoomDoc = doc): Int =
+        RallyRoomEdit.teamIdOf(d, memberId).let { mine -> d.teams.firstOrNull { it.id == mine }?.adminAdjustMs ?: 0 }
 
     override fun devicePositionText(): String =
         myAdminAdjustMs().let { a -> if (a == 0) "" else "관리자 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)\n" } +
@@ -225,10 +231,55 @@ class RallyRoomSync(
         change { RallyRoomEdit.setExcluded(it, teamId, !cur.excluded) }
     }
 
-    /** 내 팀 선택은 기기 로컬 설정이라 방에는 쓰지 않는다. */
-    override fun onSelectMine(teamId: String) {
-        myTeamId = teamId
-        saveMyTeam(teamId)
+    // ---- 캐릭터명과 군단 배정 ----
+
+    override fun characterName(): String = getCharacterName()
+
+    /** 내 캐릭터명을 이 기기에 저장하고 방 명단에 올린다. 관리자는 이 명단에서 사람을 골라 군단에 배정한다. */
+    override fun onSetCharacterName(name: String) {
+        val clean = RallyRoster.cleanName(name)
+        if (clean.isEmpty()) return
+        saveCharacterName(clean)
+        Thread { registerSelf() }.start()
+    }
+
+    /** 관리자가 고를 수 있는 방 명단을 가져온다. 실패하면 null을 돌려준다. 결과는 메인 스레드로 전달한다. */
+    override fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) {
+        Thread {
+            val result = try { RallyRoster.decode(getMembers()) } catch (e: Exception) { dropTokenIf401(e); null }
+            main.post { onLoaded(result) }
+        }.start()
+    }
+
+    override fun onAssignLeader(teamId: String, memberId: String, characterName: String) =
+        change { RallyRoomEdit.assignLeader(it, teamId, memberId, characterName) }
+
+    override fun onUnassignLeader(teamId: String) = change { RallyRoomEdit.unassignLeader(it, teamId) }
+
+    private fun membersUrl(path: String) =
+        FirebaseAuthCodec.withAuth("$dbUrl/rallyMembers/$room$path.json", auth?.token())
+
+    /** 방 명단에 내 항목(rallyMembers/{방}/{내 ID})을 쓴다. 이름이 없으면 아무것도 하지 않는다. */
+    private fun registerSelf() {
+        try {
+            val body = RallyRoster.encode(memberId, getCharacterName()) ?: return
+            val c = URL(membersUrl("/$memberId")).openConnection() as HttpURLConnection
+            c.requestMethod = "PUT"
+            c.setRequestProperty("Content-Type", "application/json")
+            c.connectTimeout = 3000; c.readTimeout = 3000
+            c.doOutput = true
+            c.outputStream.use { it.write(JSONObject(body).toString().toByteArray()) }
+            c.inputStream.close()
+        } catch (e: Exception) { dropTokenIf401(e) }
+    }
+
+    private fun getMembers(): Map<String, Any?>? {
+        val c = URL(membersUrl("")).openConnection() as HttpURLConnection
+        c.connectTimeout = 3000; c.readTimeout = 3000
+        val text = c.inputStream.bufferedReader().use { it.readText() }.trim()
+        if (text == "null" || text.isEmpty()) return null
+        @Suppress("UNCHECKED_CAST")
+        return toPlain(JSONObject(text)) as Map<String, Any?>
     }
 
     /** 관리자만 방을 바꾼다. 내 기기는 즉시 반영하고 서버에는 비동기로 쓴다. */
