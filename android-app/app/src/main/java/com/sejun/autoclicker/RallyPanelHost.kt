@@ -248,7 +248,7 @@ class RallyPanelHost(
         cue.onCountdown(waiting, remain ?: 99.0)?.let { n ->
             p.root.performHapticFeedback(if (n == 1) android.view.HapticFeedbackConstants.LONG_PRESS else android.view.HapticFeedbackConstants.CLOCK_TICK)
         }
-        val note = listOf(stateSource.arrivalNote(), stateSource.clickNote()).filter { it.isNotEmpty() }.joinToString("\n")
+        val note = listOf(stateSource.arrivalNote(), stateSource.clickNote()).filter { it.isNotEmpty() }.joinToString(" · ")
         p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING, note,
             stateSource.connection(), RallyCountdownCue.urgent(waiting, remain))
         if (minimized) p.setMinimized(true, model.hero)

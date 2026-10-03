@@ -175,7 +175,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
         heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else if (urgent) Color.parseColor("#F87171") else heroColor(hero.kind))
         val sub = if (previewTotal) RallyScreenModel.idleSub(hero.subLabel, model.rows.count { !it.excluded }) else hero.subLabel
-        heroSub.text = if (arrivalNote.isEmpty()) sub else "$sub\n$arrivalNote"
+        // 집결이 시작된 뒤에는 한 줄만: "도착 예정 15:53:24 · ✓ 클릭함 15:47:56.080" (단계 설명은 큰 숫자·단계 표시가 대신한다)
+        heroSub.text = if (arrivalNote.isEmpty()) sub else arrivalNote
         renderPhases(hero.kind)
         heroProgress.progress = (hero.progress * 1000).toInt()
 
