@@ -37,6 +37,8 @@ class RallyPanelHost(
         fun onSetCharacterName(name: String) {}
         /** 관리자가 고를 수 있는 방 명단. 가져오지 못하면 null. */
         fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) { onLoaded(emptyList()) }
+        /** 마지막 명단 불러오기가 실패한 이유(화면에 보여 주는 용도). */
+        fun rosterError(): String = ""
         fun onAssignLeader(teamId: String, memberId: String, characterName: String) {}
         fun onUnassignLeader(teamId: String) {}
         fun onSetMarch(teamId: String, sec: Double) {}
@@ -156,12 +158,14 @@ class RallyPanelHost(
 
     /** 관리자: 방에 등록한 사람 목록에서 이 군단을 맡을 사람을 고른다. 이미 다른 군단에 있는 사람을 고르면 그쪽에서 빠진다. */
     private fun showAssignPicker(teamId: String, teamName: String) {
+        // 누르자마자 반응이 보이도록 먼저 "불러오는 중" 창을 띄우고, 결과가 오면 바꿔 그린다.
+        pick.show("$teamName 을(를) 맡을 사람", emptyList(), "명단을 불러오는 중…", listOf(RallyPickPopup.Item("닫기") { }))
         stateSource.loadRoster { roster ->
             if (panel == null) return@loadRoster
             if (roster == null) {
                 // 토스트는 기기에 따라 안 보이므로 목록 창 안에 이유를 적는다.
                 pick.show("$teamName 을(를) 맡을 사람", emptyList(),
-                    "명단을 불러오지 못했어요. 인터넷 연결과 Firebase 규칙 게시(rallyMembers) 여부를 확인해 주세요",
+                    "명단을 불러오지 못했어요. 인터넷 연결과 Firebase 규칙 게시(rallyMembers) 여부를 확인해 주세요\n(${stateSource.rosterError()})",
                     listOf(RallyPickPopup.Item("닫기") { }))
                 return@loadRoster
             }

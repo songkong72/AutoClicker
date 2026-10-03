@@ -246,9 +246,12 @@ class RallyRoomSync(
     }
 
     /** 관리자가 고를 수 있는 방 명단을 가져온다. 실패하면 null을 돌려준다. 결과는 메인 스레드로 전달한다. */
+    @Volatile private var rosterErr = ""
+    override fun rosterError(): String = rosterErr
+
     override fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) {
         Thread {
-            val result = try { RallyRoster.decode(getMembers()) } catch (e: Exception) { dropTokenIf401(e); null }
+            val result = try { rosterErr = ""; RallyRoster.decode(getMembers()) } catch (e: Exception) { rosterErr = (e.message ?: e.javaClass.simpleName).take(80); dropTokenIf401(e); null }
             main.post { onLoaded(result) }
         }.start()
     }
