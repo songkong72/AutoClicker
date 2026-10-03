@@ -291,18 +291,13 @@ class AutoClickService : AccessibilityService() {
     }
 
     /**
-     * 물리 볼륨 버튼(볼륨 업 또는 다운)을 누르면 즉시 긴급 정지!
+     * 연타 중에 물리 볼륨 버튼(볼륨 업 또는 다운)을 누르면 즉시 긴급 정지!
+     * 연타 중이 아닐 때는 볼륨 키를 건드리지 않는다(곰 사냥 발사는 🐻 발사 버튼으로만 한다).
      */
     override fun onKeyEvent(event: KeyEvent?): Boolean {
-        if (event?.action == KeyEvent.ACTION_UP && event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN && HunterModeManager.isHunterModeEnabled) return true
         if (event?.action == KeyEvent.ACTION_DOWN) {
             val code = event.keyCode
             if (code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_VOLUME_UP) {
-                if (HunterModeManager.isHunterModeEnabled && code == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                    if (event.repeatCount == 0) showToast("🔑 볼륨 ↓ 입력 감지")
-                    fireHunter(event.repeatCount)
-                    return true // 헌터 모드 중 볼륨 아래는 발사 키다(볼륨은 바뀌지 않는다)
-                }
                 if (isClicking) {
                     stopAutoClick()
                     vibrate(60)
@@ -1413,7 +1408,7 @@ class AutoClickService : AccessibilityService() {
             afterTap = { setTargetTouchable(true) })
     }
 
-    /** 볼륨 키를 쓸 수 없을 때(에뮬레이터 등)를 위한 화면 발사 버튼. 눌러서 발사, 끌어서 이동한다. */
+    /** 곰 사냥 화면 발사 버튼(발사는 이 버튼으로만 한다). 눌러서 발사, 끌어서 이동한다. */
     @android.annotation.SuppressLint("ClickableViewAccessibility")
     private fun showHunterFireButton() {
         if (hunterFireView != null) return
@@ -1466,7 +1461,7 @@ class AutoClickService : AccessibilityService() {
             btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#10B981")) // 초록: 켜짐
             showHunterFireButton()
             if (HunterModeManager.hasTargets) {
-                showToast("🐻 헌터 모드 켜짐 · 집결을 고른 뒤 볼륨 ↓ 키를 누르세요 (위치를 다시 잡으려면 🐻 길게 누르기)")
+                showToast("🐻 헌터 모드 켜짐 · 집결을 고른 뒤 🐻 발사 버튼을 누르세요 (위치를 다시 잡으려면 🐻 길게 누르기)")
             } else {
                 showToast("🐻 먼저 쓸 부대와 출정 버튼 위치를 잡아 저장해 주세요")
                 showBearSetupUi()

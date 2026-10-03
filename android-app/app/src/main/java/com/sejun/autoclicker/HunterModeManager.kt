@@ -10,7 +10,7 @@ import android.widget.Toast
 
 /**
  * 곰 사냥 수동 발사. 화면을 분석하지 않는다.
- * 사용자가 집결 목록에서 직접 고른 뒤 볼륨 아래 키를 누르면, 미리 저장한 "쓸 부대" 위치를 누르고 0.15초 뒤 "출정" 위치를 누른다.
+ * 사용자가 집결 목록에서 직접 고른 뒤 🐻 발사 버튼을 누르면, 미리 저장한 "쓸 부대" 위치를 누르고 0.15초 뒤 "출정" 위치를 누른다.
  * 부대는 최대 7곳까지 저장하고, 누를 때마다 1번 → 2번 → … 순서로 쓴다. 저장한 마지막 부대 다음에는 다시 1번이다.
  * 저장하는 좌표는 화면 픽셀 기준 중심점이다.
  */
@@ -60,7 +60,7 @@ object HunterModeManager {
     fun stop() { isHunterModeEnabled = false; resetSequence() }
 
     /**
-     * 볼륨 아래 키(또는 화면 발사 버튼)가 눌렸을 때 호출. 발사했으면 true.
+     * 화면 발사 버튼이 눌렸을 때 호출. 발사했으면 true.
      * [beforeTap]은 첫 클릭 전에, [afterTap]은 모든 클릭이 끝난 뒤에 부른다. 과녁 오버레이가 클릭을 가로채지 않게 투과시키는 데 쓴다.
      */
     fun fire(service: AutoClickService, repeatCount: Int, beforeTap: () -> Unit = {}, afterTap: () -> Unit = {}): Boolean {
