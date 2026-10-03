@@ -213,7 +213,15 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 setTextColor(if (r.isMine) Color.parseColor("#60A5FA") else Color.parseColor("#F1F5F9"))
                 alpha = if (r.excluded) 0.45f else 1f
             }
-            v.findViewById<TextView>(R.id.rowMarch).text = (if (r.marchSec % 1.0 == 0.0) r.marchSec.toInt().toString() else r.marchSec.toString()) + "s"
+            v.findViewById<TextView>(R.id.rowMarch).apply {
+                // 행군시간 아래에 1번째 군단(기준)과의 차이를 작게 보여 준다. 기준 줄에는 "기준".
+                val main = RallyPanelFormat.sec(r.marchSec) + "s"
+                val sub = if (i == 0) "기준" else RallyPanelFormat.diff(r.marchSec - list[0].marchSec)
+                gravity = android.view.Gravity.CENTER_HORIZONTAL
+                text = android.text.SpannableStringBuilder("$main\n$sub").apply {
+                    setSpan(android.text.style.RelativeSizeSpan(0.8f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            }
             v.findViewById<TextView>(R.id.rowStatus).apply {
                 // 관리자가 더해 준 보정이 있으면 상태 아래 줄에 작게 보여 준다(줄이 늘어나도 폭은 그대로).
                 text = if (r.adminAdjustMs == 0) r.statusLabel else r.statusLabel + "\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
@@ -349,3 +357,4 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
     }
 }
+
