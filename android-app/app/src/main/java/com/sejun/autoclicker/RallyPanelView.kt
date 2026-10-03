@@ -120,7 +120,17 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     }
 
     /** "내 기기" 줄: 캐릭터명, 현재 ms 보정, 저장된 클릭 위치 표시. */
-    fun renderDevice(correctionMs: Int, posText: String, characterName: String) {
+    private var detailOpen = false
+    private var lastPosText = ""
+    private var lastDetailText = ""
+
+    private fun showDeviceStatus() {
+        val hint = if (detailOpen) "▴ 자세히 접기" else "▾ 자세히 (기기 ID·저장 위치·진단)"
+        root.findViewById<TextView>(R.id.devPosStatus).text =
+            listOf(lastPosText, if (detailOpen) lastDetailText else "", hint).filter { it.isNotEmpty() }.joinToString("\n")
+    }
+
+    fun renderDevice(correctionMs: Int, posText: String, characterName: String, detailText: String = "") {
         charNameShown = characterName
         root.findViewById<TextView>(R.id.devCharName).apply {
             text = if (characterName.isBlank()) "캐릭터명 등록하기 (눌러서 입력)" else "캐릭터명  $characterName  (눌러서 변경)"
@@ -128,7 +138,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
         correctionShownMs = correctionMs
         root.findViewById<TextView>(R.id.devMs).text = RallyInputParse.formatCorrection(correctionMs)
-        root.findViewById<TextView>(R.id.devPosStatus).text = posText
+        lastPosText = posText
+        lastDetailText = detailText
+        root.findViewById<TextView>(R.id.devPosStatus).setOnClickListener { detailOpen = !detailOpen; showDeviceStatus() }
+        showDeviceStatus()
     }
 
     fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "",

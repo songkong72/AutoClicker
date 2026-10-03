@@ -53,6 +53,8 @@ class RallyPanelHost(
         fun onCorrectionDelta(deltaMs: Int) {}
         fun onSetCorrectionMs(ms: Int) {}
         fun devicePositionText(): String = ""
+        /** 평소엔 접혀 있고 "자세히"를 누르면 보이는 진단 줄 */
+        fun deviceDetailText(): String = ""
         /** "도착 예정 12:34:12" / "12:34:12 도착". 진행한 집결이 없으면 빈 문자열. */
         fun arrivalNote(): String = ""
         fun onSavePosition() {}
@@ -239,7 +241,7 @@ class RallyPanelHost(
             }
         }
         val model = RallyScreenModel.build(state)
-        p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText(), stateSource.characterName())
+        p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText(), stateSource.characterName(), stateSource.deviceDetailText())
         // 내 클릭을 기다리는 단계에서만: 마지막 5초는 숫자를 붉게, 1초마다 진동(0초 직전은 더 강하게)
         val waiting = model.hero.kind == HeroKind.WAIT_CLICK || model.hero.kind == HeroKind.MOVE
         val remain = model.hero.remainingSec

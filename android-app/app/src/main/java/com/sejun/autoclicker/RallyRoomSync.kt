@@ -177,11 +177,21 @@ class RallyRoomSync(
     private fun myAdminAdjustMs(d: RallyRoomDoc = doc): Int =
         RallyRoomEdit.teamIdOf(d, memberId, getCharacterName()).let { mine -> d.teams.firstOrNull { it.id == mine }?.adminAdjustMs ?: 0 }
 
-    override fun devicePositionText(): String =
-        "기기 ID …${memberId.takeLast(4)} · 배정: " + (myTeamId.let { id -> doc.teams.firstOrNull { it.id == id }?.name ?: "아직 없음" }) + "\n" +
-        myAdminAdjustMs().let { a -> if (a == 0) "" else "관리자 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)\n" } +
-        positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + (if (clickResult.isNotEmpty()) "\n$clickResult" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인") +
-        (MainThreadWatchdog.lastStall.let { if (it.isEmpty()) "" else "\n$it" })
+    /** 내 기기 아래에 늘 보이는, 시간 확인에 필요한 줄만. 나머지 진단은 [deviceDetailText]에서 펼쳐 본다. */
+    override fun devicePositionText(): String = listOfNotNull(
+        myAdminAdjustMs().let { a -> if (a == 0) null else "관리자 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)" },
+        lastDiag.ifEmpty { null },
+        if (streaming) null else "수신 방식: 1초 확인 (실시간보다 최대 1초 늦을 수 있음)"
+    ).joinToString("\n")
+
+    /** "자세히"를 눌렀을 때만 보이는 진단 줄(기기 ID·배정, 저장 위치, 탭 결과, 수신 방식, 멈춤 기록). */
+    override fun deviceDetailText(): String = listOfNotNull(
+        "기기 ID …${memberId.takeLast(4)} · 배정: " + (myTeamId.let { id -> doc.teams.firstOrNull { it.id == id }?.name ?: "아직 없음" }),
+        positionText(),
+        clickResult.ifEmpty { null },
+        "수신 방식: " + (if (streaming) "실시간" else "1초 확인"),
+        MainThreadWatchdog.lastStall.ifEmpty { null }
+    ).joinToString("\n")
     override fun onSavePosition() = savePosition()
 
     override fun onStart() = change(RallyRoomEdit::startOrRegroup)
