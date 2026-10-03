@@ -178,8 +178,8 @@ object RallyScreenModel {
         return if (!state.positionSaved && !me.excluded) listOf("클릭 위치를 먼저 저장하세요 (내 기기 → 위치 저장)") else emptyList()
     }
 
-    /** 대기 중 흐리게 보이는 큰 숫자가 무엇인지 이름을 붙인다. */
-    fun idleSub(subLabel: String, arriveAtSec: Double): String = "전체 소요 ${formatMmSs(arriveAtSec)} · $subLabel"
+    /** 대기 중 큰 숫자 아래 한 줄. 큰 숫자가 전체 소요라는 건 자명하니 반복하지 않고, 참여 팀 수를 붙인다. */
+    fun idleSub(subLabel: String, activeTeams: Int): String = "$subLabel · 참여 ${activeTeams}팀"
 
     private fun offlineWarnings(state: RallyRoomState): List<String> =
         state.teams.filter { !it.excluded && !it.online }

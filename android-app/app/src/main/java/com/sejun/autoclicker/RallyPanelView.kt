@@ -63,6 +63,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     init {
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
+        // ✎: 관리자 편집 모드. 평소엔 읽기 전용으로 깔끔하게, 켜면 −/+ · ✕ · 밑줄(눌러서 고치기)이 나타난다.
+        root.findViewById<View>(R.id.rallyEdit).setOnClickListener { editMode = !editMode; lastRender?.invoke() }
         // 알약(최소화 상태)의 단계명이나 시간을 탭해도 펼쳐진다
         listOf<View>(heroLabel, title, heroTime).forEach { v -> v.setOnClickListener { if (isMinimized) callbacks.onMinimize() } }
         title.setOnClickListener { if (isMinimized) callbacks.onMinimize() else callbacks.onTitleTap() }
@@ -120,6 +122,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     }
 
     /** "내 기기" 줄: 캐릭터명, 현재 ms 보정, 저장된 클릭 위치 표시. */
+    private var editMode = false
+    private var lastRender: (() -> Unit)? = null
     private var detailOpen = false
     private var lastPosText = ""
     private var lastDetailText = ""
@@ -153,6 +157,13 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val c = when (conn) { RallyConnection.LIVE -> "#22C55E"; RallyConnection.POLLING -> "#F59E0B"; RallyConnection.OFFLINE -> "#EF4444" }
             setSpan(android.text.style.ForegroundColorSpan(Color.parseColor(c)), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
+        lastRender = { render(model, isAdmin, hasStarted, arrivalNote, conn, urgent) }
+        val editing = isAdmin && model.editable && editMode
+        root.findViewById<TextView>(R.id.rallyEdit).apply {
+            visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
+            text = if (editMode) "✓" else "✎"
+            setTextColor(Color.parseColor(if (editMode) "#60A5FA" else "#94A3B8"))
+        }
         heroLabel.text = hero.label
         // 대기 중에는 "전원 도착 예정" 총 소요 시간을 흐리게 보여준다
         val previewTotal = hero.kind == HeroKind.IDLE && hero.remainingSec == null && model.arriveAtSec > 0.0
@@ -163,7 +174,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
         heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
         heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else if (urgent) Color.parseColor("#F87171") else heroColor(hero.kind))
-        val sub = if (previewTotal) RallyScreenModel.idleSub(hero.subLabel, model.arriveAtSec) else hero.subLabel
+        val sub = if (previewTotal) RallyScreenModel.idleSub(hero.subLabel, model.rows.count { !it.excluded }) else hero.subLabel
         heroSub.text = if (arrivalNote.isEmpty()) sub else "$sub\n$arrivalNote"
         renderPhases(hero.kind)
         heroProgress.progress = (hero.progress * 1000).toInt()
@@ -171,7 +182,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         warning.visibility = if (model.warnings.isEmpty()) View.GONE else View.VISIBLE
         warning.text = model.warnings.joinToString("\n") { "⚠ $it" }
 
-        renderRows(model.rows, isAdmin, model.editable, RallyTimelineScale(model.maxMarchSec), model.nowSec)
+        renderRows(model.rows, isAdmin, model.editable, editing, hero.kind != HeroKind.IDLE && hero.kind != HeroKind.EXCLUDED, RallyTimelineScale(model.maxMarchSec), model.nowSec)
 
         adminBar.visibility = if (isAdmin) View.VISIBLE else View.GONE
         root.findViewById<View>(R.id.rallyAddTeam).visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
@@ -189,14 +200,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         blocked.text = model.startBlockedReason ?: ""
     }
 
-    private fun renderRows(list: List<TeamRowModel>, isAdmin: Boolean, editable: Boolean, scale: RallyTimelineScale, nowSec: Double?) {
+    private fun renderRows(list: List<TeamRowModel>, isAdmin: Boolean, editable: Boolean, editing: Boolean, showBars: Boolean, scale: RallyTimelineScale, nowSec: Double?) {
         // 팀 수가 적고(≤ 몇 개) 1초 단위 갱신이라, 줄 수가 같으면 재사용한다.
         if (rows.childCount != list.size) {
             rows.removeAllViews()
             val inflater = LayoutInflater.from(themed)
             repeat(list.size) { rows.addView(inflater.inflate(R.layout.item_rally_team_row, rows, false)) }
         }
-        val firstMarch = list.filter { !it.excluded }.maxOfOrNull { it.marchSec } ?: 0.0
+        val lags = RallyPanelFormat.lagLabels(list.map { LagInput(it.marchSec, it.adminAdjustMs, it.excluded) })
         list.forEachIndexed { i, r ->
             val v = rows.getChildAt(i)
             v.setBackgroundColor(if (r.isMine) Color.parseColor("#1F3B82F6") else Color.TRANSPARENT)
@@ -205,7 +216,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 // 관리자는 ● 를 눌러 이 군단을 제외하거나 다시 포함한다(눌러도 되는 크기로 여백을 준다)
                 val pad = (10 * resources.displayMetrics.density).toInt()
                 setPadding(pad / 2, pad, pad, pad)
-                if (isAdmin && editable) setOnClickListener { callbacks.onToggleExclude(r.id) }
+                if (editing) setOnClickListener { callbacks.onToggleExclude(r.id) }
                 else { setOnClickListener(null); isClickable = false }
             }
             v.findViewById<TextView>(R.id.rowName).apply {
@@ -219,19 +230,19 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                     isAdmin -> "$head 미배정"
                     else -> head
                 }
-                setOnClickListener { if (isAdmin && editable) callbacks.onAssignLeader(r.id, r.name) }
-                // 눌러서 배정할 수 있다는 표시: 관리자이고 수정 가능할 때만 밑줄
-                paintFlags = if (isAdmin && editable) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                setOnClickListener { if (editing) callbacks.onAssignLeader(r.id, r.name) }
+                // 눌러서 배정할 수 있다는 표시: 편집 모드에서만 밑줄
+                paintFlags = if (editing) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
                 else paintFlags and android.graphics.Paint.UNDERLINE_TEXT_FLAG.inv()
                 setTypeface(null, if (r.isMine) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
                 setTextColor(if (r.isMine) Color.parseColor("#60A5FA") else Color.parseColor("#F1F5F9"))
                 alpha = if (r.excluded) 0.45f else 1f
             }
             v.findViewById<TextView>(R.id.rowMarch).apply {
-                // 행군시간 아래에, 가장 먼저 출발하는 군단(행군이 가장 긴 군단)보다 몇 초 늦게 출발하는지 작게 보여 준다.
-                // 먼저 출발하는 군단 줄에는 "기준". 제외된 군단은 표시하지 않는다.
+                // 행군시간 아래에, 가장 먼저 누르는 군단보다 몇 초 늦게 누르는지(관리자 보정 포함) 작게 보여 준다.
+                // 가장 먼저 누르는 군단 줄에는 "기준". 제외된 군단은 표시하지 않는다.
                 val main = RallyPanelFormat.sec(r.marchSec) + "s"
-                val sub = if (r.excluded) "" else RallyPanelFormat.laterThanFirst(r.marchSec, firstMarch)
+                val sub = lags[i]
                 gravity = android.view.Gravity.CENTER_HORIZONTAL
                 text = if (sub.isEmpty()) android.text.SpannableStringBuilder(main)
                 else android.text.SpannableStringBuilder("$main\n$sub").apply {
@@ -244,19 +255,21 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 // 관리자는 상태 글자를 눌러 그 군단의 보정을 정한다(진행 중에는 잠김)
                 // 제외된 군단의 "제외" 글자는 다시 포함시키는 버튼, 그 밖에는 보정 입력
                 setOnClickListener {
-                    if (isAdmin && editable) {
+                    if (editing) {
                         if (r.excluded) callbacks.onToggleExclude(r.id) else callbacks.onEditAdminAdjust(r.id, r.name, r.adminAdjustMs)
                     }
                 }
-                // 눌러서 보정을 정할 수 있다는 표시: 관리자이고 수정 가능할 때만 밑줄
-                paintFlags = if (isAdmin && editable) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                // 눌러서 보정을 정할 수 있다는 표시: 편집 모드에서만 밑줄
+                paintFlags = if (editing) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
                 else paintFlags and android.graphics.Paint.UNDERLINE_TEXT_FLAG.inv()
             }
+            v.findViewById<RallyTimelineBar>(R.id.rowBar).visibility = if (showBars) View.VISIBLE else View.GONE
             v.findViewById<RallyTimelineBar>(R.id.rowBar).set(scale, r.clickAtSec, r.departAtSec, r.arriveAtSec, nowSec, r.excluded)
             val minus = v.findViewById<View>(R.id.rowMinus)
             val plus = v.findViewById<View>(R.id.rowPlus)
-            val canEdit = isAdmin && editable
-            val canMarch = editable && !r.excluded && (isAdmin || r.isMine) // 팀장은 내 팀만
+            val canEdit = editing
+            // 행군시간 고치기: 관리자는 편집 모드에서 모든 군단, 팀장은 평소에도 내 군단만
+            val canMarch = editable && !r.excluded && (if (isAdmin) editing else r.isMine)
             minus.visibility = if (canMarch) View.VISIBLE else View.GONE
             plus.visibility = minus.visibility
             v.findViewById<View>(R.id.rowDel).apply {

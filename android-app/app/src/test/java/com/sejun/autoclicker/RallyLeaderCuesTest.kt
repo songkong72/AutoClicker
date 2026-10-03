@@ -55,9 +55,9 @@ class RallyLeaderCuesTest {
         assertEquals(RallyConnection.OFFLINE, RallyConnection.of(streaming = false, online = false))
     }
 
-    // ---- 5. 큰 숫자 라벨 ----
-    @Test fun idleSubLabelNamesTheBigNumber() {
-        assertEquals("전체 소요 5:45 · 시작 후 15초에 내 집결 클릭",
-            RallyScreenModel.idleSub("시작 후 15초에 내 집결 클릭", 345.0))
+    // ---- 5. 대기 중 한 줄 ----
+    @Test fun idleSubLabelShowsClickTimeAndTeamCount() {
+        assertEquals("시작 후 15초에 내 집결 클릭 · 참여 2팀",
+            RallyScreenModel.idleSub("시작 후 15초에 내 집결 클릭", 2))
     }
 }
