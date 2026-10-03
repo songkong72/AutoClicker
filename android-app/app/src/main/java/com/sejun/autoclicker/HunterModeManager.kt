@@ -18,7 +18,7 @@ object HunterModeManager {
     var isHunterModeEnabled = false
 
     // 저장된 위치(화면 픽셀, 중심점). 부대가 비었거나 출정이 0,0 이면 아직 저장 전.
-    var troops: List<TroopPoint> = emptyList()
+    internal var troops: List<TroopPoint> = emptyList()
     var dispatchX: Int = 0
     var dispatchY: Int = 0
 
