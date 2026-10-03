@@ -135,7 +135,14 @@ class RallyPanelHost(
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply { gravity = Gravity.TOP or Gravity.START; x = 24; y = 120 }
-        view.root.setOnTouchListener(dragListener(lp))
+        (view.root as RallyDragLayout).let { drag ->
+            var sx = 0; var sy = 0
+            drag.onDragStart = { sx = lp.x; sy = lp.y }
+            drag.onDragMove = { dx, dy ->
+                lp.x = sx + dx.toInt(); lp.y = sy + dy.toInt()
+                try { wm.updateViewLayout(view.root, lp) } catch (_: Exception) { }
+            }
+        }
         wm.addView(view.root, lp)
         panel = view
         view.root.alpha = PreferencesHelper.getOverlayAlpha(context)
@@ -247,20 +254,5 @@ class RallyPanelHost(
         panel?.setMinimized(minimized, RallyScreenModel.build(stateSource.current()).hero)
         applyWidth()
         refresh()
-    }
-
-    private fun dragListener(lp: WindowManager.LayoutParams) = object : View.OnTouchListener {
-        private var sx = 0; private var sy = 0; private var dx = 0f; private var dy = 0f
-        override fun onTouch(v: View, e: MotionEvent): Boolean {
-            when (e.action) {
-                MotionEvent.ACTION_DOWN -> { sx = lp.x; sy = lp.y; dx = e.rawX; dy = e.rawY }
-                MotionEvent.ACTION_MOVE -> {
-                    lp.x = sx + (e.rawX - dx).toInt()
-                    lp.y = sy + (e.rawY - dy).toInt()
-                    try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
-                }
-            }
-            return false // 자식 버튼의 클릭은 그대로 전달
-        }
     }
 }

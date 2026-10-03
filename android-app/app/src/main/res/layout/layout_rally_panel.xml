@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.sejun.autoclicker.RallyDragLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="312dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_rally_panel"
@@ -383,4 +383,4 @@
         android:textColor="#F87171"
         android:textSize="12sp"
         android:visibility="gone" />
-</LinearLayout>
+</com.sejun.autoclicker.RallyDragLayout>
