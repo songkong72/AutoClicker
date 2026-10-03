@@ -16,7 +16,7 @@ class RallyPanelFormatTest {
         assertEquals(listOf("기준", "+19.5s"), RallyPanelFormat.lagLabels(listOf(t(51.0), t(33.0, 1500))))
 
     @Test fun 보정이_커서_먼저_누르게_되면_그_군단이_기준() =
-        assertEquals(listOf("+3s", "기준"), RallyPanelFormat.lagLabels(listOf(t(51.0), t(48.0, -3000))))
+        assertEquals(listOf("+1s", "기준"), RallyPanelFormat.lagLabels(listOf(t(51.0), t(48.0, -4000))))
 
     @Test fun 제외된_군단은_계산에서도_표시에서도_빠진다() =
         assertEquals(listOf("기준", "+18s", ""), RallyPanelFormat.lagLabels(listOf(t(51.0), t(33.0), t(60.0, 0, true))))
