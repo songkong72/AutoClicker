@@ -445,6 +445,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRoomCard() {
+        // 입장 버튼을 누르지 않고 앱을 나가도 입력한 이름이 남도록, 입력하는 즉시 기기에 저장한다.
+        binding.etCharName.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (!PreferencesHelper.isAdminMode(this@MainActivity)) {
+                    val name = RallyRoster.cleanName(s?.toString() ?: "")
+                    if (name != PreferencesHelper.getRallyCharacterName(this@MainActivity)) {
+                        PreferencesHelper.setRallyCharacterName(this@MainActivity, name)
+                    }
+                }
+            }
+        })
         binding.btnJoinRoom.setOnClickListener {
             val code = binding.etRoomCode.text.toString().trim()
             if (code.length < 4) {
