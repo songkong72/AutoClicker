@@ -196,9 +196,15 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             v.findViewById<TextView>(R.id.rowName).apply {
                 // 관리자는 어느 군단이 아직 비었는지 바로 보고, 이름을 눌러 사람을 배정한다.
-                val who = if (isAdmin && r.leaderName.isBlank()) "미배정" else r.leaderName
-                val base = listOf(r.name, who).filter { it.isNotBlank() }.joinToString(" ")
-                text = if (r.isMine) "$base ★나" else base
+                // 칸이 좁아 "1군 윈터…"처럼 잘리지 않게, 군단은 윗줄 / 캐릭터명은 아랫줄(조금 작게)로 나눈다.
+                val head = if (r.isMine) "${r.name} ★나" else r.name
+                text = when {
+                    r.leaderName.isNotBlank() -> android.text.SpannableStringBuilder("$head\n${r.leaderName}").apply {
+                        setSpan(android.text.style.RelativeSizeSpan(0.85f), head.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
+                    isAdmin -> "$head 미배정"
+                    else -> head
+                }
                 setOnClickListener { if (isAdmin && editable) callbacks.onAssignLeader(r.id, r.name) }
                 // 눌러서 배정할 수 있다는 표시: 관리자이고 수정 가능할 때만 밑줄
                 paintFlags = if (isAdmin && editable) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
