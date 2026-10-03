@@ -217,6 +217,16 @@
         android:orientation="vertical"
         android:visibility="gone">
 
+    <!-- 현재 방. 눌러서 다른 방 번호를 입력하면 앱을 열지 않고 바로 옮겨간다 -->
+    <TextView
+        android:id="@+id/devRoom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:paddingVertical="6dp"
+        android:textColor="#E2E8F0"
+        android:textSize="13sp" />
+
     <!-- 내 캐릭터명: 관리자가 군단을 배정할 때 명단에 이 이름으로 보인다 -->
     <TextView
         android:id="@+id/devCharName"

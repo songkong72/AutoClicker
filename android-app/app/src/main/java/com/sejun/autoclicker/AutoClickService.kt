@@ -155,6 +155,17 @@ class AutoClickService : AccessibilityService() {
         rallyRoomCode = ""
     }
 
+    /**
+     * 패널에서 다른 방으로 옮긴다: 이전 방 연결과 예약된 클릭을 끊고, 새 방으로 패널을 다시 연다.
+     * 명단 등록은 새 방 연결이 시작될 때 자동으로 된다(registerSelf).
+     */
+    fun switchRallyRoom(code: String) {
+        getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("cloud_room_number", code).apply()
+        leaveRallyRoom()
+        showToast("방 $code 로 옮겼어요")
+        toggleRallyPanel()
+    }
+
     /** 숨은 곰 사냥 모드를 개방한다. 이미 열려 있으면 안내만 한다. 새 집결 팝업과 옛 대화창 양쪽에서 쓴다. */
     fun unlockBearMode() {
         val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
@@ -216,7 +227,7 @@ class AutoClickService : AccessibilityService() {
                 onRallyStart = { rallyPanelHost?.let { if (!it.isShowing) it.show() } },
                 onCancel = { }
             ).also { it.start(); rallyRoomSync = it }
-            RallyPanelHost(this, wm, source, onSecretUnlock = { unlockBearMode() }).also { rallyPanelHost = it }
+            RallyPanelHost(this, wm, source, onSecretUnlock = { unlockBearMode() }, onSwitchRoom = { code -> switchRallyRoom(code) }).also { rallyPanelHost = it }
         }
         host.toggle()
     }

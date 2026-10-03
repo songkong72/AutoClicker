@@ -31,6 +31,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onAssignLeader(teamId: String, teamName: String)
         /** "내 기기"의 캐릭터명 줄을 눌렀을 때 */
         fun onEditCharacterName(current: String)
+        /** "내 기기"의 방 줄을 눌렀을 때: 다른 방으로 옮긴다. */
+        fun onEditRoom(current: String)
         fun onCorrectionDelta(deltaMs: Int)
         fun onEditCorrection(currentMs: Int)
         fun onEditMarch(teamId: String, currentSec: Double)
@@ -48,6 +50,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private var prepShown = 0.0
     private var correctionShownMs = 0
     private var charNameShown = ""
+    private var roomShown = ""
     private val title = root.findViewById<TextView>(R.id.rallyTitle)
     private val heroLabel = root.findViewById<TextView>(R.id.rallyHeroLabel)
     private val heroTime = root.findViewById<TextView>(R.id.rallyHeroTime)
@@ -82,6 +85,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.setWait3).setOnClickListener { callbacks.onSetWait(180.0) }
         root.findViewById<View>(R.id.setWait5).setOnClickListener { callbacks.onSetWait(300.0) }
         root.findViewById<View>(R.id.setWait10).setOnClickListener { callbacks.onSetWait(600.0) }
+        root.findViewById<View>(R.id.devRoom).setOnClickListener { callbacks.onEditRoom(roomShown) }
         root.findViewById<View>(R.id.devCharName).setOnClickListener { callbacks.onEditCharacterName(charNameShown) }
         root.findViewById<View>(R.id.devMs).setOnClickListener { callbacks.onEditCorrection(correctionShownMs) } // 눌러서 초 단위로 직접 입력
         root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-100) }
@@ -124,6 +128,15 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     /** "내 기기" 줄: 캐릭터명, 현재 ms 보정, 저장된 클릭 위치 표시. */
     private var editMode = false
     private var lastRender: (() -> Unit)? = null
+    /** "내 기기"의 현재 방 줄. */
+    fun renderRoom(code: String) {
+        roomShown = code
+        root.findViewById<TextView>(R.id.devRoom).apply {
+            text = if (code.isEmpty()) "방 없음 (눌러서 입장)" else "방  $code  (눌러서 변경)"
+            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+        }
+    }
+
     private var detailOpen = false
     private var lastPosText = ""
     private var lastDetailText = ""

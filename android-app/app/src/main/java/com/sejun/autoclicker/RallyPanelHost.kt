@@ -21,7 +21,9 @@ class RallyPanelHost(
     private val context: Context,
     private val wm: WindowManager,
     private val stateSource: StateSource,
-    private val onSecretUnlock: () -> Unit = {}
+    private val onSecretUnlock: () -> Unit = {},
+    /** 패널에서 다른 방 번호를 입력했을 때. 새 방으로 옮기는 일은 서비스가 맡는다. */
+    private val onSwitchRoom: (String) -> Unit = {}
 ) {
     private val secretTap = RallySecretTap()
     interface StateSource {
@@ -34,6 +36,8 @@ class RallyPanelHost(
         fun onToggleExclude(teamId: String) {}
         /** 이 기기의 캐릭터명. 등록 전이면 빈 문자열. */
         fun characterName(): String = ""
+        /** 지금 들어와 있는 방 번호 */
+        fun roomCode(): String = ""
         fun onSetCharacterName(name: String) {}
         /** 관리자가 고를 수 있는 방 명단. 가져오지 못하면 null. */
         fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) { onLoaded(emptyList()) }
@@ -95,6 +99,14 @@ class RallyPanelHost(
             override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
             override fun onAssignLeader(teamId: String, teamName: String) { showAssignPicker(teamId, teamName) }
             override fun onEditCharacterName(current: String) { promptCharacterName(current) }
+            override fun onEditRoom(current: String) {
+                input.show("방 번호 (4~20자, 영문·숫자)", current, freeText = true,
+                    errorText = "방 번호는 영문·숫자 4~20자로 입력해 주세요") { text ->
+                    val code = RallyRoomCode.normalize(text) ?: return@show false
+                    if (code != current) handler.post { onSwitchRoom(code) } // 이 창과 패널이 닫힌 뒤에 옮긴다
+                    true
+                }
+            }
             override fun onEditMarch(teamId: String, currentSec: Double) {
                 val shown = if (currentSec % 1.0 == 0.0) currentSec.toInt().toString() else currentSec.toString()
                 input.show("행군시간(초)", shown) { text ->
@@ -241,6 +253,7 @@ class RallyPanelHost(
             }
         }
         val model = RallyScreenModel.build(state)
+        p.renderRoom(stateSource.roomCode())
         p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText(), stateSource.characterName(), stateSource.deviceDetailText())
         // 내 클릭을 기다리는 단계에서만: 마지막 5초는 숫자를 붉게, 1초마다 진동(0초 직전은 더 강하게)
         val waiting = model.hero.kind == HeroKind.WAIT_CLICK || model.hero.kind == HeroKind.MOVE

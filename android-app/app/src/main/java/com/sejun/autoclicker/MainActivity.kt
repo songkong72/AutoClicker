@@ -435,7 +435,8 @@ class MainActivity : AppCompatActivity() {
         binding.layoutRoomAdmin.visibility = if (admin) View.VISIBLE else View.GONE
         binding.etCharName.visibility = if (admin) View.GONE else View.VISIBLE
         if (!admin && binding.etCharName.text.isNullOrEmpty()) binding.etCharName.setText(PreferencesHelper.getRallyCharacterName(this))
-        if (binding.etRoomCode.text.isNullOrEmpty() && room.isNotEmpty()) binding.etRoomCode.setText(room)
+        // 패널에서 방을 바꿨을 수 있으니, 입력 중이 아니면 칸을 현재 방 번호에 맞춘다
+        if (room.isNotEmpty() && !binding.etRoomCode.hasFocus() && binding.etRoomCode.text.toString() != room) binding.etRoomCode.setText(room)
         binding.tvRoomStatus.text = when {
             room.isEmpty() && admin -> "아직 방이 없어요. 새 방을 만들어 번호를 팀장에게 공유하세요."
             room.isEmpty() -> "관리자에게 받은 방 번호를 입력하고 입장하세요."

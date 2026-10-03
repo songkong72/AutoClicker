@@ -192,6 +192,7 @@ class RallyRoomSync(
         "수신 방식: " + (if (streaming) "실시간" else "1초 확인"),
         MainThreadWatchdog.lastStall.ifEmpty { null }
     ).joinToString("\n")
+    override fun roomCode(): String = room
     override fun onSavePosition() = savePosition()
 
     override fun onStart() = change(RallyRoomEdit::startOrRegroup)
