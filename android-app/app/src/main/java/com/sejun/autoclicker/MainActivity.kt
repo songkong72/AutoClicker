@@ -426,16 +426,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun roomPrefs() = getSharedPreferences("AutoClickerPrefs", MODE_PRIVATE)
 
+    /** 입장 직후 명단 등록 결과(성공/실패 이유). 토스트가 안 보이는 기기가 있어 방 상태 글에 붙여 보여 준다. */
+    private var rosterStatus = ""
+
     private fun updateRallyInfoCard() {
         val room = roomPrefs().getString("cloud_room_number", "") ?: ""
         val admin = PreferencesHelper.isAdminMode(this)
         binding.layoutRoomAdmin.visibility = if (admin) View.VISIBLE else View.GONE
+        binding.etCharName.visibility = if (admin) View.GONE else View.VISIBLE
+        if (!admin && binding.etCharName.text.isNullOrEmpty()) binding.etCharName.setText(PreferencesHelper.getRallyCharacterName(this))
         if (binding.etRoomCode.text.isNullOrEmpty() && room.isNotEmpty()) binding.etRoomCode.setText(room)
         binding.tvRoomStatus.text = when {
             room.isEmpty() && admin -> "아직 방이 없어요. 새 방을 만들어 번호를 팀장에게 공유하세요."
             room.isEmpty() -> "관리자에게 받은 방 번호를 입력하고 입장하세요."
             admin -> "방 $room · 관리자"
-            else -> "방 $room · 팀장"
+            else -> "방 $room · 팀장" + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
         }
     }
 
@@ -446,9 +451,36 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "방 번호를 4자리 이상 입력해 주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            val admin = PreferencesHelper.isAdminMode(this)
+            val name = RallyRoster.cleanName(binding.etCharName.text.toString())
+            if (!admin && name.isEmpty()) {
+                Toast.makeText(this, "캐릭터명을 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                rosterStatus = "캐릭터명을 입력해야 입장할 수 있어요"
+                updateRallyInfoCard()
+                return@setOnClickListener
+            }
             roomPrefs().edit().putString("cloud_room_number", code).apply()
             AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
             Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
+            if (admin) {
+                rosterStatus = ""
+            } else {
+                // 이름을 저장하고 곧바로 방 명단에 올려, 관리자 목록에 바로 나타나게 한다.
+                PreferencesHelper.setRallyCharacterName(this, name)
+                binding.etCharName.setText(name)
+                rosterStatus = "명단에 등록하는 중…"
+                val memberId = PreferencesHelper.getRallyMemberId(this)
+                val auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
+                    load = { roomPrefs().getString("fb_refresh", null) },
+                    save = { t -> roomPrefs().edit().putString("fb_refresh", t).apply() })
+                Thread {
+                    val err = RallyRoomSync.registerMember(RallyRoomSync.DB_URL, auth, code, memberId, name)
+                    runOnUiThread {
+                        rosterStatus = if (err == null) "✓ 명단에 등록됐어요 ($name)" else "✗ 명단 등록 실패: $err"
+                        updateRallyInfoCard()
+                    }
+                }.start()
+            }
             updateRallyInfoCard()
         }
         binding.btnNewRoom.setOnClickListener {

@@ -266,16 +266,32 @@ class RallyRoomSync(
 
     /** 방 명단에 내 항목(rallyMembers/{방}/{내 ID})을 쓴다. 이름이 없으면 아무것도 하지 않는다. */
     private fun registerSelf() {
-        try {
-            val body = RallyRoster.encode(memberId, getCharacterName()) ?: return
-            val c = URL(membersUrl("/$memberId")).openConnection() as HttpURLConnection
-            c.requestMethod = "PUT"
-            c.setRequestProperty("Content-Type", "application/json")
-            c.connectTimeout = 3000; c.readTimeout = 3000
-            c.doOutput = true
-            c.outputStream.use { it.write(JSONObject(body).toString().toByteArray()) }
-            c.inputStream.close()
-        } catch (e: Exception) { dropTokenIf401(e) }
+        if (getCharacterName().isBlank()) return
+        registerMember(dbUrl, auth, room, memberId, getCharacterName())
+    }
+
+    companion object {
+        const val DB_URL = "https://autoclicker-cf5a4-default-rtdb.firebaseio.com"
+
+        /** 방 명단에 이 기기를 올린다. 성공하면 null, 실패하면 화면에 보여 줄 이유를 돌려준다. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다. */
+        fun registerMember(dbUrl: String, auth: FirebaseAuthClient?, room: String, memberId: String, rawName: String): String? {
+            val body = RallyRoster.encode(memberId, rawName) ?: return "캐릭터명이 비어 있어요"
+            return try {
+                val url = FirebaseAuthCodec.withAuth("$dbUrl/rallyMembers/$room/$memberId.json", auth?.token())
+                val c = URL(url).openConnection() as HttpURLConnection
+                c.requestMethod = "PUT"
+                c.setRequestProperty("Content-Type", "application/json")
+                c.connectTimeout = 3000; c.readTimeout = 3000
+                c.doOutput = true
+                c.outputStream.use { it.write(JSONObject(body).toString().toByteArray()) }
+                c.inputStream.close()
+                null
+            } catch (e: Exception) {
+                val m = e.message ?: e.javaClass.simpleName
+                if (m.contains("401") || m.contains("403")) auth?.invalidate()
+                m.take(80)
+            }
+        }
     }
 
     private fun getMembers(): Map<String, Any?>? {

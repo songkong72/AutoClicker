@@ -226,7 +226,7 @@ class AutoClickService : AccessibilityService() {
     private var currentOverlayAlpha: Float = 1.0f
     
     
-    private val firebaseDbUrl = "https://autoclicker-cf5a4-default-rtdb.firebaseio.com"
+    private val firebaseDbUrl = RallyRoomSync.DB_URL
 
     var onStatusChanged: ((Boolean) -> Unit)? = null
     var onClickExecuted: (() -> Unit)? = null
