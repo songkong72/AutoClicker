@@ -1398,8 +1398,11 @@ class AutoClickService : AccessibilityService() {
         // --- Bear Hunter Mode Restored UI ---
     private var bearSetupView: View? = null
     private var bearSetupParams: WindowManager.LayoutParams? = null
-    private var targetFlag1View: View? = null
-    private var targetFlag1Params: WindowManager.LayoutParams? = null
+    // 쓸 부대 표시(번호별). 개수만큼 만들어 각자 깃발 위에 놓는다.
+    private val troopMarkers = ArrayList<android.widget.TextView>()
+    private val troopMarkerParams = ArrayList<WindowManager.LayoutParams>()
+    private var troopCountSetting = 1
+    private var troopCountLabel: android.widget.TextView? = null
 
     private var hunterFireView: View? = null
 
@@ -1459,6 +1462,7 @@ class AutoClickService : AccessibilityService() {
         HunterModeManager.isHunterModeEnabled = !HunterModeManager.isHunterModeEnabled
         val btnBearMode = controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)
         if (HunterModeManager.isHunterModeEnabled) {
+            HunterModeManager.resetSequence() // 켤 때마다 1번 부대부터
             btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#10B981")) // 초록: 켜짐
             showHunterFireButton()
             if (HunterModeManager.hasTargets) {
@@ -1485,6 +1489,7 @@ class AutoClickService : AccessibilityService() {
     }
 
     private fun showBearSetupUi() {
+        troopCountSetting = HunterTroops.clampCount(HunterModeManager.troops.size)
         if (bearSetupView == null) {
             val ctx = this
             bearSetupView = android.widget.LinearLayout(this).apply {
@@ -1493,24 +1498,46 @@ class AutoClickService : AccessibilityService() {
                 setPadding(24, 16, 24, 16)
 
                 addView(android.widget.TextView(ctx).apply {
-                    text = "과녁 → 출정 버튼 위에\n'부대' 표시 → 쓸 부대 깃발 위에 놓고 저장"
+                    text = "과녁 → 출정 버튼 위에\n'부대1, 부대2…' 표시 → 쓸 부대 깃발 위에 순서대로 놓고 저장\n(누를 때마다 1번부터 차례로 출정)"
                     setTextColor(Color.WHITE)
                     textSize = 12f
                     gravity = android.view.Gravity.CENTER
+                })
+                addView(android.widget.LinearLayout(ctx).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER
+                    fun stepButton(label: String, delta: Int) = android.widget.Button(ctx).apply {
+                        text = label
+                        setBackgroundColor(Color.parseColor("#334155"))
+                        setTextColor(Color.WHITE)
+                        setOnClickListener {
+                            troopCountSetting = HunterTroops.clampCount(troopCountSetting + delta)
+                            syncTroopMarkers()
+                        }
+                    }
+                    addView(stepButton("−", -1))
+                    val countText = android.widget.TextView(ctx).apply {
+                        setTextColor(Color.WHITE)
+                        textSize = 14f
+                        gravity = android.view.Gravity.CENTER
+                        setPadding(24, 0, 24, 0)
+                    }
+                    troopCountLabel = countText
+                    addView(countText)
+                    addView(stepButton("+", 1))
                 })
                 addView(android.widget.Button(ctx).apply {
                     text = "헌터 위치 저장"
                     setBackgroundColor(Color.parseColor("#3B82F6"))
                     setTextColor(Color.WHITE)
                     setOnClickListener {
-                        val troop = centerOnScreen(targetFlag1View)
+                        val points = troopMarkers.map { centerOnScreen(it) }
                         val dispatch = centerOnScreen(targetView)
-                        if (troop == null || dispatch == null) {
-                            showToast("⚠️ 위치를 읽지 못했어요. 과녁이 보이는지 확인하세요")
+                        if (points.isEmpty() || points.any { it == null } || dispatch == null) {
+                            showToast("⚠️ 위치를 읽지 못했어요. 과녁과 부대 표시가 보이는지 확인하세요")
                             return@setOnClickListener
                         }
-                        HunterModeManager.troopX = troop.first
-                        HunterModeManager.troopY = troop.second
+                        HunterModeManager.troops = points.map { TroopPoint(it!!.first, it.second) }
                         HunterModeManager.dispatchX = dispatch.first
                         HunterModeManager.dispatchY = dispatch.second
                         HunterModeManager.saveSettings(ctx)
@@ -1533,33 +1560,56 @@ class AutoClickService : AccessibilityService() {
 
         try { windowManager?.addView(bearSetupView, bearSetupParams) } catch (e: Exception) {}
 
-        if (targetFlag1View == null) {
-            targetFlag1View = android.widget.TextView(this).apply {
-                text = "부대"
-                textSize = 16f
-                setTextColor(Color.WHITE)
-                setBackgroundColor(Color.parseColor("#CC10B981"))
-                setPadding(20, 12, 20, 12)
-            }
-            targetFlag1Params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT
-            ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = 100; y = 300 }
-            setupDrag(targetFlag1View!!, targetFlag1Params!!)
-        }
-        try { windowManager?.addView(targetFlag1View, targetFlag1Params) } catch (e: Exception) {}
+        syncTroopMarkers()
 
         if (!isTargetVisible) {
             toggleTargetVisibility()
         }
     }
 
+    /** 부대 표시를 [troopCountSetting]개에 맞춘다. 이미 있는 표시는 위치를 그대로 둔다. */
+    private fun syncTroopMarkers() {
+        val wm = windowManager ?: return
+        val dp = resources.displayMetrics.density
+        while (troopMarkers.size > troopCountSetting) {
+            val i = troopMarkers.size - 1
+            try { wm.removeView(troopMarkers[i]) } catch (e: Exception) {}
+            troopMarkers.removeAt(i)
+            troopMarkerParams.removeAt(i)
+        }
+        while (troopMarkers.size < troopCountSetting) {
+            val i = troopMarkers.size
+            val marker = android.widget.TextView(this).apply {
+                text = "부대${i + 1}"
+                textSize = 16f
+                setTextColor(Color.WHITE)
+                setBackgroundColor(Color.parseColor("#CC10B981"))
+                setPadding(20, 12, 20, 12)
+            }
+            val lp = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = android.view.Gravity.TOP or android.view.Gravity.START
+                x = 100
+                y = ((100 + i * 56) * dp).toInt()
+            }
+            setupDrag(marker, lp)
+            try { wm.addView(marker, lp) } catch (e: Exception) {}
+            troopMarkers.add(marker)
+            troopMarkerParams.add(lp)
+        }
+        troopCountLabel?.text = "부대 ${troopCountSetting}개"
+    }
+
     private fun hideBearSetupUi() {
         try { windowManager?.removeView(bearSetupView) } catch (e: Exception) {}
-        try { windowManager?.removeView(targetFlag1View) } catch (e: Exception) {}
+        troopMarkers.forEach { try { windowManager?.removeView(it) } catch (e: Exception) {} }
+        troopMarkers.clear()
+        troopMarkerParams.clear()
     }
 
     private fun setupDrag(view: View, params: WindowManager.LayoutParams) {
