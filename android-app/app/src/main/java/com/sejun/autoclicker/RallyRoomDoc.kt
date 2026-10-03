@@ -136,8 +136,13 @@ object RallyRoomEdit {
         mapTeam(doc, teamId) { it.copy(leaderId = "", leaderName = "") }
 
     /** 이 기기(사람)에게 배정된 군단 ID. 배정이 없으면 빈 문자열. */
-    fun teamIdOf(doc: RallyRoomDoc, memberId: String): String =
-        if (memberId.isBlank()) "" else doc.teams.firstOrNull { it.leaderId == memberId }?.id ?: ""
+    fun teamIdOf(doc: RallyRoomDoc, memberId: String, characterName: String = ""): String {
+        if (memberId.isNotBlank()) doc.teams.firstOrNull { it.leaderId == memberId }?.let { return it.id }
+        // 앱을 지웠다 다시 깔아 기기 ID가 바뀐 경우를 위한 보조 수단: 배정된 이름이 내 캐릭터명과 같고 그 이름의 군단이 하나뿐이면 내 군단으로 본다.
+        val name = characterName.trim()
+        if (name.isEmpty()) return ""
+        return doc.teams.filter { it.leaderName.trim() == name }.singleOrNull()?.id ?: ""
+    }
 
     fun setExcluded(doc: RallyRoomDoc, teamId: String, excluded: Boolean): RallyRoomDoc =
         mapTeam(doc, teamId) { it.copy(excluded = excluded) }

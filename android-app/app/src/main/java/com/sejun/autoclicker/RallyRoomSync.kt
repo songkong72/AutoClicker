@@ -40,7 +40,7 @@ class RallyRoomSync(
 
     private val main = Handler(Looper.getMainLooper())
     /** 내 군단은 관리자의 배정에서 정해진다. 배정이 없으면 빈 문자열. */
-    private val myTeamId: String get() = RallyRoomEdit.teamIdOf(doc, memberId)
+    private val myTeamId: String get() = RallyRoomEdit.teamIdOf(doc, memberId, getCharacterName())
     @Volatile private var doc: RallyRoomDoc = RallyRoomCodec.decode(null)
     @Volatile private var online = false
     private val startDetector = RallyStartDetector()
@@ -175,7 +175,7 @@ class RallyRoomSync(
         (correctionMs().toInt() + deltaMs).coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS)
     )
     private fun myAdminAdjustMs(d: RallyRoomDoc = doc): Int =
-        RallyRoomEdit.teamIdOf(d, memberId).let { mine -> d.teams.firstOrNull { it.id == mine }?.adminAdjustMs ?: 0 }
+        RallyRoomEdit.teamIdOf(d, memberId, getCharacterName()).let { mine -> d.teams.firstOrNull { it.id == mine }?.adminAdjustMs ?: 0 }
 
     override fun devicePositionText(): String =
         myAdminAdjustMs().let { a -> if (a == 0) "" else "관리자 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)\n" } +

@@ -69,6 +69,26 @@ class RallyAssignTest {
         assertEquals("", RallyRoomEdit.teamIdOf(d, ""))
     }
 
+    @Test fun teamIdOfFallsBackToCharacterNameWhenDeviceIdChanged() {
+        val d = RallyRoomEdit.assignLeader(room(), "t2", "m-old", "윈터")
+        // 앱을 다시 깔아 ID가 m-new로 바뀌어도 같은 이름이면 내 군단
+        assertEquals("t2", RallyRoomEdit.teamIdOf(d, "m-new", "윈터"))
+        assertEquals("", RallyRoomEdit.teamIdOf(d, "m-new", "다른사람"))
+        assertEquals("", RallyRoomEdit.teamIdOf(d, "m-new", ""))
+    }
+
+    @Test fun idMatchWinsOverNameMatch() {
+        var d = RallyRoomEdit.assignLeader(room(), "t1", "m-me", "눈보라")
+        d = RallyRoomEdit.assignLeader(d, "t3", "m-other", "윈터")
+        assertEquals("t1", RallyRoomEdit.teamIdOf(d, "m-me", "윈터"))
+    }
+
+    @Test fun duplicateNamesDoNotGuess() {
+        var d = RallyRoomEdit.assignLeader(room(), "t1", "m-a", "윈터")
+        d = RallyRoomEdit.assignLeader(d, "t2", "m-b", "윈터")
+        assertEquals("", RallyRoomEdit.teamIdOf(d, "m-new", "윈터"))
+    }
+
     // ---- 문서 코덱 ----
 
     @Test fun codecRoundTripKeepsLeaderId() {
