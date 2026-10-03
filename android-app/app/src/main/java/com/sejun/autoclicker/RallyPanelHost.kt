@@ -159,7 +159,10 @@ class RallyPanelHost(
         stateSource.loadRoster { roster ->
             if (panel == null) return@loadRoster
             if (roster == null) {
-                android.widget.Toast.makeText(context, "명단을 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요", android.widget.Toast.LENGTH_SHORT).show()
+                // 토스트는 기기에 따라 안 보이므로 목록 창 안에 이유를 적는다.
+                pick.show("$teamName 을(를) 맡을 사람", emptyList(),
+                    "명단을 불러오지 못했어요. 인터넷 연결과 Firebase 규칙 게시(rallyMembers) 여부를 확인해 주세요",
+                    listOf(RallyPickPopup.Item("닫기") { }))
                 return@loadRoster
             }
             val teams = stateSource.current().teams
