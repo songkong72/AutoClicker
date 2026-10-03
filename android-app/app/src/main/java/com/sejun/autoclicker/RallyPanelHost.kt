@@ -175,8 +175,11 @@ class RallyPanelHost(
             }
             val teams = stateSource.current().teams
             val assignedTo = teams.filter { it.leaderId.isNotEmpty() }.associate { it.leaderId to it.name }
+            val dupNames = roster.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
             val items = roster.map { m ->
-                RallyPickPopup.Item(m.name + (assignedTo[m.id]?.let { "  ·  $it" } ?: "")) {
+                // 같은 이름이 둘이면(앱을 다시 설치한 경우) 기기 ID 끝 4자리로 구별한다. 팀장 화면의 "내 기기"에 같은 값이 보인다.
+                val label = m.name + (if (m.name in dupNames) " (…${m.id.takeLast(4)})" else "")
+                RallyPickPopup.Item(label + (assignedTo[m.id]?.let { "  ·  $it" } ?: "")) {
                     stateSource.onAssignLeader(teamId, m.id, m.name); refresh()
                 }
             }

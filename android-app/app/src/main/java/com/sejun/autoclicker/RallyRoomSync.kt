@@ -178,6 +178,7 @@ class RallyRoomSync(
         RallyRoomEdit.teamIdOf(d, memberId, getCharacterName()).let { mine -> d.teams.firstOrNull { it.id == mine }?.adminAdjustMs ?: 0 }
 
     override fun devicePositionText(): String =
+        "기기 ID …${memberId.takeLast(4)} · 배정: " + (myTeamId.let { id -> doc.teams.firstOrNull { it.id == id }?.name ?: "아직 없음" }) + "\n" +
         myAdminAdjustMs().let { a -> if (a == 0) "" else "관리자 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)\n" } +
         positionText() + (if (lastDiag.isNotEmpty()) "\n$lastDiag" else "") + (if (clickResult.isNotEmpty()) "\n$clickResult" else "") + "\n수신 방식: " + (if (streaming) "실시간" else "1초 확인") +
         (MainThreadWatchdog.lastStall.let { if (it.isEmpty()) "" else "\n$it" })
@@ -273,6 +274,28 @@ class RallyRoomSync(
     companion object {
         const val DB_URL = "https://autoclicker-cf5a4-default-rtdb.firebaseio.com"
 
+        /**
+         * 같은 이름의 예전 항목(앱을 지우고 다시 설치해 ID가 바뀐 경우)을 지운다. 지우지 않으면 관리자 목록에
+         * 같은 이름이 둘 보이고, 예전 ID로 배정하면 이 기기는 배정된 줄 모르게 된다. 실패해도 등록 자체는 성공으로 둔다.
+         */
+        private fun removeStaleSameName(dbUrl: String, auth: FirebaseAuthClient?, room: String, memberId: String, name: String) {
+            try {
+                val list = URL(FirebaseAuthCodec.withAuth("$dbUrl/rallyMembers/$room.json", auth?.token())).openConnection() as HttpURLConnection
+                list.connectTimeout = 3000; list.readTimeout = 3000
+                val text = list.inputStream.bufferedReader().use { it.readText() }.trim()
+                if (text == "null" || text.isEmpty()) return
+                val all = JSONObject(text)
+                for (key in all.keys().asSequence().toList()) {
+                    if (key == memberId) continue
+                    if (RallyRoster.cleanName(all.optJSONObject(key)?.optString("name") ?: "") != name) continue
+                    val del = URL(FirebaseAuthCodec.withAuth("$dbUrl/rallyMembers/$room/$key.json", auth?.token())).openConnection() as HttpURLConnection
+                    del.requestMethod = "DELETE"
+                    del.connectTimeout = 3000; del.readTimeout = 3000
+                    del.inputStream.close()
+                }
+            } catch (_: Exception) { }
+        }
+
         /** 방 명단에 이 기기를 올린다. 성공하면 null, 실패하면 화면에 보여 줄 이유를 돌려준다. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다. */
         fun registerMember(dbUrl: String, auth: FirebaseAuthClient?, room: String, memberId: String, rawName: String): String? {
             val body = RallyRoster.encode(memberId, rawName) ?: return "캐릭터명이 비어 있어요"
@@ -285,6 +308,7 @@ class RallyRoomSync(
                 c.doOutput = true
                 c.outputStream.use { it.write(JSONObject(body).toString().toByteArray()) }
                 c.inputStream.close()
+                removeStaleSameName(dbUrl, auth, room, memberId, RallyRoster.cleanName(rawName))
                 null
             } catch (e: Exception) {
                 val m = e.message ?: e.javaClass.simpleName
