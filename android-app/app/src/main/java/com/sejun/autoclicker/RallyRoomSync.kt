@@ -162,7 +162,7 @@ class RallyRoomSync(
             else -> RallyRunState.IDLE
         }
         val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded, it.adminAdjustMs, it.leaderId) }
-        return RallyRoomState(teams, RallyRoomEdit.teamIdOf(d, memberId), d.prepSec, d.waitSec, run, elapsed, positionSaved(),
+        return RallyRoomState(teams, RallyRoomEdit.teamIdOf(d, memberId, getCharacterName()), d.prepSec, d.waitSec, run, elapsed, positionSaved(),
             characterNameSet = isAdmin || getCharacterName().isNotBlank())
     }
 
