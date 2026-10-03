@@ -208,7 +208,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val inflater = LayoutInflater.from(themed)
             repeat(list.size) { rows.addView(inflater.inflate(R.layout.item_rally_team_row, rows, false)) }
         }
-        val lags = RallyPanelFormat.lagLabels(list.map { LagInput(it.marchSec, it.adminAdjustMs, it.excluded) })
+        // 내 줄에는 이 폰의 "내 보정"(내 기기)도 더한다. 다른 팀장 폰의 보정은 방 데이터에 없어 알 수 없다.
+        val lags = RallyPanelFormat.lagLabels(list.map { LagInput(it.marchSec, it.adminAdjustMs + (if (it.isMine) correctionShownMs else 0), it.excluded) })
         list.forEachIndexed { i, r ->
             val v = rows.getChildAt(i)
             v.setBackgroundColor(if (r.isMine) Color.parseColor("#1F3B82F6") else Color.TRANSPARENT)
