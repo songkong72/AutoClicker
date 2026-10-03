@@ -213,7 +213,7 @@ class AutoClickService : AccessibilityService() {
                 },
                 onClickDue = { performRallyClickNow() },
                 onClickArm = { on -> rallyClickArmed = on; setTargetTouchable(!on) },
-                onRallyStart = { rallyPanelHost?.let { if (!it.isShowing) it.show(askName = false) } },
+                onRallyStart = { rallyPanelHost?.let { if (!it.isShowing) it.show() } },
                 onCancel = { }
             ).also { it.start(); rallyRoomSync = it }
             RallyPanelHost(this, wm, source, onSecretUnlock = { unlockBearMode() }).also { rallyPanelHost = it }

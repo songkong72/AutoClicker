@@ -81,8 +81,7 @@ class RallyPanelHost(
     /** 설정의 오버레이 투명도를 패널에 반영한다. */
     fun applyAlpha(a: Float) { panel?.root?.alpha = a; input.applyAlpha(a); pick.applyAlpha(a) }
 
-    /** [askName]이 true면 캐릭터명이 비어 있을 때 바로 묻는다. 시작 신호로 자동으로 열 때는 묻지 않는다. */
-    fun show(askName: Boolean = true) {
+    fun show() {
         if (panel != null) return
         val view = RallyPanelView(context, object : RallyPanelView.Callbacks {
             override fun onStart() { stateSource.onStart(); refresh() }
@@ -143,8 +142,6 @@ class RallyPanelHost(
         params = lp
         refresh()
         handler.post(tick)
-        // 팀장은 캐릭터명을 등록해야 관리자가 명단에서 찾아 군단을 배정할 수 있다. 처음 열 때 바로 묻는다.
-        if (askName && !stateSource.isAdmin && stateSource.characterName().isBlank()) promptCharacterName("")
     }
 
     private fun promptCharacterName(current: String) {
