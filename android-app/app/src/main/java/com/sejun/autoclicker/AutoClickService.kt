@@ -800,9 +800,15 @@ class AutoClickService : AccessibilityService() {
         opacityPanelParams = null
     }
 
+    /** 바깥 터치로 투명도 패널이 닫힌 시각. 같은 터치의 버튼 클릭이 패널을 다시 여는 것을 막는다. */
+    private var opacityPanelClosedByOutsideAt = 0L
+
     fun toggleOpacityPanel() {
         if (opacityPanelView != null) {
             hideOpacityPanel()
+        } else if (System.currentTimeMillis() - opacityPanelClosedByOutsideAt < 600) {
+            // 방금 바깥 터치(🌓 버튼 자신 포함)로 닫힌 것 → 그대로 닫힌 채로 둔다.
+            opacityPanelClosedByOutsideAt = 0L
         } else {
             showOpacityPanel()
         }
@@ -878,6 +884,9 @@ class AutoClickService : AccessibilityService() {
         view.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
                 if (System.currentTimeMillis() - panelCreationTime > 200) {
+                    // 🌓 버튼을 다시 눌러 닫는 경우: 바깥 터치(DOWN)로 먼저 닫히고 곧이어 버튼 클릭이
+                    // 들어오므로, 그 클릭이 패널을 다시 열지 않게 시각을 기록해 둔다.
+                    opacityPanelClosedByOutsideAt = System.currentTimeMillis()
                     hideOpacityPanel()
                 }
                 true
