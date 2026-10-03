@@ -183,6 +183,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val inflater = LayoutInflater.from(themed)
             repeat(list.size) { rows.addView(inflater.inflate(R.layout.item_rally_team_row, rows, false)) }
         }
+        val firstMarch = list.filter { !it.excluded }.maxOfOrNull { it.marchSec } ?: 0.0
         list.forEachIndexed { i, r ->
             val v = rows.getChildAt(i)
             v.setBackgroundColor(if (r.isMine) Color.parseColor("#1F3B82F6") else Color.TRANSPARENT)
@@ -214,11 +215,13 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 alpha = if (r.excluded) 0.45f else 1f
             }
             v.findViewById<TextView>(R.id.rowMarch).apply {
-                // 행군시간 아래에 1번째 군단(기준)과의 차이를 작게 보여 준다. 기준 줄에는 "기준".
+                // 행군시간 아래에, 가장 먼저 출발하는 군단(행군이 가장 긴 군단)보다 몇 초 늦게 출발하는지 작게 보여 준다.
+                // 먼저 출발하는 군단 줄에는 "기준". 제외된 군단은 표시하지 않는다.
                 val main = RallyPanelFormat.sec(r.marchSec) + "s"
-                val sub = if (i == 0) "기준" else RallyPanelFormat.diff(r.marchSec - list[0].marchSec)
+                val sub = if (r.excluded) "" else RallyPanelFormat.laterThanFirst(r.marchSec, firstMarch)
                 gravity = android.view.Gravity.CENTER_HORIZONTAL
-                text = android.text.SpannableStringBuilder("$main\n$sub").apply {
+                text = if (sub.isEmpty()) android.text.SpannableStringBuilder(main)
+                else android.text.SpannableStringBuilder("$main\n$sub").apply {
                     setSpan(android.text.style.RelativeSizeSpan(0.8f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
             }
