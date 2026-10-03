@@ -29,6 +29,12 @@ class FirebaseAuthClient(
         return fresh?.idToken ?: s?.idToken
     }
 
+    /** 이 기기의 Firebase 익명 사용자 ID. 서버 관리자 명단에서 이 폰을 가리키는 값이다. 받지 못하면 null. 백그라운드 스레드에서 부른다. */
+    fun uid(): String? {
+        token()
+        return session?.uid?.takeIf { it.isNotEmpty() }
+    }
+
     /** 서버가 토큰을 거절(401)하면 다음 요청에서 새로 받게 한다. */
     @Synchronized fun invalidate() { session = null }
 

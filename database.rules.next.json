@@ -1,0 +1,116 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rallyRooms": {
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null && $room.length >= 1 && $room.length <= 40",
+        "teams": {
+          "$i": {
+            ".validate": "$i.matches(/^[0-9]{1,2}$/)",
+            "id": {
+              ".validate": "newData.isString() && newData.val().length <= 20"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            },
+            "leaderName": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "marchSec": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
+            },
+            "excluded": {
+              ".validate": "newData.isBoolean()"
+            },
+            "adminAdjustMs": {
+              ".validate": "newData.isNumber() && newData.val() >= -5000 && newData.val() <= 5000"
+            },
+            "leaderId": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "prepSec": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
+        },
+        "waitSec": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
+        },
+        "run": {
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Z_]{1,16}$/)"
+        },
+        "startSeq": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "rallyMembers": {
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null && $room.length >= 1 && $room.length <= 40",
+        "$id": {
+          ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,40}$/)",
+          "name": {
+            ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "owners": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": false
+      }
+    },
+    "admins": {
+      ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && (root.child('owners').child(auth.uid).exists() || (auth.uid == $uid && !data.exists() && newData.child('code').exists() && root.child('adminCodes').child(newData.child('code').val()).child('usedBy').val() == auth.uid))",
+        ".validate": "newData.hasChild('registeredAt')",
+        "code": {
+          ".validate": "newData.isString() && newData.val().matches(/^AD-[2-9A-HJ-NP-Z]{8}$/)"
+        },
+        "registeredAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "adminCodes": {
+      ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
+      "$code": {
+        ".write": "auth != null && root.child('owners').child(auth.uid).exists()",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "expiresAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "usedBy": {
+          ".write": "auth != null && !data.exists() && newData.val() == auth.uid && root.child('adminCodes').child($code).child('expiresAt').val() > now",
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}

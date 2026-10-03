@@ -92,6 +92,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         checkAppVersion()
+        verifyServerAdmin()
         updateAuthUI()
         loadSettings()
         updateRallyInfoCard()
@@ -579,18 +580,53 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showAdminMenu() {
-        AlertDialog.Builder(this)
-            .setTitle("관리자")
-            .setItems(arrayOf("초대코드 발급 · 관리자 패널", "관리자 모드 해제 (팀장 화면으로)")) { _, which ->
-                if (which == 0) {
-                    showAdminPanelDialog()
-                } else {
+    /** 서버 관리자 명단과 통신하는 객체. 앱과 서비스가 같은 익명 로그인(같은 기기 ID)을 쓴다. */
+    private fun adminServer(): AdminServer {
+        val auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
+            load = { roomPrefs().getString("fb_refresh", null) },
+            save = { t -> roomPrefs().edit().putString("fb_refresh", t).apply() })
+        return AdminServer(RallyRoomSync.DB_URL, auth)
+    }
+
+    /**
+     * 관리자 코드로 들어온 기기는 서버 명단에서 지워졌는지 확인한다. 서버가 분명히 "명단에 없다"고 답했을 때만 관리자 모드를 푼다.
+     * 네트워크 오류나 서버 규칙 미적용(알 수 없음)일 때는 그대로 둔다. 비밀번호로 들어온 기기는 건드리지 않는다.
+     */
+    private fun verifyServerAdmin() {
+        if (!PreferencesHelper.isAdminMode(this) || !PreferencesHelper.isAdminViaServer(this)) return
+        Thread {
+            val server = adminServer()
+            val uid = server.uid().value ?: return@Thread
+            if (server.isAdmin(uid) == Check.NO) {
+                runOnUiThread {
                     PreferencesHelper.setAdminMode(this, false)
-                    AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
-                    Toast.makeText(this, "관리자 모드를 해제했어요.", Toast.LENGTH_SHORT).show()
+                    PreferencesHelper.setAdminViaServer(this, false)
+                    AutoClickService.instance?.leaveRallyRoom()
+                    Toast.makeText(this, "관리자 권한이 해제되었어요. 팀장 화면으로 돌아갑니다.", Toast.LENGTH_LONG).show()
                     updateAuthUI()
                     updateRallyInfoCard()
+                }
+            }
+        }.start()
+    }
+
+    private fun showAdminMenu() {
+        val items = arrayOf("초대코드 발급 · 관리자 패널", "관리자 관리 (개발자 전용)", "내 기기 ID 보기", "관리자 모드 해제 (팀장 화면으로)")
+        AlertDialog.Builder(this)
+            .setTitle("관리자")
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> showAdminPanelDialog()
+                    1 -> AdminRosterUi(this, adminServer()).showManage()
+                    2 -> AdminRosterUi(this, adminServer()).showMyId()
+                    else -> {
+                        PreferencesHelper.setAdminMode(this, false)
+                        PreferencesHelper.setAdminViaServer(this, false)
+                        AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
+                        Toast.makeText(this, "관리자 모드를 해제했어요.", Toast.LENGTH_SHORT).show()
+                        updateAuthUI()
+                        updateRallyInfoCard()
+                    }
                 }
             }
             .setNegativeButton("닫기", null)
@@ -648,7 +684,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAdminLoginDialog() {
         val input = EditText(this).apply {
-            hint = "비밀번호를 입력하세요"
+            hint = "비밀번호 또는 관리자 코드(AD-…)"
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
             setPadding(50, 40, 50, 40)
@@ -656,12 +692,31 @@ class MainActivity : AppCompatActivity() {
 
         AlertDialog.Builder(this)
             .setTitle("👑 관리자 로그인")
-            .setMessage("관리자 비밀번호를 입력해 주세요.")
+            .setMessage("관리자 비밀번호나, 개발자에게 받은 관리자 코드를 입력해 주세요.")
             .setView(input)
             .setPositiveButton("확인") { d, _ ->
                 val pass = input.text.toString().trim()
-                if (InvitationManager.checkAdminPassword(this, pass)) {
+                if (AdminRoster.looksLikeCode(pass)) {
+                    // 관리자 코드: 서버 명단에 올라야 관리자가 된다
+                    Toast.makeText(this, "관리자 코드를 확인하는 중…", Toast.LENGTH_SHORT).show()
+                    Thread {
+                        val err = adminServer().redeem(pass)
+                        runOnUiThread {
+                            if (err == null) {
+                                PreferencesHelper.setAdminMode(this, true)
+                                PreferencesHelper.setAdminViaServer(this, true)
+                                updateAuthUI()
+                                updateRallyInfoCard()
+                                Toast.makeText(this, "👑 관리자로 등록됐어요.", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(this, "❌ $err", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }.start()
+                    d.dismiss()
+                } else if (InvitationManager.checkAdminPassword(this, pass)) {
                     PreferencesHelper.setAdminMode(this, true)
+                    PreferencesHelper.setAdminViaServer(this, false)
                     updateAuthUI()
                     updateRallyInfoCard()
                     Toast.makeText(this, "👑 관리자 모드로 진입합니다.", Toast.LENGTH_SHORT).show()

@@ -218,6 +218,15 @@ object PreferencesHelper {
         getPrefs(context).edit().putBoolean(KEY_IS_ADMIN_MODE, enabled).apply()
     }
 
+    private const val KEY_ADMIN_VIA_SERVER = "key_admin_via_server"
+
+    /** 관리자 코드로 서버 명단에 올라 관리자가 된 기기인지(비밀번호로 들어간 기기는 false). 서버에서 지우면 앱이 관리자 모드를 풀어 준다. */
+    fun isAdminViaServer(context: Context): Boolean = getPrefs(context).getBoolean(KEY_ADMIN_VIA_SERVER, false)
+
+    fun setAdminViaServer(context: Context, viaServer: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_ADMIN_VIA_SERVER, viaServer).apply()
+    }
+
     fun getVerifiedUserId(context: Context): String {
         return getPrefs(context).getString(KEY_VERIFIED_USER_ID, "") ?: ""
     }

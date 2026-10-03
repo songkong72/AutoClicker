@@ -3,7 +3,7 @@ package com.sejun.autoclicker
 import java.net.URLEncoder
 
 /** Firebase 익명 로그인으로 받은 토큰. */
-data class AuthSession(val idToken: String, val refreshToken: String, val expiresAtMs: Long) {
+data class AuthSession(val idToken: String, val refreshToken: String, val expiresAtMs: Long, val uid: String = "") {
     /** 만료 5분 전부터 갱신한다. */
     fun needsRefresh(nowMs: Long) = nowMs >= expiresAtMs - 300_000L
 }
@@ -16,7 +16,8 @@ object FirebaseAuthCodec {
         val rf = field(text, "refreshToken") ?: field(text, "refresh_token")
         if (id.isNullOrEmpty() || rf.isNullOrEmpty()) return null
         val sec = (field(text, "expiresIn") ?: field(text, "expires_in"))?.toLongOrNull() ?: 3600L
-        return AuthSession(id, rf, nowMs + sec * 1000L)
+        val uid = field(text, "localId") ?: field(text, "user_id") ?: ""
+        return AuthSession(id, rf, nowMs + sec * 1000L, uid)
     }
 
     /** 평평한 JSON에서 문자열 값 하나를 꺼낸다(토큰은 따옴표/역슬래시를 포함하지 않는다). */
