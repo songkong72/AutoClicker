@@ -145,7 +145,7 @@ class RallyPanelHost(
     }
 
     private fun promptCharacterName(current: String) {
-        input.show("게임 캐릭터명 · 관리자가 이 이름을 보고 군단을 배정해요", current, text = true,
+        input.show("게임 캐릭터명 · 관리자가 이 이름을 보고 군단을 배정해요", current, freeText = true,
             errorText = "캐릭터명을 입력해 주세요 (최대 ${RallyRoster.MAX_NAME}자)") { text ->
             val name = RallyRoster.cleanName(text)
             if (name.isEmpty()) return@show false
