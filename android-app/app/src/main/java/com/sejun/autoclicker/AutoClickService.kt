@@ -1498,7 +1498,7 @@ class AutoClickService : AccessibilityService() {
                 setPadding(24, 16, 24, 16)
 
                 addView(android.widget.TextView(ctx).apply {
-                    text = "과녁 → 출정 버튼 위에\n'부대1, 부대2…' 표시 → 쓸 부대 깃발 위에 순서대로 놓고 저장\n(누를 때마다 1번부터 차례로 출정)"
+                    text = "과녁 → 출정 버튼 위에\n동그라미 1, 2, 3… → 쓸 부대 깃발 위에 번호 순서대로 놓고 저장\n(누를 때마다 1번부터 차례로 출정)"
                     setTextColor(Color.WHITE)
                     textSize = 12f
                     gravity = android.view.Gravity.CENTER
@@ -1579,23 +1579,30 @@ class AutoClickService : AccessibilityService() {
         }
         while (troopMarkers.size < troopCountSetting) {
             val i = troopMarkers.size
+            // 게임 속 깃발 아이콘보다 작아야 서로 겹치지 않는다. 가운데 점이 눌릴 위치다.
+            val size = (30 * dp).toInt()
             val marker = android.widget.TextView(this).apply {
-                text = "부대${i + 1}"
-                textSize = 16f
+                text = "${i + 1}"
+                textSize = 13f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = android.view.Gravity.CENTER
                 setTextColor(Color.WHITE)
-                setBackgroundColor(Color.parseColor("#CC10B981"))
-                setPadding(20, 12, 20, 12)
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(Color.parseColor("#CC10B981"))
+                    setStroke((2 * dp).toInt(), Color.WHITE)
+                }
             }
             val lp = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                size,
+                size,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = android.view.Gravity.TOP or android.view.Gravity.START
-                x = 100
-                y = ((100 + i * 56) * dp).toInt()
+                x = (40 * dp).toInt()
+                y = ((100 + i * 36) * dp).toInt()
             }
             setupDrag(marker, lp)
             try { wm.addView(marker, lp) } catch (e: Exception) {}
