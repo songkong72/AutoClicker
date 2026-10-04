@@ -68,8 +68,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
         // ✎: 관리자 편집 모드. 평소엔 읽기 전용으로 깔끔하게, 켜면 −/+ · ✕ · 밑줄(눌러서 고치기)이 나타난다.
         root.findViewById<View>(R.id.rallyEdit).setOnClickListener { editMode = !editMode; lastRender?.invoke() }
-        // 알약(최소화 상태)의 단계명이나 시간을 탭해도 펼쳐진다
-        listOf<View>(heroLabel, title, heroTime).forEach { v -> v.setOnClickListener { if (isMinimized) callbacks.onMinimize() } }
+        // 카운트다운 상자(단계명·시간·안내)를 탭하면 축소/확대된다. 작은 —/▢ 버튼 옆의 ✕를 잘못 누르지 않게 큰 영역으로도 누를 수 있다.
+        // 알약(최소화 상태)에서는 단계명이나 시간을 탭하면 펼쳐진다. 창을 끄는 일은 ✕만 한다.
+        listOf<View>(heroLabel, heroTime, heroSub).forEach { v -> v.setOnClickListener { callbacks.onMinimize() } }
         title.setOnClickListener { if (isMinimized) callbacks.onMinimize() else callbacks.onTitleTap() }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
