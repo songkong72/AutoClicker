@@ -127,6 +127,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         }
 
         root.addView(button("+ 관리자 코드 만들기") { askNames() })
+        root.addView(button("🗂 방 전체 목록 (개발자 전용)") { showRooms() })
         root.addView(buttons(
             button("📋 목록 전체 복사") { copy("관리자 목록", AdminRoster.exportText(admins, codes, now)) },
             button("🧹 쓰인·만료 코드 정리") { confirmPurge() }
@@ -154,6 +155,39 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         manageDialog = AlertDialog.Builder(activity)
             .setTitle("👑 관리자 관리")
             .setView(ScrollView(activity).apply { addView(root) })
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    /** 서버의 모든 방을 목록으로 보여 준다. 방을 누르면 군단과 명단을 읽기 전용으로 보여 준다. */
+    private fun showRooms() {
+        toast("방 목록을 불러오는 중…")
+        Thread {
+            val r = server.loadRooms()
+            ui {
+                val data = r.value
+                if (data == null) { toast(r.error ?: "방 목록을 불러오지 못했어요"); return@ui }
+                val rooms = RoomList.summarize(data.rooms, data.members)
+                if (rooms.isEmpty()) { toast("만들어진 방이 없어요"); return@ui }
+                AlertDialog.Builder(activity)
+                    .setTitle("🗂 방 전체 (${rooms.size}개)")
+                    .setItems(rooms.map { RoomList.line(it) }.toTypedArray()) { _, i ->
+                        val code = rooms[i].code
+                        val room = data.rooms?.get(code) as? Map<*, *> ?: return@setItems
+                        showRoomDetail(code, room, data.members?.get(code) as? Map<*, *>)
+                    }
+                    .setNegativeButton("닫기", null)
+                    .show()
+            }
+        }.start()
+    }
+
+    private fun showRoomDetail(code: String, room: Map<*, *>, members: Map<*, *>?) {
+        val text = RoomList.detail(code, room, members)
+        AlertDialog.Builder(activity)
+            .setTitle("방 $code")
+            .setMessage(text)
+            .setPositiveButton("복사") { _, _ -> copy("방 $code", text) }
             .setNegativeButton("닫기", null)
             .show()
     }

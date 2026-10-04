@@ -3,6 +3,7 @@
     ".read": false,
     ".write": false,
     "rallyRooms": {
+      ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
       "$room": {
         ".read": "auth != null",
         ".write": "auth != null && $room.length >= 1 && $room.length <= 40",
@@ -53,6 +54,7 @@
       }
     },
     "rallyMembers": {
+      ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
       "$room": {
         ".read": "auth != null",
         ".write": "auth != null && $room.length >= 1 && $room.length <= 40",

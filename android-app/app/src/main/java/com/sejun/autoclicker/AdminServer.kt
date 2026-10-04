@@ -10,6 +10,9 @@ internal class Reply<T>(val value: T?, val error: String?) {
     val ok: Boolean get() = error == null
 }
 
+/** 개발자 화면용으로 읽어 온 방(rallyRooms)과 방 명단(rallyMembers) 원본. */
+internal class RoomData(val rooms: Map<String, Any?>?, val members: Map<String, Any?>?)
+
 /** 서버에서 확인한 결과. 모르겠으면(네트워크 오류, 규칙 미적용) [UNKNOWN]이고, 그때는 현재 권한을 건드리지 않는다. */
 internal enum class Check { YES, NO, UNKNOWN }
 
@@ -77,6 +80,15 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
             if (delete("adminCodes/$code") == null) removed++
         }
         return Reply(removed, null)
+    }
+
+    /** 개발자 전용: 서버의 모든 방과 방 명단을 읽어 온다. 규칙에서 개발자(owners)만 통째로 읽을 수 있다. */
+    fun loadRooms(): Reply<RoomData> {
+        val (c1, t1) = call("GET", "rallyRooms")
+        if (c1 !in 200..299) return Reply(null, explain(c1, t1))
+        val (c2, t2) = call("GET", "rallyMembers")
+        if (c2 !in 200..299) return Reply(null, explain(c2, t2))
+        return Reply(RoomData(parseMap(t1), parseMap(t2)), null)
     }
 
     /** 내가 서버 명단에 있는 관리자일 때 마지막 접속 시각과 앱 버전을 적는다. 실패해도 조용히 넘어간다. */
