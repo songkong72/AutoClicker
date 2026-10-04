@@ -5,11 +5,15 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Typeface
+import android.text.InputType
 import android.util.TypedValue
+import android.view.View
 import android.view.Gravity
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -56,7 +60,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
                 }
                 AlertDialog.Builder(activity)
                     .setTitle("내 기기 ID")
-                    .setMessage("개발자로 등록하려면 이 ID를 Firebase 콘솔의 owners 아래에 적습니다. 앱을 지우고 다시 설치하면 ID가 바뀝니다.")
+                    .setMessage("개발자로 등록하려면 이 ID를 Firebase 콘솔의 owners 아래에 적습니다. 앱을 지우고 다시 설치하면 ID가 바뀝니다.\n\n앱 버전: v${BuildConfig.VERSION_NAME}")
                     .setView(tv)
                     .setPositiveButton("복사") { _, _ -> copy("기기 ID", id) }
                     .setNegativeButton("닫기", null)
@@ -83,6 +87,9 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
     private fun load() {
         val admins = server.listAdmins()
         val codes = server.listCodes()
+        val adminList = admins.value
+        val codeList = codes.value
+        if (adminList != null && codeList != null) server.backfillNames(adminList, codeList)
         ui {
             val a = admins.value
             val c = codes.value
@@ -94,7 +101,6 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
     private fun render(admins: List<AdminEntry>, codes: List<AdminCode>) {
         manageDialog?.dismiss()
         val now = System.currentTimeMillis()
-        val labels = codes.associate { it.code to it.name }
         val pending = codes.filter { !it.used && now < it.expiresAt }
         val day = SimpleDateFormat("MM/dd", Locale.KOREA)
 
@@ -107,9 +113,9 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             setTextColor(themeColor(android.R.attr.textColorPrimary))
             setPadding(0, dp(16), 0, dp(6))
         }.also { root.addView(it) }
-        fun line(text: String) = TextView(activity).apply {
-            this.text = text; textSize = 14f
-            setTextColor(themeColor(android.R.attr.textColorPrimary))
+        fun line(text: String, small: Boolean = false) = TextView(activity).apply {
+            this.text = text; textSize = if (small) 12f else 14f
+            setTextColor(themeColor(if (small) android.R.attr.textColorSecondary else android.R.attr.textColorPrimary))
             setPadding(0, dp(4), 0, 0)
         }
         fun buttons(vararg b: Button) = LinearLayout(activity).apply {
@@ -120,24 +126,27 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             this.text = text; textSize = 12f; setOnClickListener { onClick() }
         }
 
-        root.addView(button("+ 관리자 코드 만들기") { askName() })
-        root.addView(button("📋 목록 전체 복사") { copy("관리자 목록", AdminRoster.exportText(admins, codes, now)) })
+        root.addView(button("+ 관리자 코드 만들기") { askNames() })
+        root.addView(buttons(
+            button("📋 목록 전체 복사") { copy("관리자 목록", AdminRoster.exportText(admins, codes, now)) },
+            button("🧹 쓰인·만료 코드 정리") { confirmPurge() }
+        ))
 
         heading("등록된 관리자 (${admins.size}명)")
         if (admins.isEmpty()) root.addView(line("아직 없어요."))
         for (a in admins) {
-            val label = labels[a.code]?.takeIf { it.isNotEmpty() } ?: "직접 등록"
-            root.addView(line("$label · ID …${a.uid.takeLast(6)} · 등록 ${day.format(Date(a.registeredAt))}"))
-            root.addView(buttons(button("삭제") { confirmRemove(a, label) }))
+            val label = AdminRoster.labelOf(a, codes)
+            root.addView(line("$label · ID …${a.uid.takeLast(6)}"))
+            root.addView(line("${AdminRoster.activityText(a.lastSeen, a.appVersion, now)} · 등록 ${day.format(Date(a.registeredAt))}", small = true))
+            root.addView(buttons(button("이름 수정") { askRename(a, label) }, button("삭제") { confirmRemove(a, label) }))
         }
 
         heading("대기 중인 코드 (${pending.size}개)")
         if (pending.isEmpty()) root.addView(line("없어요."))
         for (p in pending) {
-            val hours = ((p.expiresAt - now) / 3_600_000L).coerceAtLeast(0)
-            root.addView(line("${p.code} · ${p.name} · ${hours}시간 남음"))
+            root.addView(line("${p.code} · ${p.name} · ${remainText(p.expiresAt - now)} 남음"))
             root.addView(buttons(
-                button("코드 복사") { copy("관리자 코드", shareMessage(p.code)) },
+                button("코드 복사") { copy("관리자 코드", AdminRoster.shareMessage(p.code, ttlOf(p))) },
                 button("취소") { cancelCode(p) }
             ))
         }
@@ -149,29 +158,101 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             .show()
     }
 
-    private fun shareMessage(code: String) =
-        "[AutoClicker Pro 관리자 초대]\n관리자 코드: $code\n앱의 인증 화면 → 관리자 로그인에서 이 코드를 입력하세요. 만든 지 24시간 안에 한 번만 쓸 수 있어요."
+    /** 코드를 만들 때 고른 기간에 가장 가까운 것. 안내 문구에 "24시간 안에"처럼 적는 데 쓴다. */
+    private fun ttlOf(p: AdminCode): CodeTtl =
+        CodeTtl.values().minByOrNull { kotlin.math.abs(it.ms - (p.expiresAt - p.createdAt)) } ?: CodeTtl.DAY
 
-    private fun askName() {
-        val input = EditText(activity).apply { hint = "이름표 (예: 김민수)"; setPadding(dp(20), dp(16), dp(20), dp(16)) }
+    private fun remainText(ms: Long): String = when {
+        ms >= 86_400_000L -> "${ms / 86_400_000L}일"
+        ms >= 3_600_000L -> "${ms / 3_600_000L}시간"
+        else -> "${(ms / 60_000L).coerceAtLeast(0)}분"
+    }
+
+    /** 이름표를 한 줄에 한 명씩 적으면 사람마다 코드를 만든다. 코드를 쓸 수 있는 기간도 고른다. */
+    private fun askNames() {
+        val input = EditText(activity).apply {
+            hint = "이름표 (여러 명이면 줄바꿈으로, 최대 ${AdminRoster.MAX_BATCH}명)"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 2
+            gravity = Gravity.TOP
+        }
+        val ids = CodeTtl.values().associateWith { View.generateViewId() }
+        val group = RadioGroup(activity).apply {
+            orientation = RadioGroup.HORIZONTAL
+            CodeTtl.values().forEach { t -> addView(RadioButton(activity).apply { text = t.label; id = ids.getValue(t) }) }
+            check(ids.getValue(CodeTtl.DAY))
+        }
+        val box = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), dp(8))
+            addView(input)
+            addView(TextView(activity).apply { text = "코드를 쓸 수 있는 기간"; textSize = 13f; setPadding(0, dp(12), 0, dp(4)) })
+            addView(group)
+        }
         AlertDialog.Builder(activity)
             .setTitle("새 관리자 코드")
-            .setMessage("누구에게 줄 코드인지 이름표를 적어 주세요. 목록에서 알아보는 용도입니다.")
-            .setView(input)
+            .setMessage("누구에게 줄 코드인지 이름표를 적어 주세요. 목록에서 알아보는 용도입니다. 코드는 한 번만 쓸 수 있어요.")
+            .setView(box)
             .setPositiveButton("만들기") { _, _ ->
-                val name = input.text.toString()
+                val names = AdminRoster.parseNames(input.text.toString())
+                val ttl = ids.entries.firstOrNull { it.value == group.checkedRadioButtonId }?.key ?: CodeTtl.DAY
+                if (names.isEmpty()) { toast("이름표를 입력해 주세요"); return@setPositiveButton }
                 Thread {
-                    val r = server.createCode(name)
-                    ui {
+                    val made = mutableListOf<Pair<String, String>>()
+                    var firstError: String? = null
+                    for (n in names) {
+                        val r = server.createCode(n, ttl)
                         val code = r.value
-                        if (code == null) { toast(r.error ?: "코드를 만들지 못했어요"); return@ui }
-                        copy("관리자 코드", shareMessage(code))
+                        if (code != null) made.add(n to code) else if (firstError == null) firstError = r.error
+                    }
+                    ui {
+                        if (made.isEmpty()) { toast(firstError ?: "코드를 만들지 못했어요"); return@ui }
+                        copy("관리자 코드", AdminRoster.batchShare(made, ttl))
+                        val summary = made.joinToString("\n") { "${it.first}  ${it.second}" }
+                        val warn = if (firstError != null) "\n\n일부는 만들지 못했어요: $firstError" else ""
                         AlertDialog.Builder(activity)
-                            .setTitle("코드를 만들었어요")
-                            .setMessage("$code\n\n카카오톡으로 보낼 안내 문구를 복사해 두었어요. 24시간 안에 한 번만 쓸 수 있어요.")
+                            .setTitle("코드를 ${made.size}개 만들었어요")
+                            .setMessage("$summary\n\n카카오톡으로 보낼 안내 문구를 사람별로 복사해 두었어요. ${ttl.label} 안에 한 번만 쓸 수 있어요.$warn")
                             .setPositiveButton("확인") { _, _ -> Thread { load() }.start() }
                             .show()
                     }
+                }.start()
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun askRename(a: AdminEntry, current: String) {
+        val input = EditText(activity).apply {
+            hint = "새 이름표"
+            if (current != "직접 등록") setText(current)
+            setSelection(text.length)
+            setPadding(dp(20), dp(16), dp(20), dp(16))
+        }
+        AlertDialog.Builder(activity)
+            .setTitle("이름표 수정")
+            .setMessage("ID …${a.uid.takeLast(6)}")
+            .setView(input)
+            .setPositiveButton("저장") { _, _ ->
+                Thread {
+                    val err = server.renameAdmin(a.uid, input.text.toString())
+                    ui { if (err != null) toast(err) else toast("이름표를 고쳤어요") }
+                    load()
+                }.start()
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun confirmPurge() {
+        AlertDialog.Builder(activity)
+            .setTitle("코드 정리")
+            .setMessage("이미 쓰였거나 기한이 지난 코드를 서버에서 지워요. 관리자 이름표는 먼저 저장해 두니 목록에 그대로 남아요. 대기 중인 코드는 지우지 않습니다.")
+            .setPositiveButton("정리") { _, _ ->
+                Thread {
+                    val r = server.purgeCodes()
+                    ui { val n = r.value; if (n == null) toast(r.error ?: "정리하지 못했어요") else toast("코드 ${n}개를 정리했어요") }
+                    load()
                 }.start()
             }
             .setNegativeButton("취소", null)

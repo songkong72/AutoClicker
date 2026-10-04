@@ -41,14 +41,49 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
     }
 
     /** 새 관리자 코드를 만든다. 성공하면 코드를 돌려준다. */
-    fun createCode(rawName: String, now: Long = System.currentTimeMillis()): Reply<String> {
-        val body = AdminRoster.encodeCode(rawName, now) ?: return Reply(null, "이름표를 입력해 주세요")
+    fun createCode(rawName: String, ttl: CodeTtl = CodeTtl.DAY, now: Long = System.currentTimeMillis()): Reply<String> {
+        val body = AdminRoster.encodeCode(rawName, now, ttl.ms) ?: return Reply(null, "이름표를 입력해 주세요")
         val newCode = AdminRoster.newCode()
         val (code, text) = call("PUT", "adminCodes/$newCode", JSONObject(body).toString())
         return if (code in 200..299) Reply(newCode, null) else Reply(null, explain(code, text))
     }
 
     fun cancelCode(code: String): String? = delete("adminCodes/$code")
+
+    /** 관리자의 이름표를 고친다. 성공하면 null, 실패하면 이유. 개발자만 된다. */
+    fun renameAdmin(uid: String, rawName: String): String? {
+        val name = AdminRoster.cleanName(rawName)
+        if (name.isEmpty()) return "이름표를 입력해 주세요"
+        val (code, text) = call("PUT", "admins/$uid/name", JSONObject.quote(name))
+        return if (code in 200..299) null else explain(code, text)
+    }
+
+    /** 이름이 없는 관리자에게 등록에 쓴 코드의 이름표를 복사해 둔다. 코드를 정리해도 이름이 남게 한다. 실패해도 목록 보기에는 영향이 없다. */
+    fun backfillNames(admins: List<AdminEntry>, codes: List<AdminCode>) {
+        for ((uid, name) in AdminRoster.nameBackfill(admins, codes)) {
+            call("PUT", "admins/$uid/name", JSONObject.quote(name))
+        }
+    }
+
+    /** 이미 쓰였거나 기한이 지난 코드를 서버에서 지운다. 지우기 전에 관리자 이름표를 먼저 저장한다. 지운 개수를 돌려준다. */
+    fun purgeCodes(now: Long = System.currentTimeMillis()): Reply<Int> {
+        val admins = listAdmins().let { it.value ?: return Reply(null, it.error) }
+        val codes = listCodes(now).let { it.value ?: return Reply(null, it.error) }
+        backfillNames(admins, codes)
+        val (c, text) = call("GET", "adminCodes")
+        if (c !in 200..299) return Reply(null, explain(c, text))
+        var removed = 0
+        for (code in AdminRoster.purgeable(parseMap(text), now)) {
+            if (delete("adminCodes/$code") == null) removed++
+        }
+        return Reply(removed, null)
+    }
+
+    /** 내가 서버 명단에 있는 관리자일 때 마지막 접속 시각과 앱 버전을 적는다. 실패해도 조용히 넘어간다. */
+    fun reportSelf(uid: String, now: Long, appVersion: String) {
+        call("PUT", "admins/$uid/lastSeen", now.toString())
+        call("PUT", "admins/$uid/appVersion", JSONObject.quote(appVersion.take(20)))
+    }
 
     fun removeAdmin(uid: String): String? = delete("admins/$uid")
 

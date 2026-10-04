@@ -600,6 +600,9 @@ class MainActivity : AppCompatActivity() {
             val uid = server.uid().value ?: return@Thread
             val owner = server.isOwner(uid)
             val admin = if (owner == Check.YES) Check.YES else server.isAdmin(uid)
+            // 서버 명단에 있는 관리자면 마지막 접속 시각과 앱 버전을 적는다(개발자 화면에 보인다)
+            val inRoster = if (owner == Check.YES) server.isAdmin(uid) else admin
+            if (inRoster == Check.YES) server.reportSelf(uid, System.currentTimeMillis(), BuildConfig.VERSION_NAME)
             when (AdminRoster.reconcile(viaServer, owner, admin)) {
                 AdminModeFix.KEEP -> Unit
                 AdminModeFix.MARK_SERVER -> PreferencesHelper.setAdminViaServer(this, true)
