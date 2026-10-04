@@ -121,6 +121,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         }
 
         root.addView(button("+ 관리자 코드 만들기") { askName() })
+        root.addView(button("📋 목록 전체 복사") { copy("관리자 목록", AdminRoster.exportText(admins, codes, now)) })
 
         heading("등록된 관리자 (${admins.size}명)")
         if (admins.isEmpty()) root.addView(line("아직 없어요."))

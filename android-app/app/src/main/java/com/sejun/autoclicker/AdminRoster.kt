@@ -68,4 +68,19 @@ internal object AdminRoster {
     /** 코드를 쓴 뒤 서버 명단에 적는 내 항목. 코드를 먼저 내 것으로 잡은(usedBy) 다음에 쓴다. */
     fun adminRecord(code: String, registeredAt: Long): Map<String, Any?> =
         mapOf("code" to code, "registeredAt" to registeredAt)
+
+    /** 관리자 목록 전체를 메모에 붙여 넣기 좋은 글로. 이름표는 쓴 코드에서 찾고, 만료된 코드는 뺀다. */
+    fun exportText(admins: List<AdminEntry>, codes: List<AdminCode>, nowMs: Long): String {
+        val labels = codes.associate { it.code to it.name }
+        val pending = codes.filter { !it.used && nowMs < it.expiresAt }
+        return buildString {
+            append("등록된 관리자 ${admins.size}명\n")
+            admins.forEachIndexed { i, a ->
+                val label = labels[a.code]?.takeIf { it.isNotEmpty() } ?: "직접 등록"
+                append("${i + 1}. $label · ID …${a.uid.takeLast(6)}\n")
+            }
+            append("\n대기 중인 코드 ${pending.size}개\n")
+            pending.forEach { append("${it.code} · ${it.name}\n") }
+        }.trimEnd()
+    }
 }

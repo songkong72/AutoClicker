@@ -102,4 +102,27 @@ class AdminRosterTest {
         assertEquals(5L, rec["registeredAt"])
         assertEquals(2, rec.size)
     }
+
+    @Test fun exportTextListsAdminsByLabelAndPendingCodes() {
+        val uid = "A".repeat(22) + "xyz789"
+        val admins = listOf(AdminEntry(uid, "AD-ABCD2345", 1L), AdminEntry("B".repeat(28), "", 2L))
+        val codes = listOf(
+            AdminCode("AD-ABCD2345", "김민수", 0L, 100L, used = true),
+            AdminCode("AD-EFGH6789", "이영희", 0L, 100L, used = false),
+            AdminCode("AD-JKLM2345", "만료", 0L, 10L, used = false)
+        )
+        val text = AdminRoster.exportText(admins, codes, nowMs = 50L)
+        assertTrue(text, text.contains("등록된 관리자 2명"))
+        assertTrue(text, text.contains("1. 김민수 · ID …xyz789"))
+        assertTrue(text, text.contains("2. 직접 등록 · ID …BBBBBB"))
+        assertTrue(text, text.contains("대기 중인 코드 1개"))
+        assertTrue(text, text.contains("AD-EFGH6789 · 이영희"))
+        assertFalse(text, text.contains("AD-JKLM2345"))
+    }
+
+    @Test fun exportTextSaysNoneWhenEmpty() {
+        val text = AdminRoster.exportText(emptyList(), emptyList(), nowMs = 0L)
+        assertTrue(text, text.contains("등록된 관리자 0명"))
+        assertTrue(text, text.contains("대기 중인 코드 0개"))
+    }
 }
