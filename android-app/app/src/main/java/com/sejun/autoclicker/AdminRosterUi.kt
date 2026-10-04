@@ -1,11 +1,11 @@
 package com.sejun.autoclicker
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Color
+import android.graphics.Typeface
+import android.util.TypedValue
 import android.view.Gravity
 import android.widget.Button
 import android.widget.EditText
@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,6 +26,13 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
     private fun ui(block: () -> Unit) = activity.runOnUiThread(block)
     private fun toast(msg: String) = Toast.makeText(activity, msg, Toast.LENGTH_LONG).show()
     private fun dp(v: Int) = (v * activity.resources.displayMetrics.density).toInt()
+
+    /** 밝은/어두운 테마에 맞는 글자색을 테마에서 가져온다. 색을 고정하면 어두운 화면에서 글자가 묻힌다. */
+    private fun themeColor(attr: Int): Int {
+        val tv = TypedValue()
+        activity.theme.resolveAttribute(attr, tv, true)
+        return if (tv.resourceId != 0) activity.getColor(tv.resourceId) else tv.data
+    }
 
     private fun copy(label: String, text: String) {
         val cm = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -42,6 +50,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
                 val tv = TextView(activity).apply {
                     text = id
                     textSize = 15f
+                    setTextColor(themeColor(android.R.attr.textColorPrimary))
                     setTextIsSelectable(true)
                     setPadding(dp(20), dp(8), dp(20), dp(8))
                 }
@@ -94,11 +103,14 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             setPadding(dp(20), dp(12), dp(20), dp(12))
         }
         fun heading(text: String) = TextView(activity).apply {
-            this.text = text; textSize = 14f; setTextColor(Color.parseColor("#1E293B"))
+            this.text = text; textSize = 15f; setTypeface(typeface, Typeface.BOLD)
+            setTextColor(themeColor(android.R.attr.textColorPrimary))
             setPadding(0, dp(16), 0, dp(6))
         }.also { root.addView(it) }
         fun line(text: String) = TextView(activity).apply {
-            this.text = text; textSize = 13f; setTextColor(Color.parseColor("#475569"))
+            this.text = text; textSize = 14f
+            setTextColor(themeColor(android.R.attr.textColorPrimary))
+            setPadding(0, dp(4), 0, 0)
         }
         fun buttons(vararg b: Button) = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.END
