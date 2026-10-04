@@ -29,7 +29,6 @@ android {
 
         buildConfigField("String", "INVITE_SECRET", "\"" + secret("invite.secret", "INVITE_SECRET") + "\"")
         buildConfigField("String", "FIREBASE_API_KEY", "\"" + secret("firebase.api.key", "FIREBASE_API_KEY") + "\"")
-        buildConfigField("String", "ADMIN_PASSWORD_HASH", "\"" + secret("admin.password.hash", "ADMIN_PASSWORD_HASH") + "\"")
     }
 
     // 서명 키는 저장소에 없다. local.properties 의 signing.* 값(setup-signing.bat 이 만든다)으로만 서명한다.

@@ -83,4 +83,17 @@ internal object AdminRoster {
             pending.forEach { append("${it.code} · ${it.name}\n") }
         }.trimEnd()
     }
+
+    /**
+     * 앱을 열 때 이 기기의 관리자 모드를 서버 답과 맞춘다. 비밀번호 로그인이 있던 시절 기기(viaServer=false)도 여기서 정리한다.
+     * 서버가 개발자나 관리자라고 하면 유지(옛 기기는 서버 방식으로 표시), 둘 다 아니라고 분명히 답할 때만 푼다.
+     * 모르겠으면(네트워크 오류, 규칙 미적용) 건드리지 않는다.
+     */
+    fun reconcile(viaServer: Boolean, owner: Check, admin: Check): AdminModeFix = when {
+        owner == Check.YES || admin == Check.YES -> if (viaServer) AdminModeFix.KEEP else AdminModeFix.MARK_SERVER
+        owner == Check.NO && admin == Check.NO -> AdminModeFix.CLEAR
+        else -> AdminModeFix.KEEP
+    }
 }
+
+internal enum class AdminModeFix { KEEP, MARK_SERVER, CLEAR }

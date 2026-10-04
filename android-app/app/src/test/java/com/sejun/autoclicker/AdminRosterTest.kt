@@ -125,4 +125,27 @@ class AdminRosterTest {
         assertTrue(text, text.contains("등록된 관리자 0명"))
         assertTrue(text, text.contains("대기 중인 코드 0개"))
     }
+
+    // ---- 관리자 모드 점검: 서버가 모른다고 하면 건드리지 않고, 둘 다 아니라고 할 때만 푼다 ----
+
+    @Test fun reconcileKeepsServerAdminAndOwner() {
+        assertEquals(AdminModeFix.KEEP, AdminRoster.reconcile(viaServer = true, owner = Check.NO, admin = Check.YES))
+        assertEquals(AdminModeFix.KEEP, AdminRoster.reconcile(viaServer = true, owner = Check.YES, admin = Check.NO))
+    }
+
+    @Test fun reconcileMarksLegacyDeviceWhenServerKnowsIt() {
+        assertEquals(AdminModeFix.MARK_SERVER, AdminRoster.reconcile(viaServer = false, owner = Check.YES, admin = Check.NO))
+        assertEquals(AdminModeFix.MARK_SERVER, AdminRoster.reconcile(viaServer = false, owner = Check.NO, admin = Check.YES))
+    }
+
+    @Test fun reconcileClearsOnlyWhenServerSaysNeither() {
+        assertEquals(AdminModeFix.CLEAR, AdminRoster.reconcile(viaServer = true, owner = Check.NO, admin = Check.NO))
+        assertEquals(AdminModeFix.CLEAR, AdminRoster.reconcile(viaServer = false, owner = Check.NO, admin = Check.NO))
+    }
+
+    @Test fun reconcileKeepsWhenServerAnswerIsUnknown() {
+        assertEquals(AdminModeFix.KEEP, AdminRoster.reconcile(viaServer = false, owner = Check.UNKNOWN, admin = Check.NO))
+        assertEquals(AdminModeFix.KEEP, AdminRoster.reconcile(viaServer = true, owner = Check.NO, admin = Check.UNKNOWN))
+        assertEquals(AdminModeFix.KEEP, AdminRoster.reconcile(viaServer = false, owner = Check.UNKNOWN, admin = Check.UNKNOWN))
+    }
 }

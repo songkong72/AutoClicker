@@ -27,15 +27,3 @@ object InviteCodes {
         return a.isNotEmpty() && MessageDigest.isEqual(a.toByteArray(), b.toByteArray())
     }
 }
-
-/** 관리자 비밀번호는 평문이 아니라 SHA-256(salt:password) 해시로만 보관·비교한다. */
-object AdminAuth {
-    fun hash(password: String, salt: String): String =
-        MessageDigest.getInstance("SHA-256").digest("$salt:$password".toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-
-    fun matches(input: String, storedHash: String, salt: String): Boolean {
-        if (storedHash.isEmpty() || input.isEmpty()) return false
-        return MessageDigest.isEqual(hash(input, salt).toByteArray(), storedHash.lowercase().toByteArray())
-    }
-}

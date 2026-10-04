@@ -172,8 +172,6 @@ object PreferencesHelper {
     // --- 초대코드 및 관리자 권한 관련 설정 ---
     private const val KEY_IS_VERIFIED = "key_is_verified"
     private const val KEY_VERIFIED_USER_ID = "key_verified_user_id"
-    private const val KEY_ADMIN_MASTER_KEY = "key_admin_master_key" // 예전 평문 저장 키(삭제 대상)
-    private const val KEY_ADMIN_PW_HASH = "key_admin_pw_hash"
 
     /** 기능 사용 권한: 초대코드 인증을 했거나 관리자로 로그인한 기기. */
     fun hasAccess(context: Context): Boolean = isVerified(context) || isAdminMode(context)
@@ -229,16 +227,5 @@ object PreferencesHelper {
 
     fun getVerifiedUserId(context: Context): String {
         return getPrefs(context).getString(KEY_VERIFIED_USER_ID, "") ?: ""
-    }
-
-    /** 관리자 비밀번호 해시. 이 기기에서 바꾼 적이 없으면 빌드에 주입된 값을 쓴다. 예전 평문 비밀번호는 지운다. */
-    fun getAdminPasswordHash(context: Context): String {
-        val prefs = getPrefs(context)
-        if (prefs.contains(KEY_ADMIN_MASTER_KEY)) prefs.edit().remove(KEY_ADMIN_MASTER_KEY).apply()
-        return prefs.getString(KEY_ADMIN_PW_HASH, null) ?: BuildConfig.ADMIN_PASSWORD_HASH
-    }
-
-    fun setAdminPasswordHash(context: Context, hash: String) {
-        getPrefs(context).edit().putString(KEY_ADMIN_PW_HASH, hash).apply()
     }
 }

@@ -35,26 +35,4 @@ class SecurityCodesTest {
         assertFalse(InviteCodes.verify("alice", "AC-AAAAAA", "s3cret"))
         assertFalse(InviteCodes.verify("alice", "AC-QP4HZX", ""))
     }
-
-    // ---- 관리자 비밀번호: 해시만 저장·비교한다 ----
-
-    @Test fun adminHashMatchesIndependentSha256() {
-        assertEquals("6f0f66e8b89655798ddee03104317c52cfe6aa71e7937f01f4744398cb4c32c2", AdminAuth.hash("pw1234", "salt1"))
-    }
-
-    @Test fun adminMatchesOnlyCorrectPassword() {
-        val h = AdminAuth.hash("pw1234", "salt1")
-        assertTrue(AdminAuth.matches("pw1234", h, "salt1"))
-        assertFalse(AdminAuth.matches("pw1235", h, "salt1"))
-    }
-
-    @Test fun adminDeniedWhenNoHashConfiguredOrBlankInput() {
-        assertFalse(AdminAuth.matches("anything", "", "salt1"))
-        assertFalse(AdminAuth.matches("", AdminAuth.hash("", "salt1"), "salt1"))
-    }
-
-    @Test fun adminOldDefaultPasswordIsNotAccepted() {
-        val h = AdminAuth.hash("pw1234", "salt1")
-        assertFalse(AdminAuth.matches("admin1234!", h, "salt1"))
-    }
 }
