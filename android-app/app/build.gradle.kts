@@ -14,6 +14,18 @@ val localProps = Properties().apply {
 fun secret(prop: String, env: String): String =
     (localProps.getProperty(prop) ?: System.getenv(env) ?: "").trim()
 
+// 빌드할 때마다 버전이 자동으로 올라가게 git에서 읽는다. git을 못 쓰면 1로 둔다.
+// versionCode: 마지막 커밋 시각(분 단위). 브랜치가 달라도 나중 커밋이 항상 더 커서 덮어쓰기 설치가 막히지 않는다.
+// versionName: 1.0.<커밋 개수>. 앱 화면과 관리자 목록에 보이는 이름이다.
+fun gitOutput(vararg args: String): String = try {
+    val p = ProcessBuilder("git", *args).directory(rootProject.projectDir).redirectErrorStream(true).start()
+    val out = p.inputStream.bufferedReader().readText().trim()
+    p.waitFor()
+    out
+} catch (e: Exception) { "" }
+val buildVersionCode: Int = (gitOutput("log", "-1", "--format=%ct").toLongOrNull()?.div(60L)?.toInt()) ?: 1
+val buildVersionName: String = "1.0." + (gitOutput("rev-list", "--count", "HEAD").toIntOrNull() ?: 0)
+
 android {
     namespace = "com.sejun.autoclicker"
     compileSdk = 36
@@ -22,14 +34,13 @@ android {
         applicationId = "com.sejun.autoclicker"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = buildVersionCode
+        versionName = buildVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "INVITE_SECRET", "\"" + secret("invite.secret", "INVITE_SECRET") + "\"")
         buildConfigField("String", "FIREBASE_API_KEY", "\"" + secret("firebase.api.key", "FIREBASE_API_KEY") + "\"")
-        buildConfigField("String", "ADMIN_PASSWORD_HASH", "\"" + secret("admin.password.hash", "ADMIN_PASSWORD_HASH") + "\"")
     }
 
     // 서명 키는 저장소에 없다. local.properties 의 signing.* 값(setup-signing.bat 이 만든다)으로만 서명한다.

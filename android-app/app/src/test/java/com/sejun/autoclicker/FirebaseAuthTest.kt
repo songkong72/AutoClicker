@@ -39,4 +39,21 @@ class FirebaseAuthTest {
     @Test fun tokenIsUrlEncoded() {
         assertTrue(FirebaseAuthCodec.withAuth("https://x/a.json", "a b+c").endsWith("auth=a+b%2Bc"))
     }
+
+    @Test fun signUpKeepsTheAnonymousUserId() {
+        val s = FirebaseAuthCodec.parseSession(
+            """{"idToken":"ID1","refreshToken":"RF1","expiresIn":"3600","localId":"UID123"}""", nowMs = 0L)!!
+        assertEquals("UID123", s.uid)
+    }
+
+    @Test fun refreshResponseKeepsTheUserId() {
+        val s = FirebaseAuthCodec.parseSession(
+            """{"id_token":"ID2","refresh_token":"RF2","expires_in":"3600","user_id":"UID456"}""", nowMs = 0L)!!
+        assertEquals("UID456", s.uid)
+    }
+
+    @Test fun missingUserIdIsEmpty() {
+        val s = FirebaseAuthCodec.parseSession("""{"id_token":"I","refresh_token":"R","expires_in":"3600"}""", 0L)!!
+        assertEquals("", s.uid)
+    }
 }
