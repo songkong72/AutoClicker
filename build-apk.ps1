@@ -52,6 +52,14 @@ if ($code -eq 0 -and (Test-Path $apk)) {
     Copy-Item -Path $apk -Destination $dest -Force
     Log ""
     Log "APK copied to: $dest"
+    # also copy it to the shared Google Drive folder (skipped if the folder is not there on this PC)
+    $share = 'G:\내 드라이브\공유'
+    if (Test-Path -LiteralPath $share) {
+        try {
+            Copy-Item -LiteralPath $apk -Destination (Join-Path $share 'AutoClicker-debug.apk') -Force -ErrorAction Stop
+            Log "APK also copied to: $share"
+        } catch { Log "WARN: could not copy to ${share}: $($_.Exception.Message)" }
+    } else { Log "NOTE: shared folder not found, skipped: $share" }
     Log "RESULT: SUCCESS"
 } else {
     Log ""
