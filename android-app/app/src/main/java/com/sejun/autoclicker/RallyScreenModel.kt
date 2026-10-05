@@ -196,7 +196,7 @@ object RallyScreenModel {
     private fun row(state: RallyRoomState, t: RallyTeamState, p: RallyTeamPlan, run: RallyRunState): TeamRowModel {
         val e = state.elapsedSec
         val (label, remaining) = when (run) {
-            RallyRunState.CANCELLED -> "취소" to null
+            RallyRunState.CANCELLED -> "취소됨" to null
             RallyRunState.ARRIVED -> "도착" to null
             RallyRunState.IDLE -> "대기" to null
             RallyRunState.RUNNING -> when (RallySchedule.phaseAt(p, e)) {

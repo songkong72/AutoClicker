@@ -63,9 +63,9 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:padding="8dp"
-                    android:src="@drawable/ic_settings"
+                    android:src="@drawable/ic_admin_key"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Admin"
+                    android:contentDescription="관리자 로그인"
                     app:tint="#64748B" />
             </LinearLayout>
 
@@ -507,6 +507,29 @@
                 </RadioGroup>
             </LinearLayout>
 
+            <!-- 일반 연타용 오토클리커 띄우기/숨기기: 집결이 주 기능이라 접힌 영역 안에 둔다 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStartService"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:backgroundTint="@color/primary"
+                android:text="🚀 오토클리커 띄우기"
+                android:textColor="@color/text_on_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:cornerRadius="14dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Minimal Tip Footer -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="💡 연타 중 스마트폰 볼륨 키를 누르면 즉시 긴급 정지됩니다."
+                android:textColor="@color/text_tertiary"
+                android:layout_marginBottom="20dp"
+                android:textSize="12sp" />
+
             </LinearLayout>
 
             <!-- Card 4: 집결 방 (같은 방 = 같은 시각에 성에 도착할 팀들) -->
@@ -535,7 +558,9 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
+                <!-- 방 번호 입력: 아직 방이 없거나 "방 바꾸기"를 눌렀을 때만 보인다 -->
                 <LinearLayout
+                    android:id="@+id/layoutRoomEntry"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
@@ -610,25 +635,47 @@
                         android:textSize="13sp" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvRoomStatus"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:textColor="@color/primary"
-                    android:textSize="12.5sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvRoomStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/primary"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:id="@+id/btnChangeRoom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:padding="8dp"
+                        android:text="방 바꾸기"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+                </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnOpenRallySettings"
-                    style="@style/Widget.Material3.Button.TonalButton"
                     android:layout_width="match_parent"
-                    android:layout_height="42dp"
+                    android:layout_height="56dp"
                     android:layout_marginTop="12dp"
+                    android:backgroundTint="@color/primary"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
-                    android:text="집결 화면 열기"
-                    android:textSize="13.5sp"
-                    android:textStyle="bold" />
+                    android:text="⚔️ 집결 화면 열기"
+                    android:textColor="@color/text_on_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="14dp" />
             </LinearLayout>
 
             <!-- Emergency Stop Button (연타 중일 때만 표시) -->
@@ -644,28 +691,6 @@
                 app:cornerRadius="14dp"
                 android:visibility="gone"
                 android:layout_marginBottom="12dp" />
-
-            <!-- Single Main Smart Toggle Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnStartService"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:backgroundTint="@color/primary"
-                android:text="🚀 오토클리커 띄우기"
-                android:textColor="@color/text_on_primary"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:cornerRadius="14dp"
-                android:layout_marginBottom="24dp" />
-
-            <!-- Minimal Tip Footer -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="💡 연타 중 스마트폰 볼륨 키를 누르면 즉시 긴급 정지됩니다."
-                android:textColor="@color/text_tertiary"
-                android:textSize="12sp" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

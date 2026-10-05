@@ -110,7 +110,7 @@ class RallyScreenModelTest {
         assertEquals("작전 취소됨", m.hero.label)
         assertEquals("예약된 클릭이 모두 멈췄어요", m.hero.subLabel)
         assertTrue(m.editable)
-        assertEquals(setOf("취소"), m.rows.map { it.statusLabel }.toSet())
+        assertEquals(setOf("취소됨"), m.rows.map { it.statusLabel }.toSet())
     }
 
     @Test
