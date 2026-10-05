@@ -226,7 +226,8 @@ class AutoClickService : AccessibilityService() {
                 onClickArm = { on -> rallyClickArmed = on; setTargetTouchable(!on) },
                 onRallyStart = { rallyPanelHost?.let { if (!it.isShowing) it.show() } },
                 onCancel = { },
-                onOtherAdminChange = { who -> showToast("다른 관리자($who)가 방을 바꿨어요") }
+                onOtherAdminChange = { who -> showToast("다른 관리자($who)가 방을 바꿨어요") },
+                onWriteFailed = { why -> showToast(why) }
             ).also { it.start(); rallyRoomSync = it }
             RallyPanelHost(this, wm, source, onSecretUnlock = { unlockBearMode() }, onSwitchRoom = { code -> switchRallyRoom(code) }).also { rallyPanelHost = it }
         }

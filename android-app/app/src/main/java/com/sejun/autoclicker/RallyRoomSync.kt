@@ -37,7 +37,9 @@ class RallyRoomSync(
     private val onRallyStart: () -> Unit = {},
     private val onCancel: () -> Unit,
     /** 다른 관리자가 방을 바꾼 것이 도착했을 때(관리자 기기에서만). 인자는 바꾼 사람의 표시 이름. */
-    private val onOtherAdminChange: (String) -> Unit = {}
+    private val onOtherAdminChange: (String) -> Unit = {},
+    /** 서버에 쓰기가 실패했을 때(규칙 거절, 네트워크 오류). 인자는 화면에 보여 줄 이유. */
+    private val onWriteFailed: (String) -> Unit = {}
 ) : RallyPanelHost.StateSource {
 
     private val main = Handler(Looper.getMainLooper())
@@ -100,7 +102,7 @@ class RallyRoomSync(
     /** 서버 응답(수신 시점의 방 전체 상태)을 화면에 반영한다. 내가 방금 바꾼 직후에는 잠깐 미뤘다가 최신 상태를 반영한다. */
     private fun deliver(remote: Map<String, Any?>?) {
         val d = RallyRoomCodec.decode(remote)
-        if (remote == null && isAdmin) { Thread { try { put(seedRoom()) } catch (_: Exception) { } }.start(); return } // 빈 방이면 기본 팀으로 시작
+        if (remote == null && isAdmin) { writeAsync { put(seedRoom()) }; return } // 빈 방이면 기본 팀으로 시작
         main.post {
             val wait = holdRemoteUntil - SystemClock.elapsedRealtime()
             if (wait <= 0) { pendingDoc = null; apply(d, fromRemote = true) }
@@ -219,7 +221,7 @@ class RallyRoomSync(
         holdRemote()
         apply(next)
         val value = next.teams[idx].marchSec
-        Thread { try { putField("teams/$idx/marchSec", value); if (isAdmin) putStamp(now) } catch (_: Exception) { } }.start()
+        writeAsync { putField("teams/$idx/marchSec", value); if (isAdmin) putStamp(now) }
     }
 
     override fun onMarchDelta(teamId: String, deltaSec: Double) {
@@ -240,7 +242,7 @@ class RallyRoomSync(
         holdRemote()
         apply(next)
         val value = next.teams[idx].adminAdjustMs
-        Thread { try { putField("teams/$idx/adminAdjustMs", value.toDouble()); putStamp(now) } catch (_: Exception) { } }.start()
+        writeAsync { putField("teams/$idx/adminAdjustMs", value.toDouble()); putStamp(now) }
     }
 
     override fun onAddTeam() = change { RallyRoomEdit.addTeam(it, "${it.teams.size + 1}군", 30.0) }
@@ -358,7 +360,18 @@ class RallyRoomSync(
         val next = RallyChangeNote.stamp(changed, myLabel, System.currentTimeMillis())
         holdRemote()
         apply(next)
-        Thread { try { put(next) } catch (_: Exception) { } }.start()
+        writeAsync { put(next) }
+    }
+
+    /** 서버 쓰기를 백그라운드에서 하고, 실패하면 이유를 화면에 알린다(조용히 되돌아가 보이지 않게). */
+    private fun writeAsync(block: () -> Unit) {
+        Thread {
+            try { block() } catch (e: Exception) {
+                dropTokenIf401(e)
+                val why = WriteError.explain(e.message)
+                main.post { onWriteFailed(why) }
+            }
+        }.start()
     }
 
     // ---- 내부 ----
