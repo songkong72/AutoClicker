@@ -321,7 +321,8 @@ class RallyScreenModelTest {
         val m = build(adminExcluded(RallyRunState.RUNNING, 100.0))
         assertEquals(HeroKind.OVERVIEW, m.hero.kind)
         assertEquals("집결 중", m.hero.label)
-        assertEquals(255.0, m.hero.remainingSec!!, d)
+        // 1군이 제외돼 마지막 출발은 2군(335초)이다
+        assertEquals(235.0, m.hero.remainingSec!!, d)
     }
 
     @Test
