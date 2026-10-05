@@ -22,9 +22,9 @@ internal object RoomList {
             RoomOverview(code, doc.teams.size, doc.teams.count { it.leaderId.isNotEmpty() }, doc.run, count)
         }.sortedWith(compareByDescending<RoomOverview> { it.run == "RUNNING" }.thenBy { it.code })
 
-    /** 방 선택 목록용 한 줄: 명단 인원은 뺀다(관리자는 명단을 읽을 수 없다). */
+    /** 방 선택 목록용 한 줄: 명단 인원과 진행 상태는 뺀다. */
     fun lineBrief(o: RoomOverview): String =
-        "${o.code} · 군단 ${o.teamCount}개 (배정 ${o.assigned}) · ${runLabel(o.run)}"
+        "${o.code} · 군단 ${o.teamCount}개 (배정 ${o.assigned})"
 
     fun line(o: RoomOverview): String =
         "${o.code} · 군단 ${o.teamCount}개 (배정 ${o.assigned}) · ${runLabel(o.run)} · 명단 ${o.members}명"

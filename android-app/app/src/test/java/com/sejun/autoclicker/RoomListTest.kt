@@ -23,8 +23,8 @@ class RoomListTest {
     @Test fun briefLineHasNoMemberCountAndKeepsOrderRunningFirst() {
         val list = RoomList.summarize(rooms, null)
         assertEquals("BETA", list.first().code)
-        assertEquals("ALPHA · 군단 3개 (배정 2) · 대기 중", RoomList.lineBrief(list.first { it.code == "ALPHA" }))
-        assertEquals("BETA · 군단 1개 (배정 0) · 진행 중", RoomList.lineBrief(list.first { it.code == "BETA" }))
+        assertEquals("ALPHA · 군단 3개 (배정 2)", RoomList.lineBrief(list.first { it.code == "ALPHA" }))
+        assertEquals("BETA · 군단 1개 (배정 0)", RoomList.lineBrief(list.first { it.code == "BETA" }))
     }
 
     @Test fun summarizeCountsTeamsAssignedAndMembers() {
