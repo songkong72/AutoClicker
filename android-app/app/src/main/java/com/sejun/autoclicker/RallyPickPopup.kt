@@ -74,7 +74,7 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
         view = card
     }
 
-    /** 목록에서 하나를 눌러 고른 뒤(강조 표시), 옆의 이동 버튼을 눌러야 [onMove]가 실행된다. [rooms]는 (번호, 보여 줄 글). */
+    /** 목록에서 하나를 눌러 고른 뒤(강조 표시), 옆의 이동 버튼을 눌러야 [onMove]가 실행된다. [rooms]는 (번호, "번호 · 설명" 형식의 글). 제목 줄 오른쪽 ✕로 닫는다. */
     fun showSelect(title: String, rooms: List<Pair<String, String>>, selected: String, moveLabel: String, onMove: (String) -> Unit) {
         dismiss()
         val dm = context.resources.displayMetrics
@@ -83,13 +83,21 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
 
         val card = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(16), dp(18), dp(16))
+            setPadding(dp(18), dp(12), dp(14), dp(16))
             background = GradientDrawable().apply {
                 setColor(Color.parseColor("#F20F172A")); cornerRadius = dp(18).toFloat()
                 setStroke(dp(1), Color.parseColor("#33CBD5E1"))
             }
         }
-        card.addView(TextView(context).apply { text = title; setTextColor(Color.parseColor("#F1F5F9")); textSize = 14f })
+        // 제목 줄: 제목은 왼쪽, 닫기(✕) 아이콘은 오른쪽
+        val head = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        head.addView(TextView(context).apply { text = title; setTextColor(Color.parseColor("#F1F5F9")); textSize = 14f },
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        head.addView(TextView(context).apply {
+            text = "✕"; gravity = Gravity.CENTER; setTextColor(Color.parseColor("#94A3B8")); textSize = 18f
+            setOnClickListener { dismiss() }
+        }, LinearLayout.LayoutParams(dp(40), dp(40)))
+        card.addView(head)
 
         val rows = LinkedHashMap<String, TextView>()
         fun paint() {
@@ -101,13 +109,23 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
                 }
             }
         }
-        val itemHeight = dp(44)
+        val itemHeight = dp(54)
         val gap = dp(6)
         val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
         rooms.forEach { (code, label) ->
+            // 첫 줄은 방 번호(현재 방이면 "현재" 표시), 둘째 줄은 군단 수·상태를 작게
+            val detail = label.removePrefix("$code · ").takeIf { it != label }.orEmpty()
+            val first = if (code == selected) "$code  ·  현재" else code
+            val text = android.text.SpannableStringBuilder(first)
+            if (detail.isNotEmpty()) {
+                val start = text.length + 1
+                text.append("\n").append(detail)
+                text.setSpan(android.text.style.RelativeSizeSpan(0.78f), start, text.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                text.setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#CBD5E1")), start, text.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
             val tv = TextView(context).apply {
-                text = if (code == selected) "$label  ·  현재" else label
-                gravity = Gravity.CENTER_VERTICAL; textSize = 14f; setPadding(dp(12), 0, dp(12), 0)
+                this.text = text
+                gravity = Gravity.CENTER_VERTICAL; textSize = 15f; setPadding(dp(12), 0, dp(12), 0)
                 setOnClickListener { chosen = code; paint() }
             }
             rows[code] = tv
@@ -128,8 +146,9 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
         }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, itemHeight).apply { topMargin = gap; leftMargin = dp(8) })
         card.addView(body)
 
+        val width = Math.min((dm.widthPixels * 0.92f).toInt(), dp(340))
         val lpWin = WindowManager.LayoutParams(
-            dp(300), WindowManager.LayoutParams.WRAP_CONTENT,
+            width, WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
