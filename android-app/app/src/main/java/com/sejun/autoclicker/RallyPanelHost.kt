@@ -108,14 +108,7 @@ class RallyPanelHost(
             override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
             override fun onAssignLeader(teamId: String, teamName: String) { showAssignPicker(teamId, teamName) }
             override fun onEditCharacterName(current: String) { promptCharacterName(current) }
-            override fun onEditRoom(current: String) {
-                input.show("방 번호 (4~20자, 영문·숫자)", current, freeText = true,
-                    errorText = "방 번호는 영문·숫자 4~20자로 입력해 주세요") { text ->
-                    val code = RallyRoomCode.normalize(text) ?: return@show false
-                    if (code != current) handler.post { onSwitchRoom(code) } // 이 창과 패널이 닫힌 뒤에 옮긴다
-                    true
-                }
-            }
+            override fun onEditRoom(current: String) { showRoomPicker(current) }
             override fun onEditMarch(teamId: String, currentSec: Double) {
                 val shown = if (currentSec % 1.0 == 0.0) currentSec.toInt().toString() else currentSec.toString()
                 input.show("행군시간(초)", shown) { text ->
@@ -172,6 +165,30 @@ class RallyPanelHost(
         params = lp
         refresh()
         handler.post(tick)
+    }
+
+    /** 방 번호를 직접 입력해 옮긴다. 이미 있는 방으로만 옮겨지고, 없는 번호를 쳐도 방이 새로 만들어지지는 않는다. */
+    private fun promptRoomNumber(current: String) {
+        input.show("방 번호 (4~20자, 영문·숫자)", "", freeText = true,
+            errorText = "방 번호는 영문·숫자 4~20자로 입력해 주세요") { text ->
+            val code = RallyRoomCode.normalize(text) ?: return@show false
+            if (code != current) handler.post { onSwitchRoom(code) } // 이 창과 패널이 닫힌 뒤에 옮긴다
+            true
+        }
+    }
+
+    /** 들어갔던 방 목록에서 골라 옮긴다. 방 만들기는 앱 첫 화면(첫 입장)에서만 한다. */
+    private fun showRoomPicker(current: String) {
+        val prefs = context.getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+        if (current.isNotEmpty()) RallyRoomHistory.record(prefs, current)
+        val items = RallyRoomHistory.load(prefs).map { code ->
+            RallyPickPopup.Item(if (code == current) "$code  ·  현재 방" else code, if (code == current) "#60A5FA" else "#E2E8F0") {
+                if (code != current) handler.post { onSwitchRoom(code) }
+            }
+        }
+        pick.show("방 선택", items,
+            "들어갔던 방이 아직 없어요. 방 번호를 직접 입력하거나, 새 방은 앱 첫 화면에서 만드세요",
+            listOf(RallyPickPopup.Item("방 번호 직접 입력") { promptRoomNumber(current) }, RallyPickPopup.Item("닫기") { }))
     }
 
     private fun promptCharacterName(current: String) {

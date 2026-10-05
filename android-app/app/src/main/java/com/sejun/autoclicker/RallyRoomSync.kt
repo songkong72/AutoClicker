@@ -39,7 +39,9 @@ class RallyRoomSync(
     /** 다른 관리자가 방을 바꾼 것이 도착했을 때(관리자 기기에서만). 인자는 바꾼 사람의 표시 이름. */
     private val onOtherAdminChange: (String) -> Unit = {},
     /** 서버에 쓰기가 실패했을 때(규칙 거절, 네트워크 오류). 인자는 화면에 보여 줄 이유. */
-    private val onWriteFailed: (String) -> Unit = {}
+    private val onWriteFailed: (String) -> Unit = {},
+    /** 방이 서버에 아직 없을 때 관리자가 새로 만들어도 되는지. 첫 입장(앱 첫 화면의 새 방·입장)에서만 true이고, 패널에서 번호를 골라 옮길 때는 false다. */
+    private val canCreateRoom: () -> Boolean = { true }
 ) : RallyPanelHost.StateSource {
 
     private val main = Handler(Looper.getMainLooper())
@@ -102,7 +104,7 @@ class RallyRoomSync(
     /** 서버 응답(수신 시점의 방 전체 상태)을 화면에 반영한다. 내가 방금 바꾼 직후에는 잠깐 미뤘다가 최신 상태를 반영한다. */
     private fun deliver(remote: Map<String, Any?>?) {
         val d = RallyRoomCodec.decode(remote)
-        if (remote == null && isAdmin) { writeAsync { put(seedRoom()) }; return } // 빈 방이면 기본 팀으로 시작
+        if (remote == null && isAdmin && canCreateRoom()) { writeAsync { put(seedRoom()) }; return } // 빈 방이면 기본 팀으로 시작
         main.post {
             val wait = holdRemoteUntil - SystemClock.elapsedRealtime()
             if (wait <= 0) { pendingDoc = null; apply(d, fromRemote = true) }

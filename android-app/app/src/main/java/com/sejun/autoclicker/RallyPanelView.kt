@@ -133,7 +133,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     fun renderRoom(code: String) {
         roomShown = code
         root.findViewById<TextView>(R.id.devRoom).apply {
-            text = if (code.isEmpty()) "방 없음 (눌러서 입장)" else "방  $code  (눌러서 변경)"
+            text = if (code.isEmpty()) "방 없음 (눌러서 입장)" else "방  $code  (눌러서 선택)"
             paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
         }
     }

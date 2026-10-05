@@ -474,7 +474,8 @@ class MainActivity : AppCompatActivity() {
                 updateRallyInfoCard()
                 return@setOnClickListener
             }
-            roomPrefs().edit().putString("cloud_room_number", code).apply()
+            roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
+            RallyRoomHistory.record(roomPrefs(), code)
             AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
             Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
             if (admin) {
@@ -500,7 +501,8 @@ class MainActivity : AppCompatActivity() {
         }
         binding.btnNewRoom.setOnClickListener {
             val code = (100000..999999).random().toString()
-            roomPrefs().edit().putString("cloud_room_number", code).apply()
+            roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply()
+            RallyRoomHistory.record(roomPrefs(), code)
             AutoClickService.instance?.leaveRallyRoom()
             binding.etRoomCode.setText(code)
             Toast.makeText(this, "새 방 $code 을 만들었어요. 팀장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()

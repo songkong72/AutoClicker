@@ -160,7 +160,10 @@ class AutoClickService : AccessibilityService() {
      * 명단 등록은 새 방 연결이 시작될 때 자동으로 된다(registerSelf).
      */
     fun switchRallyRoom(code: String) {
-        getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("cloud_room_number", code).apply()
+        val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+        // 패널에서 옮길 때는 방을 만들지 않는다("" 로 표시해 예전 버전 허용 규칙도 끈다)
+        prefs.edit().putString("cloud_room_number", code).putString("cloud_room_creatable", "").apply()
+        RallyRoomHistory.record(prefs, code)
         leaveRallyRoom()
         showToast("방 $code 로 옮겼어요")
         toggleRallyPanel()
@@ -227,7 +230,13 @@ class AutoClickService : AccessibilityService() {
                 onRallyStart = { rallyPanelHost?.let { if (!it.isShowing) it.show() } },
                 onCancel = { },
                 onOtherAdminChange = { who -> showToast("다른 관리자($who)가 방을 바꿨어요") },
-                onWriteFailed = { why -> showToast(why) }
+                onWriteFailed = { why -> showToast(why) },
+                canCreateRoom = {
+                    // 앱 첫 화면에서 만든·입장한 방만 새로 만든다. 값이 아예 없으면(예전 버전에서 정한 방) 그대로 허용한다.
+                    val p = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+                    val f = p.getString("cloud_room_creatable", null)
+                    f == null || f == room
+                }
             ).also { it.start(); rallyRoomSync = it }
             RallyPanelHost(this, wm, source, onSecretUnlock = { unlockBearMode() }, onSwitchRoom = { code -> switchRallyRoom(code) }).also { rallyPanelHost = it }
         }

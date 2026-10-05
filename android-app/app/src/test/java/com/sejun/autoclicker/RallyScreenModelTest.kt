@@ -176,6 +176,14 @@ class RallyScreenModelTest {
     }
 
     @Test
+    fun `팀이 하나도 없는 방에서 관리자에게는 방 번호 확인과 새 방 만드는 곳을 안내한다`() {
+        val m = build(room(teams = emptyList()).copy(isAdmin = true))
+        assertEquals(HeroKind.IDLE, m.hero.kind)
+        assertEquals("이 방에는 팀이 없어요", m.hero.label)
+        assertEquals("방 번호가 맞는지 확인하세요 · 새 방은 앱 첫 화면에서 만들어요", m.hero.subLabel)
+    }
+
+    @Test
     fun `내 군단이 배정되지 않았으면 관리자의 배정을 기다리라고 안내한다`() {
         val m = build(room(teams = listOf(t2, t1), mine = ""))
         assertEquals(HeroKind.IDLE, m.hero.kind)

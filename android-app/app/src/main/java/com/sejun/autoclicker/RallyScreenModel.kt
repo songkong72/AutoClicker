@@ -114,6 +114,8 @@ object RallyScreenModel {
             HeroModel(HeroKind.CANCELLED, "작전 취소됨", null, "예약된 클릭이 모두 멈췄어요", 1.0)
         run == RallyRunState.ARRIVED ->
             HeroModel(HeroKind.ARRIVED, "전원 도착", null, "실패했다면 바로 재집결하세요", 1.0)
+        state.teams.isEmpty() && state.isAdmin ->
+            HeroModel(HeroKind.IDLE, "이 방에는 팀이 없어요", null, "방 번호가 맞는지 확인하세요 · 새 방은 앱 첫 화면에서 만들어요", 0.0)
         state.teams.isEmpty() ->
             HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
         // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
