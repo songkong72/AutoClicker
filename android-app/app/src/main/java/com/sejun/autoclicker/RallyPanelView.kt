@@ -167,7 +167,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "",
                conn: RallyConnection = RallyConnection.LIVE, urgent: Boolean = false) {
         val hero = model.hero
-        val name = if (isAdmin) "집결 · 관리자" else "집결 · 집결장"
+        val name = if (isAdmin) "관리자" else "집결장"
         // 연결 상태 점: 초록=실시간, 주황=1초 확인, 빨강=끊김. 알약(최소화)에서는 단계 표시가 대신 쓴다.
         title.text = if (isMinimized) name else android.text.SpannableString("● $name").apply {
             val c = when (conn) { RallyConnection.LIVE -> "#22C55E"; RallyConnection.POLLING -> "#F59E0B"; RallyConnection.OFFLINE -> "#EF4444" }
