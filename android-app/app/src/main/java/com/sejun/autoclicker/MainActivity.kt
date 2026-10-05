@@ -425,6 +425,10 @@ class MainActivity : AppCompatActivity() {
         updateRallyInfoCard()
     }
 
+    private fun roomAuth() = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
+        load = { roomPrefs().getString("fb_refresh", null) },
+        save = { t -> roomPrefs().edit().putString("fb_refresh", t).apply() })
+
     private fun roomPrefs() = getSharedPreferences("AutoClickerPrefs", MODE_PRIVATE)
 
     /** 입장 직후 명단 등록 결과(성공/실패 이유). 토스트가 안 보이는 기기가 있어 방 상태 글에 붙여 보여 준다. */
@@ -502,7 +506,19 @@ class MainActivity : AppCompatActivity() {
                 updateRallyInfoCard()
             }
             if (admin) {
-                enter()
+                // 새 번호로 방을 만들 때는 서버의 방 수 상한(10개)을 본다. 이미 있는 방이면 그냥 들어간다.
+                rosterStatus = "방을 확인하는 중…"
+                updateRallyInfoCard()
+                Thread {
+                    val codes = RallyRoomSync.roomCodes(RallyRoomSync.DB_URL, roomAuth())
+                    runOnUiThread {
+                        when (RoomLimit.decide(codes, code)) {
+                            RoomLimit.Verdict.ALLOW -> enter()
+                            RoomLimit.Verdict.FULL -> { rosterStatus = "✗ " + RoomLimit.fullMessage(); Toast.makeText(this, RoomLimit.fullMessage(), Toast.LENGTH_LONG).show(); updateRallyInfoCard() }
+                            RoomLimit.Verdict.UNKNOWN -> { rosterStatus = "✗ 서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요"; Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show(); updateRallyInfoCard() }
+                        }
+                    }
+                }.start()
             } else {
                 // 팀장은 방을 만들 수 없다. 없는 번호면 입장도 명단 등록도 하지 않고, 입장 목록에도 남기지 않는다.
                 rosterStatus = "방을 확인하는 중…"
@@ -532,12 +548,23 @@ class MainActivity : AppCompatActivity() {
         }
         binding.btnNewRoom.setOnClickListener {
             val code = (100000..999999).random().toString()
-            roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply()
-            RallyRoomHistory.record(roomPrefs(), code)
-            AutoClickService.instance?.leaveRallyRoom()
-            binding.etRoomCode.setText(code)
-            Toast.makeText(this, "새 방 $code 을 만들었어요. 팀장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
-            updateRallyInfoCard()
+            Thread {
+                val codes = RallyRoomSync.roomCodes(RallyRoomSync.DB_URL, roomAuth())
+                runOnUiThread {
+                    when (RoomLimit.decide(codes, code)) {
+                        RoomLimit.Verdict.FULL -> Toast.makeText(this, RoomLimit.fullMessage(), Toast.LENGTH_LONG).show()
+                        RoomLimit.Verdict.UNKNOWN -> Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()
+                        RoomLimit.Verdict.ALLOW -> {
+                            roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply()
+                            RallyRoomHistory.record(roomPrefs(), code)
+                            AutoClickService.instance?.leaveRallyRoom()
+                            binding.etRoomCode.setText(code)
+                            Toast.makeText(this, "새 방 $code 을 만들었어요. 팀장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
+                            updateRallyInfoCard()
+                        }
+                    }
+                }
+            }.start()
         }
         binding.btnShareRoom.setOnClickListener {
             val code = roomPrefs().getString("cloud_room_number", "") ?: ""

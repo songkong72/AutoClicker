@@ -333,6 +333,12 @@ class RallyRoomSync(
             } catch (_: Exception) { }
         }
 
+    /** 서버에 있는 방 번호들. 읽지 못하면 null. 방 만들기 상한을 볼 때 쓴다. */
+    fun roomCodes(dbUrl: String, auth: FirebaseAuthClient): Set<String>? {
+        val r = AdminServer(dbUrl, auth).loadRoomsOnly()
+        return if (r.error != null) null else (r.value ?: emptyMap()).keys.toSet()
+    }
+
         /** 방 명단에 이 기기를 올린다. 성공하면 null, 실패하면 화면에 보여 줄 이유를 돌려준다. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다. */
         /** 방이 서버에 있는지. 있으면 true, 없으면 false, 확인하지 못했으면 null. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다. */
         fun roomExists(dbUrl: String, auth: FirebaseAuthClient?, room: String): Boolean? = try {
