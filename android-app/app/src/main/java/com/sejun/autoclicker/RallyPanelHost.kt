@@ -46,6 +46,8 @@ class RallyPanelHost(
         fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) { onLoaded(emptyList()) }
         /** 마지막 명단 불러오기가 실패한 이유(화면에 보여 주는 용도). */
         fun rosterError(): String = ""
+        /** 개발자 전용: 서버에 만들어진 모든 방(번호, 요약 한 줄). 읽지 못하면 null과 이유. */
+        fun loadAllRooms(onLoaded: (List<Pair<String, String>>?, String) -> Unit) { onLoaded(null, "") }
         fun onAssignLeader(teamId: String, memberId: String, characterName: String) {}
         fun onUnassignLeader(teamId: String) {}
         fun onSetMarch(teamId: String, sec: Double) {}
@@ -188,7 +190,32 @@ class RallyPanelHost(
         }
         pick.show("방 선택", items,
             "들어갔던 방이 아직 없어요. 방 번호를 직접 입력하거나, 새 방은 앱 첫 화면에서 만드세요",
-            listOf(RallyPickPopup.Item("방 번호 직접 입력") { promptRoomNumber(current) }, RallyPickPopup.Item("닫기") { }))
+            listOf(
+                RallyPickPopup.Item("서버의 전체 방 보기 (개발자)") { showAllRooms(current) },
+                RallyPickPopup.Item("방 번호 직접 입력") { promptRoomNumber(current) },
+                RallyPickPopup.Item("닫기") { }
+            ))
+    }
+
+    /** 개발자: 서버에 만들어진 모든 방을 목록으로 보고 골라 옮긴다. 관리자와 팀장은 서버 규칙상 읽을 수 없다. */
+    private fun showAllRooms(current: String) {
+        val back = RallyPickPopup.Item("뒤로") { showRoomPicker(current) }
+        pick.show("서버의 전체 방", emptyList(), "방 목록을 불러오는 중…", listOf(back))
+        stateSource.loadAllRooms { rooms, error ->
+            if (panel == null) return@loadAllRooms
+            if (rooms == null) {
+                pick.show("서버의 전체 방", emptyList(),
+                    "전체 방은 개발자만 볼 수 있어요. 들어갔던 방 목록이나 방 번호 직접 입력을 쓰세요" + if (error.isNotEmpty()) "\n($error)" else "",
+                    listOf(back))
+                return@loadAllRooms
+            }
+            val items = rooms.map { (code, line) ->
+                RallyPickPopup.Item(if (code == current) "$line  ·  현재 방" else line, if (code == current) "#60A5FA" else "#E2E8F0") {
+                    if (code != current) handler.post { onSwitchRoom(code) }
+                }
+            }
+            pick.show("서버의 전체 방 (${rooms.size}개)", items, "만들어진 방이 없어요", listOf(back))
+        }
     }
 
     private fun promptCharacterName(current: String) {

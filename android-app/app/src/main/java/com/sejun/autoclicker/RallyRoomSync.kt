@@ -276,6 +276,17 @@ class RallyRoomSync(
     @Volatile private var rosterErr = ""
     override fun rosterError(): String = rosterErr
 
+    override fun loadAllRooms(onLoaded: (List<Pair<String, String>>?, String) -> Unit) {
+        val a = auth
+        if (a == null) { onLoaded(null, "로그인이 필요해요"); return }
+        Thread {
+            val r = AdminServer(dbUrl, a).loadRooms()
+            val data = r.value
+            val list = if (data == null) null else RoomList.summarize(data.rooms, data.members).map { it.code to RoomList.line(it) }
+            main.post { onLoaded(list, if (data == null) (r.error ?: "") else "") }
+        }.start()
+    }
+
     override fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) {
         Thread {
             val result = try { rosterErr = ""; RallyRoster.decode(getMembers()) } catch (e: Exception) { rosterErr = (e.message ?: e.javaClass.simpleName).take(80); dropTokenIf401(e); null }
