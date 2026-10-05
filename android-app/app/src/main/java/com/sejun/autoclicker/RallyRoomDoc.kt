@@ -159,6 +159,19 @@ object RallyRoomEdit {
         return doc.copy(teams = doc.teams + RallyTeamDoc("t$n", name, "", Math.max(0.0, marchSec)))
     }
 
+    /**
+     * 군단 추가 버튼용: 아직 쓰이지 않은 가장 작은 번호의 "N군"을 만든다(2군·3군이 있으면 1군, 1~3군이 있으면 4군).
+     * 이름이 겹치지 않고, 다른 군단이 쓰는 id도 가져가지 않는다. 진행 중이면 그대로.
+     */
+    fun addNextTeam(doc: RallyRoomDoc, marchSec: Double): RallyRoomDoc {
+        if (locked(doc)) return doc
+        var n = 1
+        while (doc.teams.any { it.name == "${n}군" }) n++
+        var idNo = n
+        while (doc.teams.any { it.id == "t$idNo" }) idNo++
+        return doc.copy(teams = doc.teams + RallyTeamDoc("t$idNo", "${n}군", "", Math.max(0.0, marchSec)))
+    }
+
     fun removeTeam(doc: RallyRoomDoc, teamId: String): RallyRoomDoc =
         if (locked(doc)) doc else doc.copy(teams = doc.teams.filter { it.id != teamId })
 

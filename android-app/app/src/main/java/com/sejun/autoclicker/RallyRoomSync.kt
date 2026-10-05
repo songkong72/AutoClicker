@@ -245,7 +245,7 @@ class RallyRoomSync(
         writeAsync { putField("teams/$idx/adminAdjustMs", value.toDouble()); putStamp(now) }
     }
 
-    override fun onAddTeam() = change { RallyRoomEdit.addTeam(it, "${it.teams.size + 1}군", 30.0) }
+    override fun onAddTeam() = change { RallyRoomEdit.addNextTeam(it, 30.0) }
 
     override fun onSetPrep(sec: Double) = change { RallyRoomEdit.setPrep(it, sec) }
 

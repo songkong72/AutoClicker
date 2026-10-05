@@ -159,4 +159,48 @@ class RallyRoomEditTest {
         val r = room("RUNNING", 1)
         assertSame(r, RallyRoomEdit.setAdminAdjust(r, "t1", 500))
     }
+
+    private fun gapRoom(vararg nums: Int) = RallyRoomDoc(
+        nums.map { RallyTeamDoc("t$it", "${it}군", "", 30.0) }, 15.0, 300.0, "IDLE", 0
+    )
+
+    @Test fun addNextTeamFillsTheLowestFreeNumber() {
+        val d = RallyRoomEdit.addNextTeam(gapRoom(2, 3), 30.0)
+        assertEquals("1군", d.teams.last().name)
+        assertEquals(3, d.teams.size)
+    }
+
+    @Test fun addNextTeamFillsGapsInOrderThenContinues() {
+        var d = gapRoom(2, 4)
+        d = RallyRoomEdit.addNextTeam(d, 30.0)
+        d = RallyRoomEdit.addNextTeam(d, 30.0)
+        d = RallyRoomEdit.addNextTeam(d, 30.0)
+        assertEquals(listOf("2군", "4군", "1군", "3군", "5군"), d.teams.map { it.name })
+    }
+
+    @Test fun addNextTeamNeverDuplicatesNamesOrIds() {
+        var d = gapRoom(1)
+        repeat(6) { d = RallyRoomEdit.addNextTeam(d, 30.0) }
+        assertEquals(7, d.teams.map { it.name }.toSet().size)
+        assertEquals(7, d.teams.map { it.id }.toSet().size)
+    }
+
+    @Test fun addNextTeamAvoidsIdOfAnotherTeamWithDifferentName() {
+        // id t1은 "2군"이 쓰고 있다. 새 1군은 그 id를 가져가면 안 된다.
+        val d = RallyRoomDoc(listOf(RallyTeamDoc("t1", "2군", "", 30.0)), 15.0, 300.0, "IDLE", 0)
+        val n = RallyRoomEdit.addNextTeam(d, 30.0)
+        assertEquals("1군", n.teams.last().name)
+        assertEquals(2, n.teams.map { it.id }.toSet().size)
+    }
+
+    @Test fun addNextTeamIsIgnoredWhileRunning() {
+        val r = RallyRoomDoc(listOf(RallyTeamDoc("t2", "2군", "", 30.0)), 15.0, 300.0, "RUNNING", 1)
+        assertSame(r, RallyRoomEdit.addNextTeam(r, 30.0))
+    }
+
+    @Test fun addNextTeamStartsAtOneInAnEmptyRoom() {
+        val d = RallyRoomEdit.addNextTeam(gapRoom(), 30.0)
+        assertEquals(listOf("1군"), d.teams.map { it.name })
+        assertEquals(30.0, d.teams[0].marchSec, 0.0)
+    }
 }
