@@ -64,7 +64,7 @@
       ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
       "$room": {
         ".read": "auth != null",
-        ".write": "auth != null && $room.length >= 1 && $room.length <= 40",
+        ".write": "auth != null && $room.length >= 1 && $room.length <= 40 && (root.child('rallyRooms').child($room).exists() || root.child('owners').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())",
         "$id": {
           ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,40}$/)",
           "name": {
