@@ -91,8 +91,9 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
         }
         // 제목 줄: 제목은 왼쪽, 닫기(✕) 아이콘은 오른쪽
         val head = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        head.addView(TextView(context).apply { text = title; setTextColor(Color.parseColor("#F1F5F9")); textSize = 14f },
-            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val titleView = TextView(context).apply { text = title; setTextColor(Color.parseColor("#F1F5F9")); textSize = 14f }
+        selectTitleView = titleView
+        head.addView(titleView, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         head.addView(TextView(context).apply {
             text = "✕"; gravity = Gravity.CENTER; setTextColor(Color.parseColor("#94A3B8")); textSize = 18f
             setOnClickListener { dismiss() }
@@ -158,8 +159,19 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
         view = card
     }
 
+    private var selectTitleView: TextView? = null
+
+    /** 방 선택 창이 열려 있으면 목록은 그대로 두고 제목만 바꾼다(고른 방이 풀리지 않게). 열려 있지 않으면 false. */
+    fun updateSelectTitle(title: String): Boolean {
+        val t = selectTitleView ?: return false
+        if (view == null) return false
+        t.text = title
+        return true
+    }
+
     fun dismiss() {
         view?.let { try { wm.removeView(it) } catch (_: Exception) { } }
         view = null
+        selectTitleView = null
     }
 }

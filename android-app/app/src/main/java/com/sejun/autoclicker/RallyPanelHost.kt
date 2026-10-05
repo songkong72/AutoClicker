@@ -196,7 +196,10 @@ class RallyPanelHost(
             }
             if (rooms.isEmpty()) return@loadAllRooms
             RoomListCache.save(prefs, rooms)
-            pick.showSelect("방 선택 (${rooms.size}개)", rooms, current, "이동", onMove)
+            val title = "방 선택 (${rooms.size}개)"
+            // 저장해 둔 목록과 같으면 다시 그리지 않고 제목만 바꾼다(깜빡임·선택 풀림 방지)
+            if (rooms == cached && pick.updateSelectTitle(title)) return@loadAllRooms
+            pick.showSelect(title, rooms, current, "이동", onMove)
         }
     }
 
