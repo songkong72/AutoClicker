@@ -88,7 +88,7 @@ object RallyScreenModel {
         val editable = run != RallyRunState.RUNNING
 
         return ScreenModel(
-            hero = hero(state, myPlan, run),
+            hero = hero(state, myPlan, run, plan.arriveAtSec),
             rows = rows(state, plan, run),
             maxMarchSec = plan.maxMarchSec,
             editable = editable,
@@ -101,13 +101,17 @@ object RallyScreenModel {
         )
     }
 
-    private fun hero(state: RallyRoomState, my: RallyTeamPlan?, run: RallyRunState): HeroModel = when {
+    private fun hero(state: RallyRoomState, my: RallyTeamPlan?, run: RallyRunState, arriveAtSec: Double): HeroModel = when {
         run == RallyRunState.CANCELLED ->
             HeroModel(HeroKind.CANCELLED, "작전 취소됨", null, "예약된 클릭이 모두 멈췄어요", 1.0)
         run == RallyRunState.ARRIVED ->
             HeroModel(HeroKind.ARRIVED, "전원 도착", null, "실패했다면 바로 재집결하세요", 1.0)
         state.teams.isEmpty() ->
             HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
+        // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
+        state.teams.none { it.id == state.myTeamId } && run == RallyRunState.RUNNING ->
+            HeroModel(HeroKind.MARCHING, "진행 중", Math.max(0.0, arriveAtSec - state.elapsedSec), "전원 도착까지",
+                if (arriveAtSec <= 0.0) 1.0 else (state.elapsedSec / arriveAtSec).coerceIn(0.0, 1.0))
         state.teams.none { it.id == state.myTeamId } ->
             HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "관리자가 군단을 배정하면 시작할 수 있어요", 0.0)
         my == null ->

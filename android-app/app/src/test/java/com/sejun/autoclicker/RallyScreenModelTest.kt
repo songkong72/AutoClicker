@@ -244,4 +244,22 @@ class RallyScreenModelTest {
         val excluded = room(teams = listOf(t3.copy(excluded = true), t2, t1)).copy(positionSaved = false)
         assertFalse(build(excluded).warnings.any { it.contains("클릭 위치") })
     }
+
+    @Test
+    fun `군단이 없는 관리자도 진행 중에는 전원 도착까지 남은 시간이 줄어든다`() {
+        val running = build(room(RallyRunState.RUNNING, elapsed = 100.0, mine = ""))
+        assertEquals(HeroKind.MARCHING, running.hero.kind)
+        assertEquals("진행 중", running.hero.label)
+        assertEquals("전원 도착까지", running.hero.subLabel)
+        assertEquals(running.arriveAtSec - 100.0, running.hero.remainingSec!!, d)
+        val later = build(room(RallyRunState.RUNNING, elapsed = 160.0, mine = ""))
+        assertEquals(running.hero.remainingSec!! - 60.0, later.hero.remainingSec!!, d)
+    }
+
+    @Test
+    fun `군단이 없는 관리자도 시작 전에는 배정 안내를 그대로 보여준다`() {
+        val m = build(room(RallyRunState.IDLE, mine = ""))
+        assertEquals("아직 군단이 배정되지 않았어요", m.hero.label)
+        assertNull(m.hero.remainingSec)
+    }
 }
