@@ -399,7 +399,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_btn_danger_outline"
             android:gravity="center"
-            android:text="취소"
+            android:text="집결 취소"
             android:textColor="#F87171"
             android:textSize="14sp" />
     </LinearLayout>

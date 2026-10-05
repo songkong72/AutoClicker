@@ -134,12 +134,13 @@ class MainActivity : AppCompatActivity() {
         binding.tvGeneralModeToggle.setOnClickListener {
             val open = binding.layoutGeneralModes.visibility != View.VISIBLE
             binding.layoutGeneralModes.visibility = if (open) View.VISIBLE else View.GONE
-            binding.tvGeneralModeToggle.text = if (open) "일반 연타 모드  ▴" else "일반 연타 모드  ▾"
+            updateServiceState()
         }
 
         // 상단 관리자 설정 아이콘
         binding.btnAdminIcon.setOnClickListener {
-            showAdminLoginDialog()
+            // 이미 관리자면 로그인 창을 다시 띄우지 않고 관리 메뉴를 연다
+            if (PreferencesHelper.isAdminMode(this)) showAdminMenu() else showAdminLoginDialog()
         }
 
         // 상단 타이틀 5회 연속 탭 시 관리자 진입 (히든 제스처)
@@ -154,7 +155,7 @@ class MainActivity : AppCompatActivity() {
             titleTapCount++
             if (titleTapCount >= 5) {
                 titleTapCount = 0
-                showAdminLoginDialog()
+                if (PreferencesHelper.isAdminMode(this)) showAdminMenu() else showAdminLoginDialog()
             }
         }
 
@@ -203,7 +204,7 @@ class MainActivity : AppCompatActivity() {
                 service.showOverlays()
             }
             service.toggleRallyPanel()
-            Toast.makeText(this, "⚔️ 집결 동시 착탄 설정을 띄웠습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "⚔️ 집결 화면을 띄웠습니다.", Toast.LENGTH_SHORT).show()
             moveTaskToBack(true)
         }
 
@@ -389,14 +390,13 @@ class MainActivity : AppCompatActivity() {
             binding.badgeAccessibility.text = getString(R.string.status_granted)
             binding.badgeAccessibility.setBackgroundResource(R.drawable.bg_badge_success)
             binding.badgeAccessibility.setTextColor(ContextCompat.getColor(this, R.color.success))
-            binding.btnGrantAccessibility.isEnabled = false
-            binding.btnGrantAccessibility.text = "완료"
+            // 허용된 뒤에는 "허용됨" 배지만 남긴다(누를 수 없는 "완료" 버튼이 같은 뜻으로 한 번 더 나오던 것)
+            binding.btnGrantAccessibility.visibility = View.GONE
         } else {
             binding.badgeAccessibility.text = getString(R.string.status_needed)
             binding.badgeAccessibility.setBackgroundResource(R.drawable.bg_badge_warning)
             binding.badgeAccessibility.setTextColor(ContextCompat.getColor(this, R.color.warning))
-            binding.btnGrantAccessibility.isEnabled = true
-            binding.btnGrantAccessibility.text = getString(R.string.btn_enable)
+            binding.btnGrantAccessibility.visibility = View.VISIBLE
         }
         updateServiceState()
     }
@@ -422,6 +422,9 @@ class MainActivity : AppCompatActivity() {
             binding.btnStartService.text = "🚀 오토클리커 띄우기"
             binding.btnStartService.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
         }
+        // 띄우기/숨기기 버튼이 접힌 영역 안에 있으므로, 접혀 있어도 떠 있는지는 제목에서 알 수 있게 한다
+        val open = binding.layoutGeneralModes.visibility == View.VISIBLE
+        binding.tvGeneralModeToggle.text = "일반 연타 모드" + (if (isShowing) " · 떠 있음" else "") + (if (open) "  ▴" else "  ▾")
         updateRallyInfoCard()
     }
 
@@ -434,11 +437,25 @@ class MainActivity : AppCompatActivity() {
     /** 입장 직후 명단 등록 결과(성공/실패 이유). 토스트가 안 보이는 기기가 있어 방 상태 글에 붙여 보여 준다. */
     private var rosterStatus = ""
 
+    /** 방에 들어와 있는 상태에서 "방 바꾸기"를 눌러 번호 입력칸을 펼쳤는지 */
+    private var roomEditOpen = false
+
     private fun updateRallyInfoCard() {
         val room = roomPrefs().getString("cloud_room_number", "") ?: ""
         val admin = PreferencesHelper.isAdminMode(this)
+        // 이미 방에 들어와 있으면 번호 입력칸·입장 버튼은 접어 두고 "방 바꾸기"를 눌렀을 때만 펼친다
+        val showEntry = room.isEmpty() || roomEditOpen
+        binding.layoutRoomEntry.visibility = if (showEntry) View.VISIBLE else View.GONE
+        binding.etCharName.visibility = if (!admin && showEntry) View.VISIBLE else View.GONE
+        binding.btnNewRoom.visibility = if (showEntry) View.VISIBLE else View.GONE
+        binding.btnShareRoom.visibility = if (room.isNotEmpty()) View.VISIBLE else View.GONE
         binding.layoutRoomAdmin.visibility = if (admin) View.VISIBLE else View.GONE
-        binding.etCharName.visibility = if (admin) View.GONE else View.VISIBLE
+        binding.btnChangeRoom.visibility = if (room.isEmpty()) View.GONE else View.VISIBLE
+        binding.btnChangeRoom.text = when {
+            roomEditOpen -> "닫기"
+            admin -> "방 바꾸기"
+            else -> "방·이름 바꾸기"
+        }
         if (!admin && binding.etCharName.text.isNullOrEmpty()) binding.etCharName.setText(PreferencesHelper.getRallyCharacterName(this))
         // 패널에서 방을 바꿨을 수 있으니, 입력 중이 아니면 칸을 현재 방 번호에 맞춘다
         if (room.isNotEmpty() && !binding.etRoomCode.hasFocus() && binding.etRoomCode.text.toString() != room) binding.etRoomCode.setText(room)
@@ -464,6 +481,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+        binding.btnChangeRoom.setOnClickListener {
+            roomEditOpen = !roomEditOpen
+            updateRallyInfoCard()
+        }
         binding.btnJoinRoom.setOnClickListener {
             val code = binding.etRoomCode.text.toString().trim()
             if (code.length < 4) {
@@ -483,6 +504,7 @@ class MainActivity : AppCompatActivity() {
                 roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
                 RallyRoomHistory.record(roomPrefs(), code)
                 AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
+                roomEditOpen = false
                 Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
                 if (admin) {
                     rosterStatus = ""
@@ -546,7 +568,7 @@ class MainActivity : AppCompatActivity() {
                 }.start()
             }
         }
-        binding.btnNewRoom.setOnClickListener {
+        fun createNewRoom() {
             val code = (100000..999999).random().toString()
             Thread {
                 val codes = RallyRoomSync.roomCodes(RallyRoomSync.DB_URL, roomAuth())
@@ -558,6 +580,7 @@ class MainActivity : AppCompatActivity() {
                             roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply()
                             RallyRoomHistory.record(roomPrefs(), code)
                             AutoClickService.instance?.leaveRallyRoom()
+                            roomEditOpen = false
                             binding.etRoomCode.setText(code)
                             Toast.makeText(this, "새 방 $code 을 만들었어요. 집결장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
                             updateRallyInfoCard()
@@ -565,6 +588,17 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }.start()
+        }
+        binding.btnNewRoom.setOnClickListener {
+            // 이미 방이 있으면 한 번 확인한다: 관리자만 새 방으로 옮겨 가고 집결장들은 이전 방에 남기 때문
+            val current = roomPrefs().getString("cloud_room_number", "") ?: ""
+            if (current.isEmpty()) createNewRoom()
+            else AlertDialog.Builder(this)
+                .setTitle("새 방 만들기")
+                .setMessage("방 $current 에서 나가 새 방을 만들까요?\n집결장들은 이전 방에 남으니 새 번호를 다시 공유해야 해요.")
+                .setPositiveButton("새 방 만들기") { _, _ -> createNewRoom() }
+                .setNegativeButton("취소", null)
+                .show()
         }
         binding.btnShareRoom.setOnClickListener {
             val code = roomPrefs().getString("cloud_room_number", "") ?: ""
@@ -872,7 +906,10 @@ class MainActivity : AppCompatActivity() {
 
         btnCopy.setOnClickListener {
             if (currentGeneratedCode.isEmpty()) return@setOnClickListener
-            val shareMsg = "[AutoClicker Pro 정회원 초대]\n회원 ID: $currentMemberId\n초대코드: $currentGeneratedCode\n앱 실행 후 인증창에 입력하시면 정회원으로 등록됩니다."
+            // 방 번호를 따로 한 번 더 보내지 않아도 되게, 지금 방이 있으면 같은 메시지에 넣는다
+            val room = roomPrefs().getString("cloud_room_number", "") ?: ""
+            val roomLine = if (room.isEmpty()) "" else "\n집결 방 번호: $room (인증 후 집결 방에 입력)"
+            val shareMsg = "[AutoClicker Pro 정회원 초대]\n회원 ID: $currentMemberId\n초대코드: $currentGeneratedCode\n앱 실행 후 인증창에 입력하시면 정회원으로 등록됩니다.$roomLine"
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("AutoClickerInvite", shareMsg)
             clipboard.setPrimaryClip(clip)

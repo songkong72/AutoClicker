@@ -69,7 +69,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
         // ✎: 관리자 편집 모드. 평소엔 읽기 전용으로 깔끔하게, 켜면 −/+ · ✕ · 밑줄(눌러서 고치기)이 나타난다.
-        root.findViewById<View>(R.id.rallyEdit).setOnClickListener { editMode = !editMode; lastRender?.invoke() }
+        root.findViewById<View>(R.id.rallyEdit).setOnClickListener { editMode = !editMode; deleteGuard.reset(); lastRender?.invoke() }
         // 카운트다운 상자(단계명·시간·안내)를 탭하면 축소/확대된다. 작은 —/▢ 버튼 옆의 ✕를 잘못 누르지 않게 큰 영역으로도 누를 수 있다.
         // 알약(최소화 상태)에서는 단계명이나 시간을 탭하면 펼쳐진다. 창을 끄는 일은 ✕만 한다.
         listOf<View>(heroLabel, heroTime, heroSub).forEach { v -> v.setOnClickListener { callbacks.onMinimize() } }
@@ -130,6 +130,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     /** "내 기기" 줄: 캐릭터명, 현재 ms 보정, 저장된 클릭 위치 표시. */
     private var editMode = false
+    /** 군단 삭제는 ✕ → "삭제?" 두 번 눌러야 한다(+ 버튼 바로 옆이라 잘못 누르기 쉽다) */
+    private val deleteGuard = DeleteGuard()
     private var lastRender: (() -> Unit)? = null
     /** "내 기기"의 현재 방 줄. */
     fun renderRoom(code: String) {
@@ -273,10 +275,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 }
             }
             v.findViewById<TextView>(R.id.rowStatus).apply {
-                // 관리자가 더해 준 보정이 있으면 상태 아래 줄에 작게 보여 준다(줄이 늘어나도 폭은 그대로).
-                text = if (r.adminAdjustMs == 0) r.statusLabel else r.statusLabel + "\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
-                // 관리자는 상태 글자를 눌러 그 군단의 보정을 정한다(진행 중에는 잠김)
-                // 제외된 군단의 "제외" 글자는 다시 포함시키는 버튼, 그 밖에는 보정 입력
+                // 평소: 상태 글자. 관리자가 더해 준 보정이 있으면 아래 줄에 작게 보여 준다(줄이 늘어나도 폭은 그대로).
+                // 편집 모드: 상태 대신 "보정 / 0초"를 보여 준다. 상태 글자("취소됨" 등)에 밑줄이 붙어 버튼처럼 보이던 혼동을 없앤다.
+                text = when {
+                    editing && !r.excluded -> "보정\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
+                    r.adminAdjustMs == 0 -> r.statusLabel
+                    else -> r.statusLabel + "\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
+                }
+                // 편집 모드에서 누르면: 제외된 군단의 "제외"는 다시 포함, 그 밖에는 보정 입력(진행 중에는 잠김)
                 setOnClickListener {
                     if (editing) {
                         if (r.excluded) callbacks.onToggleExclude(r.id) else callbacks.onEditAdminAdjust(r.id, r.name, r.adminAdjustMs)
@@ -295,9 +301,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val canMarch = editable && !r.excluded && (if (isAdmin) editing else r.isMine)
             minus.visibility = if (canMarch) View.VISIBLE else View.GONE
             plus.visibility = minus.visibility
-            v.findViewById<View>(R.id.rowDel).apply {
+            v.findViewById<TextView>(R.id.rowDel).apply {
                 visibility = if (canEdit) View.VISIBLE else View.GONE
-                setOnClickListener { callbacks.onRemoveTeam(r.id) }
+                // 첫 탭은 "삭제?"로 바뀌기만 하고, 3초 안에 한 번 더 눌러야 지운다
+                text = if (deleteGuard.isArmed(r.id, android.os.SystemClock.elapsedRealtime())) "삭제?" else "✕"
+                setOnClickListener {
+                    if (deleteGuard.onTap(r.id, android.os.SystemClock.elapsedRealtime())) callbacks.onRemoveTeam(r.id)
+                    else lastRender?.invoke()
+                }
             }
             v.findViewById<TextView>(R.id.rowMarch).setOnClickListener { if (canMarch) callbacks.onEditMarch(r.id, r.marchSec) }
             minus.setOnClickListener { callbacks.onMarchDelta(r.id, -1.0) }
