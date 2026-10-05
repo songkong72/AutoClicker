@@ -176,21 +176,17 @@ class RallyPanelHost(
     private fun showRoomPicker(current: String) {
         val prefs = context.getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
         if (current.isNotEmpty()) RallyRoomHistory.record(prefs, current)
-        fun item(code: String, label: String) =
-            RallyPickPopup.Item(if (code == current) "$label  ·  현재 방" else label, if (code == current) "#60A5FA" else "#E2E8F0") {
-                if (code != current) handler.post { onSwitchRoom(code) }
-            }
         val mine = RallyRoomHistory.load(prefs)
         if (mine.isEmpty()) {
             Toast.makeText(context, "들어갔던 방이 없어요. 앱 첫 화면에서 방을 만들거나 입장해 주세요", Toast.LENGTH_LONG).show()
             return
         }
-        pick.show("방 선택", mine.map { item(it, it) }, "", emptyList())
+        pick.showSelect("방 선택", mine.map { it to it }, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
         if (!stateSource.isAdmin) return
         // 개발자라면 곧 서버의 전체 방 목록으로 바뀐다(규칙상 개발자만 읽을 수 있어, 아니면 위 목록이 그대로 남는다)
         stateSource.loadAllRooms { rooms, _ ->
             if (panel == null || rooms == null || rooms.isEmpty()) return@loadAllRooms
-            pick.show("방 선택 (${rooms.size}개)", rooms.map { (code, line) -> item(code, line) }, "", emptyList())
+            pick.showSelect("방 선택 (${rooms.size}개)", rooms, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
         }
     }
 
