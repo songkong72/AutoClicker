@@ -624,16 +624,6 @@
                         android:layout_weight="1"
                         android:text="새 방 만들기"
                         android:textSize="13sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnShareRoom"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:text="번호 공유"
-                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -650,6 +640,19 @@
                         android:layout_weight="1"
                         android:textColor="@color/primary"
                         android:textSize="12.5sp" />
+
+                    <!-- 관리자: 방 번호를 집결장에게 보낸다. 상태 줄 옆의 작은 버튼 -->
+                    <TextView
+                        android:id="@+id/btnShareRoom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:padding="8dp"
+                        android:text="번호 공유"
+                        android:textColor="@color/primary"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
 
                     <TextView
                         android:id="@+id/btnChangeRoom"

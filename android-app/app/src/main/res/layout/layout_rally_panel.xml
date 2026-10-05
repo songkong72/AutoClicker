@@ -112,6 +112,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:paddingVertical="4dp"
         android:textColor="#FBBF24"
         android:textSize="12sp"
         android:visibility="gone" />
@@ -215,6 +216,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:padding="4dp"
+        android:ellipsize="end"
+        android:maxLines="1"
         android:text="내 기기 ▾"
         android:textColor="#94A3B8"
         android:textSize="12sp" />
@@ -255,6 +258,7 @@
         android:textColor="#94A3B8"
         android:textSize="12sp" />
 
+    <!-- 한 줄로: −0.5초 · 현재 값(눌러서 직접 입력) · +0.5초 · 위치 저장 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -262,37 +266,36 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
         <TextView
-            android:id="@+id/devMinus"
-            android:layout_width="36dp"
+            android:id="@+id/devMinus500"
+            android:layout_width="0dp"
             android:layout_height="36dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="−"
+            android:text="−0.5초"
             android:textColor="#93C5FD"
-            android:textSize="18sp" />
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/devMs"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:minWidth="72dp"
+            android:minWidth="64dp"
             android:gravity="center"
             android:textColor="#F1F5F9"
             android:textSize="13sp" />
 
         <TextView
-            android:id="@+id/devPlus"
-            android:layout_width="36dp"
+            android:id="@+id/devPlus500"
+            android:layout_width="0dp"
             android:layout_height="36dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="+"
+            android:text="+0.5초"
             android:textColor="#93C5FD"
-            android:textSize="18sp" />
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/devSavePos"
@@ -305,58 +308,6 @@
             android:maxLines="1"
             android:text="위치 저장"
             android:textColor="#E2E8F0"
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <!-- 크게 조정: 1초 / 0.1초 단위 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:orientation="horizontal">
-        <TextView
-            android:id="@+id/devMinus1s"
-            android:layout_width="0dp"
-            android:layout_height="34dp"
-            android:layout_marginStart="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="−1초"
-            android:textColor="#93C5FD"
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/devMinus500"
-            android:layout_width="0dp"
-            android:layout_height="34dp"
-            android:layout_marginStart="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="−0.5초"
-            android:textColor="#93C5FD"
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/devPlus500"
-            android:layout_width="0dp"
-            android:layout_height="34dp"
-            android:layout_marginStart="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="+0.5초"
-            android:textColor="#93C5FD"
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/devPlus1s"
-            android:layout_width="0dp"
-            android:layout_height="34dp"
-            android:layout_marginStart="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:text="+1초"
-            android:textColor="#93C5FD"
             android:textSize="12sp" />
     </LinearLayout>
 
@@ -395,7 +346,6 @@
             android:id="@+id/rallyBtnStop"
             android:layout_width="0dp"
             android:layout_height="40dp"
-            android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:background="@drawable/bg_btn_danger_outline"
             android:gravity="center"

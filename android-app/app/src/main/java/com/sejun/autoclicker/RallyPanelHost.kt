@@ -292,7 +292,7 @@ class RallyPanelHost(
         }
         val model = RallyScreenModel.build(state)
         p.renderRoom(stateSource.roomCode())
-        p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText(), stateSource.characterName(), stateSource.deviceDetailText())
+        p.renderDevice(stateSource.deviceCorrectionMs(), stateSource.devicePositionText(), stateSource.characterName(), stateSource.deviceDetailText(), state.positionSaved)
         // 내 클릭을 기다리는 단계에서만: 마지막 5초는 숫자를 붉게, 1초마다 진동(0초 직전은 더 강하게)
         val waiting = model.hero.kind == HeroKind.WAIT_CLICK || model.hero.kind == HeroKind.MOVE
         val remain = model.hero.remainingSec
