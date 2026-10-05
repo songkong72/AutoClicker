@@ -30,7 +30,9 @@ data class RallyRoomState(
     /** 이 기기에 클릭 위치가 저장되어 있는지 */
     val positionSaved: Boolean = true,
     /** 이 기기의 캐릭터명이 등록되어 있는지(관리자는 등록하지 않아도 되므로 true로 넘긴다) */
-    val characterNameSet: Boolean = true
+    val characterNameSet: Boolean = true,
+    /** 관리자 기기인가. 관리자가 자기 군단을 제외하면 "제외됐어요" 대신 전체 진행을 보여 준다. */
+    val isAdmin: Boolean = false
 )
 
 data class HeroModel(
@@ -113,10 +115,12 @@ object RallyScreenModel {
         state.teams.isEmpty() ->
             HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
         // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
-        state.teams.none { it.id == state.myTeamId } && run == RallyRunState.RUNNING ->
+        (state.teams.none { it.id == state.myTeamId } || (state.isAdmin && my == null)) && run == RallyRunState.RUNNING ->
             overviewHero(plan, state.elapsedSec, state.prepSec)
         state.teams.none { it.id == state.myTeamId } ->
             HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "관리자가 군단을 배정하면 시작할 수 있어요", 0.0)
+        state.isAdmin && my == null ->
+            HeroModel(HeroKind.IDLE, "이번 작전에는 참여하지 않아요", null, "군단 목록에서 진행을 확인하세요", 0.0)
         my == null ->
             HeroModel(HeroKind.EXCLUDED, "이번 작전에서 제외됐어요", null, "관리자가 다시 포함하면 참여할 수 있어요", 0.0)
         run == RallyRunState.IDLE ->

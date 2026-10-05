@@ -171,7 +171,7 @@ class RallyRoomSync(
         }
         val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded, it.adminAdjustMs, it.leaderId) }
         return RallyRoomState(teams, RallyRoomEdit.teamIdOf(d, memberId, getCharacterName()), d.prepSec, d.waitSec, run, elapsed, positionSaved(),
-            characterNameSet = isAdmin || getCharacterName().isNotBlank())
+            characterNameSet = isAdmin || getCharacterName().isNotBlank(), isAdmin = isAdmin)
     }
 
     override fun deviceCorrectionMs(): Int = correctionMs().toInt()

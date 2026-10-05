@@ -312,4 +312,28 @@ class RallyScreenModelTest {
         val m = build(room(teams = listOf(team("a", "10군"), team("b", "별동대"), team("c", "9군"), team("d", "2군"), team("e", "예비")), mine = "a"))
         assertEquals(listOf("2군", "9군", "10군", "별동대", "예비"), m.rows.map { it.name })
     }
+
+    private fun adminExcluded(run: RallyRunState, elapsed: Double = 0.0) =
+        room(run, elapsed, mine = "1군", teams = listOf(t3, t2, t1.copy(excluded = true))).copy(isAdmin = true)
+
+    @Test
+    fun `자기 군단을 제외한 관리자도 진행 중에는 전체 진행을 센다`() {
+        val m = build(adminExcluded(RallyRunState.RUNNING, 100.0))
+        assertEquals(HeroKind.OVERVIEW, m.hero.kind)
+        assertEquals("집결 중", m.hero.label)
+        assertEquals(255.0, m.hero.remainingSec!!, d)
+    }
+
+    @Test
+    fun `자기 군단을 제외한 관리자의 시작 전 안내는 제외됐다가 아니라 참여하지 않는다`() {
+        val m = build(adminExcluded(RallyRunState.IDLE))
+        assertEquals(HeroKind.IDLE, m.hero.kind)
+        assertEquals("이번 작전에는 참여하지 않아요", m.hero.label)
+    }
+
+    @Test
+    fun `제외된 팀장은 관리자가 아니면 계속 제외됐다고 보인다`() {
+        val s = adminExcluded(RallyRunState.RUNNING, 100.0).copy(isAdmin = false)
+        assertEquals(HeroKind.EXCLUDED, build(s).hero.kind)
+    }
 }
