@@ -104,13 +104,13 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `취소되면 취소 문구와 팀 상태를 취소로 바꾸고 다시 편집할 수 있다`() {
+    fun `취소되면 취소 문구를 보여 주고 팀 상태 글자는 비우며 다시 편집할 수 있다`() {
         val m = build(room(RallyRunState.CANCELLED))
         assertEquals(HeroKind.CANCELLED, m.hero.kind)
         assertEquals("작전 취소됨", m.hero.label)
         assertEquals("예약된 클릭이 모두 멈췄어요", m.hero.subLabel)
         assertTrue(m.editable)
-        assertEquals(setOf("취소됨"), m.rows.map { it.statusLabel }.toSet())
+        assertEquals(setOf(""), m.rows.map { it.statusLabel }.toSet())
     }
 
     @Test
@@ -135,10 +135,10 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `내 팀 표시와 시작 전 대기 상태`() {
+    fun `내 팀 표시와 시작 전에는 팀 상태 글자가 비어 있다`() {
         val rows = build(room()).rows
         assertEquals(listOf("3군"), rows.filter { it.isMine }.map { it.id })
-        assertEquals(setOf("대기"), rows.map { it.statusLabel }.toSet())
+        assertEquals(setOf(""), rows.map { it.statusLabel }.toSet())
     }
 
     @Test

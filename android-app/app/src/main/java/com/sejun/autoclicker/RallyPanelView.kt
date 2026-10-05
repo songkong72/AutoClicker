@@ -77,11 +77,13 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
         listOf<View>(btnStart, btnStop).forEach { pressFeel(it) }
-        root.findViewById<TextView>(R.id.devToggle).setOnClickListener { t ->
-            val sec = root.findViewById<View>(R.id.devSection)
-            val open = sec.visibility != View.VISIBLE
-            sec.visibility = if (open) View.VISIBLE else View.GONE
-            (t as TextView).text = if (open) "내 기기 ▴" else "내 기기 ▾"
+        root.findViewById<TextView>(R.id.devToggle).setOnClickListener { setDeviceOpen(!deviceOpen) }
+        // 준비 안내("캐릭터명을 먼저…", "클릭 위치를 먼저…")를 누르면 찾아갈 필요 없이 바로 해당 입력으로 간다
+        warning.setOnClickListener {
+            when {
+                RallyScreenModel.WARN_NAME in warningsShown -> callbacks.onEditCharacterName(charNameShown)
+                RallyScreenModel.WARN_POSITION in warningsShown -> setDeviceOpen(true)
+            }
         }
         root.findViewById<View>(R.id.rallyAddTeam).setOnClickListener { callbacks.onAddTeam() }
         root.findViewById<View>(R.id.setPrep).setOnClickListener { callbacks.onEditPrep(prepShown) }
@@ -91,9 +93,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.devRoom).setOnClickListener { callbacks.onEditRoom(roomShown) }
         root.findViewById<View>(R.id.devCharName).setOnClickListener { callbacks.onEditCharacterName(charNameShown) }
         root.findViewById<View>(R.id.devMs).setOnClickListener { callbacks.onEditCorrection(correctionShownMs) } // 눌러서 초 단위로 직접 입력
-        root.findViewById<View>(R.id.devMinus).setOnClickListener { callbacks.onCorrectionDelta(-100) }
-        root.findViewById<View>(R.id.devPlus).setOnClickListener { callbacks.onCorrectionDelta(100) }
-        listOf(R.id.devMinus1s to -1000, R.id.devMinus500 to -500, R.id.devPlus500 to 500, R.id.devPlus1s to 1000).forEach { (id, ms) ->
+        // 보정 버튼은 ±0.5초 둘만 둔다. 그보다 세밀하거나 큰 값은 가운데 숫자를 눌러 직접 입력한다.
+        listOf(R.id.devMinus500 to -500, R.id.devPlus500 to 500).forEach { (id, ms) ->
             root.findViewById<View>(id).setOnClickListener { callbacks.onCorrectionDelta(ms) }
         }
         root.findViewById<TextView>(R.id.devSavePos).let { b ->
@@ -133,9 +134,27 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     /** 군단 삭제는 ✕ → "삭제?" 두 번 눌러야 한다(+ 버튼 바로 옆이라 잘못 누르기 쉽다) */
     private val deleteGuard = DeleteGuard()
     private var lastRender: (() -> Unit)? = null
+    private var deviceOpen = false
+    private var positionSavedShown = true
+    private var warningsShown: List<String> = emptyList()
+
+    /** "내 기기"를 펼치거나 접는다. 접혀 있을 때는 제목 줄에 한 줄 요약을 보여 준다. */
+    private fun setDeviceOpen(open: Boolean) {
+        deviceOpen = open
+        root.findViewById<View>(R.id.devSection).visibility = if (open) View.VISIBLE else View.GONE
+        showDeviceToggle()
+    }
+
+    private fun showDeviceToggle() {
+        root.findViewById<TextView>(R.id.devToggle).text =
+            if (deviceOpen) "내 기기 ▴"
+            else "내 기기 ▾  " + RallyPanelFormat.deviceSummary(charNameShown, roomShown, RallyInputParse.formatCorrection(correctionShownMs), positionSavedShown)
+    }
+
     /** "내 기기"의 현재 방 줄. */
     fun renderRoom(code: String) {
         roomShown = code
+        showDeviceToggle()
         root.findViewById<TextView>(R.id.devRoom).apply {
             text = if (code.isEmpty()) "방 없음 (눌러서 입장)" else "방  $code  (눌러서 선택)"
             paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
@@ -152,8 +171,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             listOf(lastPosText, if (detailOpen) lastDetailText else "", hint).filter { it.isNotEmpty() }.joinToString("\n")
     }
 
-    fun renderDevice(correctionMs: Int, posText: String, characterName: String, detailText: String = "") {
+    fun renderDevice(correctionMs: Int, posText: String, characterName: String, detailText: String = "", positionSaved: Boolean = true) {
         charNameShown = characterName
+        positionSavedShown = positionSaved
         root.findViewById<TextView>(R.id.devCharName).apply {
             text = if (characterName.isBlank()) "캐릭터명 등록하기 (눌러서 입력)" else "캐릭터명  $characterName  (눌러서 변경)"
             paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
@@ -164,6 +184,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         lastDetailText = detailText
         root.findViewById<TextView>(R.id.devPosStatus).setOnClickListener { detailOpen = !detailOpen; showDeviceStatus() }
         showDeviceStatus()
+        showDeviceToggle()
     }
 
     fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "",
@@ -198,15 +219,18 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         renderPhases(hero.kind, hero.phase)
         heroProgress.progress = (hero.progress * 1000).toInt()
 
+        warningsShown = model.warnings
         warning.visibility = if (model.warnings.isEmpty()) View.GONE else View.VISIBLE
         warning.text = model.warnings.joinToString("\n") { "⚠ $it" }
 
         renderRows(model.rows, isAdmin, model.editable, editing, hero.kind != HeroKind.IDLE && hero.kind != HeroKind.EXCLUDED, RallyTimelineScale(model.maxMarchSec), model.nowSec)
 
         adminBar.visibility = if (isAdmin) View.VISIBLE else View.GONE
-        root.findViewById<View>(R.id.rallyAddTeam).visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
+        // 준비·집결 시간과 팀 추가는 가끔만 고치므로 편집 모드(✎)에서만 보인다. 팀이 하나도 없을 때는 바로 추가할 수 있게 보여 준다.
+        val showSetup = if (editing || (isAdmin && model.editable && model.rows.isEmpty())) View.VISIBLE else View.GONE
+        root.findViewById<View>(R.id.rallyAddTeam).visibility = showSetup
         prepShown = model.prepSec
-        root.findViewById<View>(R.id.rallySettingsRow).visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
+        root.findViewById<View>(R.id.rallySettingsRow).visibility = showSetup
         root.findViewById<TextView>(R.id.setPrep).text = "준비 ${model.prepSec.toInt()}초"
         listOf(R.id.setWait3 to 180.0, R.id.setWait5 to 300.0, R.id.setWait10 to 600.0).forEach { (id, sec) ->
             root.findViewById<TextView>(id).setTextColor(Color.parseColor(if (model.waitSec == sec) "#60A5FA" else "#CBD5E1"))
@@ -214,7 +238,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val canRegroup = model.hero.kind == HeroKind.ARRIVED || model.hero.kind == HeroKind.CANCELLED
         btnStart.text = if (canRegroup || hasStarted) "다시 집결" else "집결 시작"
         btnStart.isEnabled = model.startBlockedReason == null
-        btnStop.isEnabled = !model.editable
+        // 지금 할 수 있는 버튼 하나만 넓게: 진행 중에는 "집결 취소", 그 밖에는 "집결 시작"/"다시 집결"
+        val running = !model.editable
+        btnStart.visibility = if (running) View.GONE else View.VISIBLE
+        btnStop.visibility = if (running) View.VISIBLE else View.GONE
         blocked.visibility = if (isAdmin && model.startBlockedReason != null) View.VISIBLE else View.GONE
         blocked.text = model.startBlockedReason ?: ""
     }
@@ -280,7 +307,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 text = when {
                     editing && !r.excluded -> "보정\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
                     r.adminAdjustMs == 0 -> r.statusLabel
-                    else -> r.statusLabel + "\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
+                    else -> listOf(r.statusLabel, RallyInputParse.formatCorrection(r.adminAdjustMs)).filter { it.isNotEmpty() }.joinToString("\n")
                 }
                 // 편집 모드에서 누르면: 제외된 군단의 "제외"는 다시 포함, 그 밖에는 보정 입력(진행 중에는 잠김)
                 setOnClickListener {
@@ -381,6 +408,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.phaseRow).visibility = hide
         root.findViewById<View>(R.id.devToggle).visibility = hide
         if (min) {
+            deviceOpen = false
+            showDeviceToggle()
             root.findViewById<View>(R.id.devSection).visibility = View.GONE
             root.findViewById<View>(R.id.rallyAddTeam).visibility = View.GONE
             root.findViewById<View>(R.id.rallySettingsRow).visibility = View.GONE

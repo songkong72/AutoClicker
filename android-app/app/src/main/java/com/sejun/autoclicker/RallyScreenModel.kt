@@ -196,9 +196,10 @@ object RallyScreenModel {
     private fun row(state: RallyRoomState, t: RallyTeamState, p: RallyTeamPlan, run: RallyRunState): TeamRowModel {
         val e = state.elapsedSec
         val (label, remaining) = when (run) {
-            RallyRunState.CANCELLED -> "취소됨" to null
+            // 대기·취소는 위의 큰 글자와 단계 줄이 이미 말해 주므로 줄마다 되풀이하지 않는다
+            RallyRunState.CANCELLED -> "" to null
             RallyRunState.ARRIVED -> "도착" to null
-            RallyRunState.IDLE -> "대기" to null
+            RallyRunState.IDLE -> "" to null
             RallyRunState.RUNNING -> when (RallySchedule.phaseAt(p, e)) {
                 RallyPhase.BEFORE_CLICK -> "클릭 전" to (p.clickAtSec - e)
                 RallyPhase.GATHERING -> "집결 중" to (p.departAtSec - e)
@@ -213,13 +214,17 @@ object RallyScreenModel {
     }
 
     /** 캐릭터명이 없으면 관리자가 명단에서 나를 찾아 배정할 수 없다. */
+    /** 준비가 덜 됐을 때의 안내. 패널에서 이 줄을 누르면 바로 해당 입력으로 간다. */
+    const val WARN_NAME = "캐릭터명을 먼저 등록하세요 (눌러서 입력)"
+    const val WARN_POSITION = "클릭 위치를 먼저 저장하세요 (눌러서 열기)"
+
     private fun nameWarnings(state: RallyRoomState): List<String> =
-        if (state.characterNameSet) emptyList() else listOf("캐릭터명을 먼저 등록하세요 (내 기기 → 캐릭터명)")
+        if (state.characterNameSet) emptyList() else listOf(WARN_NAME)
 
     /** 내가 이번 작전에 참여하는데 클릭 위치가 없으면 클릭이 나가지 않는다. 진행 중에도 계속 알린다. */
     private fun positionWarnings(state: RallyRoomState): List<String> {
         val me = state.teams.firstOrNull { it.id == state.myTeamId } ?: return emptyList()
-        return if (!state.positionSaved && !me.excluded) listOf("클릭 위치를 먼저 저장하세요 (내 기기 → 위치 저장)") else emptyList()
+        return if (!state.positionSaved && !me.excluded) listOf(WARN_POSITION) else emptyList()
     }
 
     /** 대기 중 큰 숫자 아래 한 줄. 큰 숫자가 전체 소요라는 건 자명하니 반복하지 않고, 참여 팀 수를 붙인다. */

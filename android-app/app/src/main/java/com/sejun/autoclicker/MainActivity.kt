@@ -436,18 +436,18 @@ class MainActivity : AppCompatActivity() {
         val room = roomPrefs().getString("cloud_room_number", "") ?: ""
         val admin = PreferencesHelper.isAdminMode(this)
         // 이미 방에 들어와 있으면 번호 입력칸·입장 버튼은 접어 두고 "방 바꾸기"를 눌렀을 때만 펼친다
-        val showEntry = room.isEmpty() || roomEditOpen
+        // 집결장은 입장한 뒤로는 방·이름을 집결 화면의 "내 기기"에서만 바꾼다(같은 입력이 두 곳에 있던 것을 한 곳으로).
+        // 다만 명단 등록에 실패했으면 여기서 다시 입장할 수 있게 입력칸을 남긴다.
+        val retry = !admin && rosterStatus.startsWith("✗")
+        val showEntry = room.isEmpty() || (admin && roomEditOpen) || retry
         binding.layoutRoomEntry.visibility = if (showEntry) View.VISIBLE else View.GONE
         binding.etCharName.visibility = if (!admin && showEntry) View.VISIBLE else View.GONE
-        binding.btnNewRoom.visibility = if (showEntry) View.VISIBLE else View.GONE
-        binding.btnShareRoom.visibility = if (room.isNotEmpty()) View.VISIBLE else View.GONE
-        binding.layoutRoomAdmin.visibility = if (admin) View.VISIBLE else View.GONE
-        binding.btnChangeRoom.visibility = if (room.isEmpty()) View.GONE else View.VISIBLE
-        binding.btnChangeRoom.text = when {
-            roomEditOpen -> "닫기"
-            admin -> "방 바꾸기"
-            else -> "방·이름 바꾸기"
-        }
+        binding.layoutRoomAdmin.visibility = if (admin && showEntry) View.VISIBLE else View.GONE // 새 방 만들기
+        binding.btnShareRoom.visibility = if (admin && room.isNotEmpty()) View.VISIBLE else View.GONE
+        binding.btnChangeRoom.visibility = if (admin && room.isNotEmpty()) View.VISIBLE else View.GONE
+        binding.btnChangeRoom.text = if (roomEditOpen) "닫기" else "방 바꾸기"
+        // 방이 이미 있는 관리자에게는 "방을 만들고 공유하세요" 안내를 되풀이하지 않는다
+        binding.tvAuthStatusSubtitle.visibility = if (admin && room.isNotEmpty()) View.GONE else View.VISIBLE
         if (!admin && binding.etCharName.text.isNullOrEmpty()) binding.etCharName.setText(PreferencesHelper.getRallyCharacterName(this))
         // 패널에서 방을 바꿨을 수 있으니, 입력 중이 아니면 칸을 현재 방 번호에 맞춘다
         if (room.isNotEmpty() && !binding.etRoomCode.hasFocus() && binding.etRoomCode.text.toString() != room) binding.etRoomCode.setText(room)
@@ -455,7 +455,8 @@ class MainActivity : AppCompatActivity() {
             room.isEmpty() && admin -> "아직 방이 없어요. 새 방을 만들어 번호를 집결장에게 공유하세요."
             room.isEmpty() -> "관리자에게 받은 방 번호를 입력하고 입장하세요." + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
             admin -> "방 $room · 관리자"
-            else -> "방 $room · 집결장" + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
+            else -> "방 $room · 집결장" + (if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else "") +
+                (if (retry) "" else "\n방·이름은 집결 화면의 '내 기기'에서 바꿔요")
         }
     }
 

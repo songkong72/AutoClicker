@@ -29,4 +29,14 @@ class RallyPanelFormatTest {
 
     @Test fun 초_정수는_소수점없이() = assertEquals("51", RallyPanelFormat.sec(51.0))
     @Test fun 초_소수는_그대로() = assertEquals("42.5", RallyPanelFormat.sec(42.5))
+
+    @Test
+    fun `내 기기 요약은 이름 방 보정 위치를 한 줄로 보여 준다`() {
+        assertEquals("문 · 방 0001 · 보정 0초 · 위치 저장됨", RallyPanelFormat.deviceSummary("문", "0001", "0초", true))
+    }
+
+    @Test
+    fun `내 기기 요약은 빠진 항목을 없음으로 드러낸다`() {
+        assertEquals("캐릭터명 없음 · 방 없음 · 보정 +0.5초 · 위치 없음", RallyPanelFormat.deviceSummary(" ", "", "+0.5초", false))
+    }
 }
