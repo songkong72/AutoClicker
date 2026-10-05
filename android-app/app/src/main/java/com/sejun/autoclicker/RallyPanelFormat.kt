@@ -10,7 +10,7 @@ internal object RallyPanelFormat {
     /**
      * 군단별 "가장 먼저 누르는 군단보다 몇 초 늦게 누르는지". 관리자 보정까지 포함해 계산한다.
      * 누르는 시각 = (가장 긴 행군 − 내 행군) + 관리자 보정. 가장 먼저 누르는 군단은 "기준", 제외된 군단은 "".
-     * (팀장 기기마다 다른 내 보정은 방 데이터에 없어 포함하지 않는다.)
+     * (집결장 기기마다 다른 내 보정은 방 데이터에 없어 포함하지 않는다.)
      */
     fun lagLabels(items: List<LagInput>): List<String> {
         val active = items.filter { !it.excluded }

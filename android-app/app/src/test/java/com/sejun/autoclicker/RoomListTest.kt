@@ -66,9 +66,9 @@ class RoomListTest {
         val text = RoomList.detail("ALPHA", rooms["ALPHA"] as Map<*, *>, members["ALPHA"] as Map<*, *>)
         assertTrue(text, text.contains("방 ALPHA"))
         assertTrue(text, text.contains("상태 대기 중 · 준비 10초 · 대기 5초"))
-        assertTrue(text, text.contains("1. 1군 · 팀장 김민수 · 행군 28.5초"))
-        assertTrue(text, text.contains("2. 2군 · 팀장 미배정 · 행군 30초"))
-        assertTrue(text, text.contains("3. 3군 · 팀장 이영희 · 행군 35초 · 제외"))
+        assertTrue(text, text.contains("1. 1군 · 집결장 김민수 · 행군 28.5초"))
+        assertTrue(text, text.contains("2. 2군 · 집결장 미배정 · 행군 30초"))
+        assertTrue(text, text.contains("3. 3군 · 집결장 이영희 · 행군 35초 · 제외"))
         assertTrue(text, text.contains("명단 3명: "))
         assertTrue(text, text.contains("박철수"))
     }

@@ -119,7 +119,7 @@ object RallyScreenModel {
         state.teams.isEmpty() ->
             HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
         // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
-        // 팀장이 군단을 못 찾았을 때는 전체 보기가 아니라 아래의 "배정되지 않았어요" 안내를 보여 준다.
+        // 집결장이 군단을 못 찾았을 때는 전체 보기가 아니라 아래의 "배정되지 않았어요" 안내를 보여 준다.
         (state.isAdmin && (state.teams.none { it.id == state.myTeamId } || my == null)) && run == RallyRunState.RUNNING ->
             overviewHero(plan, state.elapsedSec, state.prepSec).copy(note = if (state.teams.any { it.id == state.myTeamId }) "참여 안 함" else null)
         state.teams.none { it.id == state.myTeamId } ->
@@ -134,7 +134,7 @@ object RallyScreenModel {
     }
 
     /**
-     * 팀장 화면처럼 "다음 단계까지 남은 시간"을 센다. 단계 이름은 최소화한 알약과 같은 글자를 쓴다.
+     * 집결장 화면처럼 "다음 단계까지 남은 시간"을 센다. 단계 이름은 최소화한 알약과 같은 글자를 쓴다.
      * 첫 클릭 전(준비시간 이내면 이동 준비, 아니면 집결 대기) → 첫 클릭부터 모든 군단이 출발할 때까지 집결 중 → 출발 뒤 행군 중.
      */
     private fun overviewHero(plan: RallyPlan, e: Double, prepSec: Double): HeroModel {

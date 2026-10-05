@@ -210,7 +210,7 @@ class RallyRoomSync(
 
     override fun onStop() = change(RallyRoomEdit::cancel)
 
-    /** 행군시간은 관리자(모든 팀) 또는 팀장(내 팀)이 고친다. 서버에는 그 팀의 필드 하나만 써서 다른 변경을 덮어쓰지 않는다. */
+    /** 행군시간은 관리자(모든 팀) 또는 집결장(내 팀)이 고친다. 서버에는 그 팀의 필드 하나만 써서 다른 변경을 덮어쓰지 않는다. */
     override fun onSetMarch(teamId: String, sec: Double) {
         val d = effectiveDoc()
         if (!RallyRoomEdit.canEditMarch(d, isAdmin, myTeamId, teamId)) return

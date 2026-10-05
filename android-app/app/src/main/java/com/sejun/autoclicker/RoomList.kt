@@ -1,6 +1,6 @@
 package com.sejun.autoclicker
 
-/** 개발자 화면의 방 목록 한 줄. [assigned]는 팀장이 배정된 군단 수, [members]는 방 명단에 올라온 인원이다. */
+/** 개발자 화면의 방 목록 한 줄. [assigned]는 집결장이 배정된 군단 수, [members]는 방 명단에 올라온 인원이다. */
 internal data class RoomOverview(val code: String, val teamCount: Int, val assigned: Int, val run: String, val members: Int)
 
 /** 서버의 방(rallyRooms)과 방 명단(rallyMembers)을 개발자가 보기 좋게 요약한다. 안드로이드 클래스를 쓰지 않아 단위 테스트가 된다. */
@@ -29,7 +29,7 @@ internal object RoomList {
     fun line(o: RoomOverview): String =
         "${o.code} · 군단 ${o.teamCount}개 (배정 ${o.assigned}) · ${runLabel(o.run)} · 명단 ${o.members}명"
 
-    /** 방 하나의 자세한 내용(읽기 전용). 군단별 팀장과 행군시간, 명단의 이름들. */
+    /** 방 하나의 자세한 내용(읽기 전용). 군단별 집결장과 행군시간, 명단의 이름들. */
     fun detail(code: String, room: Map<*, *>, members: Map<*, *>?): String {
         val doc = RallyRoomCodec.decode(room.entries.associate { it.key.toString() to it.value })
         val names = members?.values.orEmpty().mapNotNull { (it as? Map<*, *>)?.get("name") as? String }.sorted()
@@ -39,7 +39,7 @@ internal object RoomList {
             if (doc.teams.isEmpty()) append("(없음)\n")
             doc.teams.forEachIndexed { i, t ->
                 val leader = if (t.leaderId.isNotEmpty() && t.leaderName.isNotEmpty()) t.leaderName else "미배정"
-                append("${i + 1}. ${t.name} · 팀장 $leader · 행군 ${num(t.marchSec)}초${if (t.excluded) " · 제외" else ""}\n")
+                append("${i + 1}. ${t.name} · 집결장 $leader · 행군 ${num(t.marchSec)}초${if (t.excluded) " · 제외" else ""}\n")
             }
             append("\n명단 ${names.size}명")
             if (names.isNotEmpty()) append(": ${names.joinToString(", ")}")

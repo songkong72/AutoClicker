@@ -50,7 +50,7 @@ internal object AdminRoster {
         return if (CODE_BODY.matches(body)) "AD-$body" else null
     }
 
-    /** 관리자 코드를 넣으려는 것으로 보이나. 비밀번호와 팀장 초대코드(AC-)를 가르는 데 쓴다. */
+    /** 관리자 코드를 넣으려는 것으로 보이나. 비밀번호와 집결장 초대코드(AC-)를 가르는 데 쓴다. */
     fun looksLikeCode(raw: String): Boolean = raw.trim().uppercase().startsWith("AD-")
 
     fun isExpired(nowMs: Long, createdAt: Long): Boolean = nowMs - createdAt >= CODE_TTL_MS

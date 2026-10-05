@@ -255,7 +255,7 @@ class RallyScreenModelTest {
     }
 
     // 방: 3군 50s, 2군 30s, 1군 10s / 준비 15s, 대기 300s → 클릭 시각 3군 15s, 2군 35s, 1군 55s, 출발은 클릭+300s(첫 315s, 마지막 355s), 전원 도착 365s
-    // 군단이 없는 관리자의 큰 숫자는 팀장처럼 "다음 단계까지 남은 시간"이다.
+    // 군단이 없는 관리자의 큰 숫자는 집결장처럼 "다음 단계까지 남은 시간"이다.
     @Test
     fun `군단이 없는 관리자는 시작 직후 첫 클릭까지 이동 준비로 센다`() {
         val m = build(room(RallyRunState.RUNNING, elapsed = 0.0, mine = "").copy(isAdmin = true))
@@ -293,7 +293,7 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `군단이 배정되지 않은 팀장은 진행 중에도 전체 보기 대신 배정 안내를 본다`() {
+    fun `군단이 배정되지 않은 집결장은 진행 중에도 전체 보기 대신 배정 안내를 본다`() {
         val m = build(room(RallyRunState.RUNNING, elapsed = 20.0, mine = ""))
         assertEquals(HeroKind.IDLE, m.hero.kind)
         assertEquals("아직 군단이 배정되지 않았어요", m.hero.label)
@@ -358,7 +358,7 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `제외된 팀장은 관리자가 아니면 계속 제외됐다고 보인다`() {
+    fun `제외된 집결장은 관리자가 아니면 계속 제외됐다고 보인다`() {
         val s = adminExcluded(RallyRunState.RUNNING, 100.0).copy(isAdmin = false)
         assertEquals(HeroKind.EXCLUDED, build(s).hero.kind)
     }

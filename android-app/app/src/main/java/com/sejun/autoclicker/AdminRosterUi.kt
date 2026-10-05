@@ -311,7 +311,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
     private fun confirmRemove(a: AdminEntry, label: String) {
         AlertDialog.Builder(activity)
             .setTitle("관리자 삭제")
-            .setMessage("$label (ID …${a.uid.takeLast(6)}) 의 관리자 권한을 없앨까요? 그 폰은 다음에 앱을 열 때 팀장 화면으로 돌아갑니다.")
+            .setMessage("$label (ID …${a.uid.takeLast(6)}) 의 관리자 권한을 없앨까요? 그 폰은 다음에 앱을 열 때 집결장 화면으로 돌아갑니다.")
             .setPositiveButton("삭제") { _, _ ->
                 Thread {
                     val err = server.removeAdmin(a.uid)

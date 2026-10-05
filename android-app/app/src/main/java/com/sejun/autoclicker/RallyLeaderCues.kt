@@ -25,7 +25,7 @@ class RallyCountdownCue {
     }
 }
 
-/** 내 클릭이 실행된 시각 안내(ms까지). 보정이 맞았는지 팀장끼리 비교할 때 쓴다. */
+/** 내 클릭이 실행된 시각 안내(ms까지). 보정이 맞았는지 집결장끼리 비교할 때 쓴다. */
 object RallyClickNote {
     fun text(clickWallMs: Long?, zone: TimeZone = TimeZone.getDefault()): String {
         val ms = clickWallMs ?: return ""

@@ -443,10 +443,10 @@ class MainActivity : AppCompatActivity() {
         // 패널에서 방을 바꿨을 수 있으니, 입력 중이 아니면 칸을 현재 방 번호에 맞춘다
         if (room.isNotEmpty() && !binding.etRoomCode.hasFocus() && binding.etRoomCode.text.toString() != room) binding.etRoomCode.setText(room)
         binding.tvRoomStatus.text = when {
-            room.isEmpty() && admin -> "아직 방이 없어요. 새 방을 만들어 번호를 팀장에게 공유하세요."
+            room.isEmpty() && admin -> "아직 방이 없어요. 새 방을 만들어 번호를 집결장에게 공유하세요."
             room.isEmpty() -> "관리자에게 받은 방 번호를 입력하고 입장하세요." + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
             admin -> "방 $room · 관리자"
-            else -> "방 $room · 팀장" + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
+            else -> "방 $room · 집결장" + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
         }
     }
 
@@ -478,7 +478,7 @@ class MainActivity : AppCompatActivity() {
                 updateRallyInfoCard()
                 return@setOnClickListener
             }
-            // 입장 동작. 관리자는 없는 방이면 만들고(첫 입장), 팀장은 아래에서 방이 있다고 확인된 뒤에만 부른다.
+            // 입장 동작. 관리자는 없는 방이면 만들고(첫 입장), 집결장은 아래에서 방이 있다고 확인된 뒤에만 부른다.
             fun enter() {
                 roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
                 RallyRoomHistory.record(roomPrefs(), code)
@@ -520,7 +520,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }.start()
             } else {
-                // 팀장은 방을 만들 수 없다. 없는 번호면 입장도 명단 등록도 하지 않고, 입장 목록에도 남기지 않는다.
+                // 집결장은 방을 만들 수 없다. 없는 번호면 입장도 명단 등록도 하지 않고, 입장 목록에도 남기지 않는다.
                 rosterStatus = "방을 확인하는 중…"
                 updateRallyInfoCard()
                 val auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
@@ -559,7 +559,7 @@ class MainActivity : AppCompatActivity() {
                             RallyRoomHistory.record(roomPrefs(), code)
                             AutoClickService.instance?.leaveRallyRoom()
                             binding.etRoomCode.setText(code)
-                            Toast.makeText(this, "새 방 $code 을 만들었어요. 팀장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this, "새 방 $code 을 만들었어요. 집결장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
                             updateRallyInfoCard()
                         }
                     }
@@ -622,7 +622,7 @@ class MainActivity : AppCompatActivity() {
         if (PreferencesHelper.isAdminMode(this)) {
             binding.tvAuthStatusTitle.text = "👑 관리자 모드"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#2563EB"))
-            binding.tvAuthStatusSubtitle.text = "방을 만들고 팀장에게 방 번호와 초대코드를 공유하세요."
+            binding.tvAuthStatusSubtitle.text = "방을 만들고 집결장에게 방 번호와 초대코드를 공유하세요."
             binding.btnAuthAction.text = "관리"
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
         } else if (isVerified) {
@@ -671,7 +671,7 @@ class MainActivity : AppCompatActivity() {
                     PreferencesHelper.setAdminMode(this, false)
                     PreferencesHelper.setAdminViaServer(this, false)
                     AutoClickService.instance?.leaveRallyRoom()
-                    Toast.makeText(this, "관리자 권한이 없어서 팀장 화면으로 돌아갑니다. 관리자 코드를 받아 다시 로그인해 주세요.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "관리자 권한이 없어서 집결장 화면으로 돌아갑니다. 관리자 코드를 받아 다시 로그인해 주세요.", Toast.LENGTH_LONG).show()
                     updateAuthUI()
                     updateRallyInfoCard()
                 }
@@ -686,13 +686,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAdminMenu() {
-        // "관리자 관리"와 "내 기기 ID 보기"는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 관리자와 팀장은 필요 없다)
+        // "관리자 관리"와 "내 기기 ID 보기"는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 관리자와 집결장은 필요 없다)
         val owner = roomPrefs().getBoolean("is_owner_cached", false)
         val items = buildList {
             add("집결장 코드 발급")
             if (owner) add("관리자 관리 (개발자 전용)")
             if (owner) add("내 기기 ID 보기")
-            add("관리자 모드 해제 (팀장 화면으로)")
+            add("관리자 모드 해제 (집결장 화면으로)")
         }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("관리자")

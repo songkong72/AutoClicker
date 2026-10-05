@@ -170,7 +170,7 @@ class RallyPanelHost(
     }
 
     /**
-     * 방을 목록에서 골라 옮긴다(입력 없음). 관리자와 팀장은 이 기기에서 들어갔던 방, 개발자는 서버에 만들어진 모든 방이 나온다.
+     * 방을 목록에서 골라 옮긴다(입력 없음). 관리자와 집결장은 이 기기에서 들어갔던 방, 개발자는 서버에 만들어진 모든 방이 나온다.
      * 방 만들기는 앱 첫 화면(첫 입장)에서만 한다. 현재 방을 고르면 아무 일 없이 창이 닫힌다.
      */
     private fun showRoomPicker(current: String) {
@@ -226,7 +226,7 @@ class RallyPanelHost(
             val assignedTo = teams.filter { it.leaderId.isNotEmpty() }.associate { it.leaderId to it.name }
             val dupNames = roster.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
             val items = roster.map { m ->
-                // 같은 이름이 둘이면(앱을 다시 설치한 경우) 기기 ID 끝 4자리로 구별한다. 팀장 화면의 "내 기기"에 같은 값이 보인다.
+                // 같은 이름이 둘이면(앱을 다시 설치한 경우) 기기 ID 끝 4자리로 구별한다. 집결장 화면의 "내 기기"에 같은 값이 보인다.
                 val label = m.name + (if (m.name in dupNames) " (…${m.id.takeLast(4)})" else "")
                 RallyPickPopup.Item(label + (assignedTo[m.id]?.let { "  ·  $it" } ?: "")) {
                     stateSource.onAssignLeader(teamId, m.id, m.name); refresh()
@@ -238,7 +238,7 @@ class RallyPanelHost(
             }
             footer += RallyPickPopup.Item("닫기") { }
             pick.show("$teamName 을(를) 맡을 사람", items,
-                "아직 등록한 사람이 없어요. 팀장이 앱에서 캐릭터명을 등록하면 여기에 나타나요", footer)
+                "아직 등록한 사람이 없어요. 집결장이 앱에서 캐릭터명을 등록하면 여기에 나타나요", footer)
         }
     }
 

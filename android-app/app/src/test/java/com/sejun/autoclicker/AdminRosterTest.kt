@@ -25,7 +25,7 @@ class AdminRosterTest {
 
     @Test fun normalizeRejectsWrongShapeOrConfusingCharacters() {
         assertNull(AdminRoster.normalizeCode(""))
-        assertNull(AdminRoster.normalizeCode("AC-ABCD23"))        // 팀장 초대코드
+        assertNull(AdminRoster.normalizeCode("AC-ABCD23"))        // 집결장 초대코드
         assertNull(AdminRoster.normalizeCode("AD-ABCD234"))       // 7자
         assertNull(AdminRoster.normalizeCode("AD-ABCD23456"))     // 9자
         assertNull(AdminRoster.normalizeCode("AD-ABCD23O1"))      // 0, O, 1, I 는 쓰지 않는다

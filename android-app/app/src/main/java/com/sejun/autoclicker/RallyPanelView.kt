@@ -167,7 +167,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "",
                conn: RallyConnection = RallyConnection.LIVE, urgent: Boolean = false) {
         val hero = model.hero
-        val name = if (isAdmin) "집결 · 관리자" else "집결 · 팀장"
+        val name = if (isAdmin) "집결 · 관리자" else "집결 · 집결장"
         // 연결 상태 점: 초록=실시간, 주황=1초 확인, 빨강=끊김. 알약(최소화)에서는 단계 표시가 대신 쓴다.
         title.text = if (isMinimized) name else android.text.SpannableString("● $name").apply {
             val c = when (conn) { RallyConnection.LIVE -> "#22C55E"; RallyConnection.POLLING -> "#F59E0B"; RallyConnection.OFFLINE -> "#EF4444" }
@@ -229,7 +229,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val h = rows.getChildAt(0)?.height ?: 0
             rowsScroll.maxHeightPx = if (list.size > MAX_VISIBLE_ROWS && h > 0) h * MAX_VISIBLE_ROWS else 0
         }
-        // 내 줄에는 이 폰의 "내 보정"(내 기기)도 더한다. 다른 팀장 폰의 보정은 방 데이터에 없어 알 수 없다.
+        // 내 줄에는 이 폰의 "내 보정"(내 기기)도 더한다. 다른 집결장 폰의 보정은 방 데이터에 없어 알 수 없다.
         val lags = RallyPanelFormat.lagLabels(list.map { LagInput(it.marchSec, it.adminAdjustMs + (if (it.isMine) correctionShownMs else 0), it.excluded) })
         list.forEachIndexed { i, r ->
             val v = rows.getChildAt(i)
@@ -291,7 +291,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val minus = v.findViewById<View>(R.id.rowMinus)
             val plus = v.findViewById<View>(R.id.rowPlus)
             val canEdit = editing
-            // 행군시간 고치기: 관리자는 편집 모드에서 모든 군단, 팀장은 평소에도 내 군단만
+            // 행군시간 고치기: 관리자는 편집 모드에서 모든 군단, 집결장은 평소에도 내 군단만
             val canMarch = editable && !r.excluded && (if (isAdmin) editing else r.isMine)
             minus.visibility = if (canMarch) View.VISIBLE else View.GONE
             plus.visibility = minus.visibility
