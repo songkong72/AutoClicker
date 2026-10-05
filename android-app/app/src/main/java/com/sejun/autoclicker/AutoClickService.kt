@@ -169,6 +169,18 @@ class AutoClickService : AccessibilityService() {
         toggleRallyPanel()
     }
 
+    /**
+     * 인증하지 않은 사용자는 연타만 쓴다: 조작판의 집결(깃발)과 헌터(곰) 아이콘을 숨긴다.
+     * 조작판을 만들 때와, 앱 화면에서 인증 상태가 바뀌었을 때 부른다.
+     */
+    fun refreshMemberIcons() {
+        val control = controlView ?: return
+        val member = PreferencesHelper.hasAccess(this)
+        val bearUnlocked = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("bear_mode_unlocked", false)
+        control.findViewById<ImageButton>(R.id.btnRally)?.visibility = if (member) View.VISIBLE else View.GONE
+        control.findViewById<ImageButton>(R.id.btnBearMode)?.visibility = if (member && bearUnlocked) View.VISIBLE else View.GONE
+    }
+
     /** 숨은 곰 사냥 모드를 개방한다. 이미 열려 있으면 안내만 한다. 새 집결 팝업과 옛 대화창 양쪽에서 쓴다. */
     fun unlockBearMode() {
         val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
@@ -352,10 +364,7 @@ class AutoClickService : AccessibilityService() {
      * 이미 떠 있다면 기존 상태를 안전하게 리셋하고 새로 띄웁니다!
      */
     fun showOverlays(intervalMs: Long? = null) {
-        if (!PreferencesHelper.hasAccess(this)) {
-            Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
-            return
-        }
+        // 연타는 인증 없이도 쓸 수 있다. 집결·헌터만 회원 전용이고, 그 아이콘은 조작판을 만들 때 숨긴다.
         currentIntervalMs = intervalMs ?: PreferencesHelper.getIntervalMs(this)
         currentOverlayAlpha = PreferencesHelper.getOverlayAlpha(this)
         val wm = windowManager ?: getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -550,10 +559,7 @@ class AutoClickService : AccessibilityService() {
         val btnToggleTarget = control.findViewById<ImageButton>(R.id.btnToggleTarget)
         val btnRally = control.findViewById<ImageButton>(R.id.btnRally)
         val btnBearMode = control.findViewById<ImageButton>(R.id.btnBearMode)
-        val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("bear_mode_unlocked", false)) {
-            btnBearMode?.visibility = View.GONE
-        }
+        refreshMemberIcons()
         btnBearMode?.setOnClickListener {
             vibrate(20)
             hideOpacityPanel()
@@ -1249,10 +1255,6 @@ class AutoClickService : AccessibilityService() {
     }
 
     fun startAutoClick(x: Float, y: Float, intervalMs: Long) {
-        if (!PreferencesHelper.hasAccess(this)) {
-            Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
-            return
-        }
         if (isClicking) {
             stopAutoClick()
         }

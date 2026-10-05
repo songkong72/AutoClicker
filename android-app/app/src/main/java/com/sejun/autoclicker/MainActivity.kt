@@ -81,11 +81,9 @@ class MainActivity : AppCompatActivity() {
         setupPresets()
         setupRepeatConditionListeners()
 
-        // 미인증 사용자의 경우 실행 시 인증 다이얼로그 즉시 표시
+        // 인증하지 않은 사용자는 연타만 쓰므로, 접혀 있던 일반 연타 모드를 처음부터 펼쳐 둔다(인증 창을 먼저 띄우지 않는다)
         if (!PreferencesHelper.hasAccess(this)) {
-            binding.root.post {
-                showVerificationDialog()
-            }
+            binding.layoutGeneralModes.visibility = View.VISIBLE
         }
     }
 
@@ -210,12 +208,6 @@ class MainActivity : AppCompatActivity() {
 
         // Single Smart Toggle Button: [🚀 오토클리커 띄우기] ↔ [✕ 오토클리커 숨기기]
         binding.btnStartService.setOnClickListener {
-            if (!PreferencesHelper.hasAccess(this)) {
-                Toast.makeText(this, "🔒 정회원 초대코드 인증 후 이용 가능합니다.", Toast.LENGTH_SHORT).show()
-                showVerificationDialog()
-                return@setOnClickListener
-            }
-
             if (!hasAccessibilityPermission()) {
                 Toast.makeText(this, "스위치를 먼저 켜주셔야 게임을 자동으로 터치할 수 있습니다.", Toast.LENGTH_LONG).show()
                 openAccessibilitySettings()
@@ -666,12 +658,16 @@ class MainActivity : AppCompatActivity() {
             binding.btnAuthAction.text = "인증 변경"
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#475569"))
         } else {
-            binding.tvAuthStatusTitle.text = "🔒 회원 전용 인증 필요"
+            binding.tvAuthStatusTitle.text = "🔒 집결은 회원 전용"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#F59E0B"))
-            binding.tvAuthStatusSubtitle.text = "초대코드를 입력하여 정회원 인증을 완료해 주세요."
+            binding.tvAuthStatusSubtitle.text = "연타는 바로 쓸 수 있어요. 집결은 초대코드 인증 후 열려요."
             binding.btnAuthAction.text = "인증하기"
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#3B82F6"))
         }
+        // 집결 방 카드는 인증한 회원·관리자에게만 보인다
+        binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
+        // 조작판이 떠 있는 채로 인증 상태가 바뀌어도 집결·헌터 아이콘이 바로 맞춰지게 한다
+        AutoClickService.instance?.refreshMemberIcons()
     }
 
     /** 서버 관리자 명단과 통신하는 객체. 앱과 서비스가 같은 익명 로그인(같은 기기 ID)을 쓴다. */
