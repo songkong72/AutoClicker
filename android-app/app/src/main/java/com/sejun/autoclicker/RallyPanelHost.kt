@@ -10,6 +10,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
 
 /**
  * 집결 패널을 오버레이 창으로 띄우고(드래그), 1초마다 RallyScreenModel로 다시 그린다.
@@ -71,6 +72,7 @@ class RallyPanelHost(
     private var panel: RallyPanelView? = null
     private var params: WindowManager.LayoutParams? = null
     private var minimized = false
+    private val closeGuard = CloseGuard()
     private val input = RallyInputPopup(context, wm)
     private val pick = RallyPickPopup(context, wm)
 
@@ -93,7 +95,12 @@ class RallyPanelHost(
             override fun onStart() { stateSource.onStart(); refresh() }
             override fun onStop() { stateSource.onStop(); refresh() }
             override fun onMinimize() { toggleMinimize() }
-            override fun onClose() { hide() }
+            override fun onClose() {
+                // 집결 진행 중에는 ✕를 한 번 더 눌러야 패널이 꺼진다(카운트다운이 갑자기 사라지는 실수 방지)
+                val running = stateSource.current().runState == RallyRunState.RUNNING
+                if (closeGuard.onTap(running, SystemClock.elapsedRealtime())) hide()
+                else Toast.makeText(context, "집결이 진행 중이에요. 패널을 끄려면 ✕를 한 번 더 누르세요", Toast.LENGTH_SHORT).show()
+            }
             override fun onTitleTap() { if (secretTap.tap(System.currentTimeMillis())) onSecretUnlock() } // 제목 5번 연타: 숨은 기능
             override fun onMarchDelta(teamId: String, deltaSec: Double) { stateSource.onMarchDelta(teamId, deltaSec); refresh() }
             override fun onToggleExclude(teamId: String) { stateSource.onToggleExclude(teamId); refresh() }
