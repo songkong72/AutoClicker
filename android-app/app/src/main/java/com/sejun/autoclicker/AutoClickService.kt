@@ -355,8 +355,16 @@ class AutoClickService : AccessibilityService() {
         // 기존 뷰가 있다면 리셋
         hideOverlays()
 
-        createTargetView(wm)
-        createControlView(wm)
+        try {
+            createTargetView(wm)
+            createControlView(wm)
+        } catch (e: Exception) {
+            // 메뉴 생성이 실패하면 먼저 붙은 조준점만 남지 않게 모두 걷어 낸다.
+            Log.e(TAG, "Overlay creation failed", e)
+            hideOverlays()
+            showToast("화면 위젯을 띄우지 못했어요. 다시 시도해 주세요.")
+            return
+        }
         updateNotification()
         onOverlaysVisibilityChanged?.invoke(true)
 
@@ -377,15 +385,13 @@ class AutoClickService : AccessibilityService() {
         hideOpacityPanel()
         val wm = windowManager ?: return
 
+        // isAttachedToWindow 로 걸러 내지 않는다: addView 직후 첫 프레임 전에는 false라서, 그때 끄면
+        // 제거를 건너뛴 채 참조만 지워져 조준점이 화면에 영원히 남는다. 붙지 않은 뷰는 예외로 걸러진다.
         controlView?.let {
-            if (it.isAttachedToWindow) {
-                try { wm.removeView(it) } catch (e: Exception) { Log.e(TAG, "Error removing control", e) }
-            }
+            try { wm.removeView(it) } catch (e: Exception) { Log.w(TAG, "Error removing control", e) }
         }
         targetView?.let {
-            if (it.isAttachedToWindow) {
-                try { wm.removeView(it) } catch (e: Exception) { Log.e(TAG, "Error removing target", e) }
-            }
+            try { wm.removeView(it) } catch (e: Exception) { Log.w(TAG, "Error removing target", e) }
         }
         controlView = null
         targetView = null
