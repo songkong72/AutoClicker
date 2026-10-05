@@ -114,7 +114,7 @@ object RallyScreenModel {
             HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
         // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
         state.teams.none { it.id == state.myTeamId } && run == RallyRunState.RUNNING ->
-            overviewHero(plan, state.elapsedSec)
+            overviewHero(plan, state.elapsedSec, state.prepSec)
         state.teams.none { it.id == state.myTeamId } ->
             HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "관리자가 군단을 배정하면 시작할 수 있어요", 0.0)
         my == null ->
@@ -124,14 +124,22 @@ object RallyScreenModel {
         else -> runningHero(state, my)
     }
 
-    /** 단계 이름은 최소화한 알약과 같은 글자를 쓴다. 첫 클릭 전 대기 → 첫 클릭부터 집결 → 모든 군단이 출발한 뒤 행군. */
-    private fun overviewHero(plan: RallyPlan, e: Double): HeroModel {
+    /**
+     * 팀장 화면처럼 "다음 단계까지 남은 시간"을 센다. 단계 이름은 최소화한 알약과 같은 글자를 쓴다.
+     * 첫 클릭 전(준비시간 이내면 이동 준비, 아니면 집결 대기) → 첫 클릭부터 모든 군단이 출발할 때까지 집결 중 → 출발 뒤 행군 중.
+     */
+    private fun overviewHero(plan: RallyPlan, e: Double, prepSec: Double): HeroModel {
         val firstClick = plan.teams.minOfOrNull { it.clickAtSec } ?: 0.0
         val lastDepart = plan.teams.maxOfOrNull { it.departAtSec } ?: 0.0
-        val phase = when { e < firstClick -> 0; e < lastDepart -> 1; else -> 2 }
-        val label = when (phase) { 0 -> "집결 대기"; 1 -> "집결 중"; else -> "행군 중" }
-        val progress = if (plan.arriveAtSec <= 0.0) 1.0 else (e / plan.arriveAtSec).coerceIn(0.0, 1.0)
-        return HeroModel(HeroKind.OVERVIEW, label, Math.max(0.0, plan.arriveAtSec - e), "전원 도착까지", progress, phase)
+        fun frac(from: Double, to: Double) = if (to <= from) 1.0 else ((e - from) / (to - from)).coerceIn(0.0, 1.0)
+        return when {
+            e < firstClick -> {
+                val remaining = firstClick - e
+                HeroModel(HeroKind.OVERVIEW, if (remaining <= prepSec) "이동 준비" else "집결 대기", remaining, "첫 집결 클릭까지", frac(0.0, firstClick), 0)
+            }
+            e < lastDepart -> HeroModel(HeroKind.OVERVIEW, "집결 중", lastDepart - e, "전원 출발까지", frac(firstClick, lastDepart), 1)
+            else -> HeroModel(HeroKind.OVERVIEW, "행군 중", Math.max(0.0, plan.arriveAtSec - e), "전원 도착까지", frac(lastDepart, plan.arriveAtSec), 2)
+        }
     }
 
     private fun runningHero(state: RallyRoomState, my: RallyTeamPlan): HeroModel {

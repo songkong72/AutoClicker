@@ -245,33 +245,42 @@ class RallyScreenModelTest {
         assertFalse(build(excluded).warnings.any { it.contains("클릭 위치") })
     }
 
-    // 방: 3군 50s, 2군 30s, 1군 10s / 준비 15s, 대기 300s → 클릭 시각 3군 15s, 2군 35s, 1군 55s, 출발은 클릭+300s(마지막 355s), 전원 도착 365s
+    // 방: 3군 50s, 2군 30s, 1군 10s / 준비 15s, 대기 300s → 클릭 시각 3군 15s, 2군 35s, 1군 55s, 출발은 클릭+300s(첫 315s, 마지막 355s), 전원 도착 365s
+    // 군단이 없는 관리자의 큰 숫자는 팀장처럼 "다음 단계까지 남은 시간"이다.
     @Test
-    fun `군단이 없는 관리자는 시작 직후 행군이 아니라 집결 대기로 보인다`() {
+    fun `군단이 없는 관리자는 시작 직후 첫 클릭까지 이동 준비로 센다`() {
         val m = build(room(RallyRunState.RUNNING, elapsed = 0.0, mine = ""))
         assertEquals(HeroKind.OVERVIEW, m.hero.kind)
-        assertEquals("집결 대기", m.hero.label)
+        assertEquals("이동 준비", m.hero.label)
         assertEquals(0, m.hero.phase)
+        assertEquals("첫 집결 클릭까지", m.hero.subLabel)
+        assertEquals(15.0, m.hero.remainingSec!!, d)
+    }
+
+    @Test
+    fun `군단이 없는 관리자의 첫 클릭까지 숫자는 시간이 갈수록 줄어든다`() {
+        val a = build(room(RallyRunState.RUNNING, elapsed = 3.0, mine = ""))
+        val b = build(room(RallyRunState.RUNNING, elapsed = 10.0, mine = ""))
+        assertEquals(12.0, a.hero.remainingSec!!, d)
+        assertEquals(5.0, b.hero.remainingSec!!, d)
+    }
+
+    @Test
+    fun `군단이 없는 관리자는 첫 클릭 뒤 전원 출발까지를 집결 중으로 센다`() {
+        val m = build(room(RallyRunState.RUNNING, elapsed = 100.0, mine = ""))
+        assertEquals("집결 중", m.hero.label)
+        assertEquals(1, m.hero.phase)
+        assertEquals("전원 출발까지", m.hero.subLabel)
+        assertEquals(355.0 - 100.0, m.hero.remainingSec!!, d)
+    }
+
+    @Test
+    fun `군단이 없는 관리자는 전원 출발 뒤 전원 도착까지를 행군 중으로 센다`() {
+        val m = build(room(RallyRunState.RUNNING, elapsed = 360.0, mine = ""))
+        assertEquals("행군 중", m.hero.label)
+        assertEquals(2, m.hero.phase)
         assertEquals("전원 도착까지", m.hero.subLabel)
-        assertEquals(m.arriveAtSec, m.hero.remainingSec!!, d)
-    }
-
-    @Test
-    fun `군단이 없는 관리자도 첫 클릭 뒤에는 집결 중 전원 출발 뒤에는 행군 중`() {
-        val gather = build(room(RallyRunState.RUNNING, elapsed = 100.0, mine = ""))
-        assertEquals("집결 중", gather.hero.label)
-        assertEquals(1, gather.hero.phase)
-        assertEquals(gather.arriveAtSec - 100.0, gather.hero.remainingSec!!, d)
-        val march = build(room(RallyRunState.RUNNING, elapsed = 360.0, mine = ""))
-        assertEquals("행군 중", march.hero.label)
-        assertEquals(2, march.hero.phase)
-    }
-
-    @Test
-    fun `군단이 없는 관리자의 큰 숫자는 계속 줄어든다`() {
-        val a = build(room(RallyRunState.RUNNING, elapsed = 100.0, mine = ""))
-        val b = build(room(RallyRunState.RUNNING, elapsed = 160.0, mine = ""))
-        assertEquals(a.hero.remainingSec!! - 60.0, b.hero.remainingSec!!, d)
+        assertEquals(5.0, m.hero.remainingSec!!, d)
     }
 
     @Test
