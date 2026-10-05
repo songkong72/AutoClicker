@@ -115,9 +115,10 @@ class RallyScreenModelTest {
 
     @Test
     fun `팀 목록은 클릭이 빠른 순이고 제외된 팀은 맨 아래`() {
-        assertEquals(listOf("3군", "2군", "1군"), build(room()).rows.map { it.id })
+        // 정렬은 클릭 순서가 아니라 군단 이름(번호) 순서다
+        assertEquals(listOf("1군", "2군", "3군"), build(room()).rows.map { it.id })
         val m = build(room(teams = listOf(t3.copy(excluded = true), t2, t1), mine = "1군"))
-        assertEquals(listOf("2군", "1군", "3군"), m.rows.map { it.id })
+        assertEquals(listOf("1군", "2군", "3군"), m.rows.map { it.id }) // 제외돼도 제자리
         assertEquals("제외", m.rows.last().statusLabel)
         assertTrue(m.rows.last().excluded)
     }
@@ -288,5 +289,27 @@ class RallyScreenModelTest {
         val m = build(room(RallyRunState.IDLE, mine = ""))
         assertEquals("아직 군단이 배정되지 않았어요", m.hero.label)
         assertNull(m.hero.remainingSec)
+    }
+
+    @Test
+    fun `제외한 군단은 맨 아래로 내려가지 않고 제 번호 자리에 흐리게 남는다`() {
+        val m = build(room(teams = listOf(t3, t2.copy(excluded = true), t1), mine = "1군"))
+        assertEquals(listOf("1군", "2군", "3군"), m.rows.map { it.id })
+        assertEquals(listOf(false, true, false), m.rows.map { it.excluded })
+        assertEquals("제외", m.rows[1].statusLabel)
+    }
+
+    @Test
+    fun `행군시간을 바꿔도 줄 순서는 그대로다`() {
+        val a = build(room()).rows.map { it.id }
+        val b = build(room(teams = listOf(t3.copy(marchSec = 5.0), t2, t1.copy(marchSec = 99.0)))).rows.map { it.id }
+        assertEquals(a, b)
+    }
+
+    @Test
+    fun `군단 번호는 숫자로 정렬하고 번호 없는 이름은 만든 순서대로 뒤에 둔다`() {
+        fun team(id: String, name: String) = RallyTeamState(id, name, "", 30.0)
+        val m = build(room(teams = listOf(team("a", "10군"), team("b", "별동대"), team("c", "9군"), team("d", "2군"), team("e", "예비")), mine = "a"))
+        assertEquals(listOf("2군", "9군", "10군", "별동대", "예비"), m.rows.map { it.name })
     }
 }

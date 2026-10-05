@@ -164,15 +164,25 @@ object RallyScreenModel {
         }
     }
 
+    /**
+     * 군단 이름(번호) 순서로 보여 준다. 행군시간을 고치거나 제외해도 줄이 움직이지 않는다.
+     * 번호는 이름 속 첫 숫자(2군 → 2, 10군 → 10)로 비교하고, 숫자가 없는 이름은 만든 순서대로 뒤에 둔다.
+     */
     private fun rows(state: RallyRoomState, plan: RallyPlan, run: RallyRunState): List<TeamRowModel> {
-        val byId = state.teams.associateBy { it.id }
-        val active = plan.teams.mapNotNull { p -> byId[p.id]?.let { it to p } }
-        val excluded = state.teams.filter { it.excluded }
-        return active.map { (t, p) -> row(state, t, p, run) } + excluded.map { t ->
-            TeamRowModel(t.id, t.name, t.leaderName, t.marchSec, "제외", null, true, t.online, t.id == state.myTeamId,
-                adminAdjustMs = t.adminAdjustMs)
+        val planById = plan.teams.associateBy { it.id }
+        val ordered = state.teams.withIndex()
+            .sortedWith(compareBy({ teamNumber(it.value.name) ?: Int.MAX_VALUE }, { it.index }))
+            .map { it.value }
+        return ordered.map { t ->
+            val p = planById[t.id]
+            if (t.excluded || p == null)
+                TeamRowModel(t.id, t.name, t.leaderName, t.marchSec, "제외", null, true, t.online, t.id == state.myTeamId,
+                    adminAdjustMs = t.adminAdjustMs)
+            else row(state, t, p, run)
         }
     }
+
+    private fun teamNumber(name: String): Int? = Regex("\\d+").find(name)?.value?.toIntOrNull()
 
     private fun row(state: RallyRoomState, t: RallyTeamState, p: RallyTeamPlan, run: RallyRunState): TeamRowModel {
         val e = state.elapsedSec
