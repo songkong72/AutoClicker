@@ -184,8 +184,14 @@ class RallyPanelHost(
         pick.showSelect("방 선택", mine.map { it to it }, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
         if (!stateSource.isAdmin) return
         // 개발자라면 곧 서버의 전체 방 목록으로 바뀐다(규칙상 개발자만 읽을 수 있어, 아니면 위 목록이 그대로 남는다)
-        stateSource.loadAllRooms { rooms, _ ->
-            if (panel == null || rooms == null || rooms.isEmpty()) return@loadAllRooms
+        stateSource.loadAllRooms { rooms, error ->
+            if (panel == null) return@loadAllRooms
+            if (rooms == null) {
+                // 서버 목록을 못 읽으면 이 기기의 기록만 보인다. 이유를 제목에 적어 둔다(규칙 게시 여부 확인용).
+                pick.showSelect("방 선택 · 서버 방 목록을 불러오지 못했어요${if (error.isNotEmpty()) " ($error)" else ""}", mine.map { it to it }, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
+                return@loadAllRooms
+            }
+            if (rooms.isEmpty()) return@loadAllRooms
             pick.showSelect("방 선택 (${rooms.size}개)", rooms, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
         }
     }

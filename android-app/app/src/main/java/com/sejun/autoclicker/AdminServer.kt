@@ -82,6 +82,12 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         return Reply(removed, null)
     }
 
+    /** 개발자와 관리자: 서버의 모든 방(명단 제외)을 읽어 온다. 방 선택 목록에 쓴다. */
+    fun loadRoomsOnly(): Reply<Map<String, Any?>?> {
+        val (c, t) = call("GET", "rallyRooms")
+        return if (c in 200..299) Reply(parseMap(t), null) else Reply(null, explain(c, t))
+    }
+
     /** 개발자 전용: 서버의 모든 방과 방 명단을 읽어 온다. 규칙에서 개발자(owners)만 통째로 읽을 수 있다. */
     fun loadRooms(): Reply<RoomData> {
         val (c1, t1) = call("GET", "rallyRooms")

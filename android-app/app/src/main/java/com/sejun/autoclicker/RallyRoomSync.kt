@@ -280,10 +280,10 @@ class RallyRoomSync(
         val a = auth
         if (a == null) { onLoaded(null, "로그인이 필요해요"); return }
         Thread {
-            val r = AdminServer(dbUrl, a).loadRooms()
-            val data = r.value
-            val list = if (data == null) null else RoomList.summarize(data.rooms, data.members).map { it.code to RoomList.line(it) }
-            main.post { onLoaded(list, if (data == null) (r.error ?: "") else "") }
+            val r = AdminServer(dbUrl, a).loadRoomsOnly()
+            val ok = r.error == null
+            val list = if (!ok) null else RoomList.summarize(r.value, null).map { it.code to RoomList.lineBrief(it) }
+            main.post { onLoaded(list, if (ok) "" else (r.error ?: "")) }
         }.start()
     }
 
