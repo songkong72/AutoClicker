@@ -293,6 +293,15 @@ class RallyScreenModelTest {
     }
 
     @Test
+    fun `자기 군단을 제외한 관리자의 전체 보기에는 참여 안 함 표시가 붙고 군단이 없는 관리자에는 안 붙는다`() {
+        val excluded = build(room(RallyRunState.RUNNING, elapsed = 3.0, teams = listOf(t3.copy(excluded = true), t2, t1)).copy(isAdmin = true))
+        assertEquals(HeroKind.OVERVIEW, excluded.hero.kind)
+        assertEquals("참여 안 함", excluded.hero.note)
+        val none = build(room(RallyRunState.RUNNING, elapsed = 3.0, mine = "").copy(isAdmin = true))
+        assertNull(none.hero.note)
+    }
+
+    @Test
     fun `군단이 없는 관리자도 시작 전에는 배정 안내를 그대로 보여준다`() {
         val m = build(room(RallyRunState.IDLE, mine = ""))
         assertEquals("아직 군단이 배정되지 않았어요", m.hero.label)

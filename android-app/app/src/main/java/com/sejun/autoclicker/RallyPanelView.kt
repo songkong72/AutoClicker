@@ -178,7 +178,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             text = if (editMode) "✓" else "✎"
             setTextColor(Color.parseColor(if (editMode) "#60A5FA" else "#94A3B8"))
         }
-        heroLabel.text = hero.label
+        heroLabel.text = if (hero.note == null) hero.label else "${hero.label} · ${hero.note}"
         // 대기 중에는 "전원 도착 예정" 총 소요 시간을 흐리게 보여준다
         val previewTotal = hero.kind == HeroKind.IDLE && hero.remainingSec == null && model.arriveAtSec > 0.0
         heroTime.text = when {

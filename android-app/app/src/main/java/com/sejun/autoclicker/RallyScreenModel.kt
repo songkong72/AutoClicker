@@ -44,7 +44,9 @@ data class HeroModel(
     /** 0.0 ~ 1.0 */
     val progress: Double,
     /** [HeroKind.OVERVIEW]에서만: 전체 단계 0 대기 · 1 집결 · 2 행군. */
-    val phase: Int? = null
+    val phase: Int? = null,
+    /** 제목 옆에 덧붙일 짧은 표시(예: 자기 군단을 제외한 관리자의 "참여 안 함"). 없으면 null. */
+    val note: String? = null
 )
 
 data class TeamRowModel(
@@ -117,7 +119,7 @@ object RallyScreenModel {
         // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
         // 팀장이 군단을 못 찾았을 때는 전체 보기가 아니라 아래의 "배정되지 않았어요" 안내를 보여 준다.
         (state.isAdmin && (state.teams.none { it.id == state.myTeamId } || my == null)) && run == RallyRunState.RUNNING ->
-            overviewHero(plan, state.elapsedSec, state.prepSec)
+            overviewHero(plan, state.elapsedSec, state.prepSec).copy(note = if (state.teams.any { it.id == state.myTeamId }) "참여 안 함" else null)
         state.teams.none { it.id == state.myTeamId } ->
             HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "관리자가 군단을 배정하면 시작할 수 있어요", 0.0)
         state.isAdmin && my == null ->
