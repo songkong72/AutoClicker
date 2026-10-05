@@ -334,6 +334,17 @@ class RallyRoomSync(
         }
 
         /** 방 명단에 이 기기를 올린다. 성공하면 null, 실패하면 화면에 보여 줄 이유를 돌려준다. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다. */
+        /** 방이 서버에 있는지. 있으면 true, 없으면 false, 확인하지 못했으면 null. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다. */
+        fun roomExists(dbUrl: String, auth: FirebaseAuthClient?, room: String): Boolean? = try {
+            val url = FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room/run.json", auth?.token())
+            val c = URL(url).openConnection() as HttpURLConnection
+            c.connectTimeout = 3000; c.readTimeout = 3000
+            val code = c.responseCode
+            val text = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
+            if (code == 401 || code == 403) auth?.invalidate()
+            RallyRoomCheck.exists(code, text)
+        } catch (e: Exception) { null }
+
         fun registerMember(dbUrl: String, auth: FirebaseAuthClient?, room: String, memberId: String, rawName: String): String? {
             val body = RallyRoster.encode(memberId, rawName) ?: return "캐릭터명이 비어 있어요"
             return try {

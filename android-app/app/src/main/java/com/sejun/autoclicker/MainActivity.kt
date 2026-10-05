@@ -440,7 +440,7 @@ class MainActivity : AppCompatActivity() {
         if (room.isNotEmpty() && !binding.etRoomCode.hasFocus() && binding.etRoomCode.text.toString() != room) binding.etRoomCode.setText(room)
         binding.tvRoomStatus.text = when {
             room.isEmpty() && admin -> "아직 방이 없어요. 새 방을 만들어 번호를 팀장에게 공유하세요."
-            room.isEmpty() -> "관리자에게 받은 방 번호를 입력하고 입장하세요."
+            room.isEmpty() -> "관리자에게 받은 방 번호를 입력하고 입장하세요." + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
             admin -> "방 $room · 관리자"
             else -> "방 $room · 팀장" + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
         }
@@ -474,30 +474,61 @@ class MainActivity : AppCompatActivity() {
                 updateRallyInfoCard()
                 return@setOnClickListener
             }
-            roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
-            RallyRoomHistory.record(roomPrefs(), code)
-            AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
-            Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
+            // 입장 동작. 관리자는 없는 방이면 만들고(첫 입장), 팀장은 아래에서 방이 있다고 확인된 뒤에만 부른다.
+            fun enter() {
+                roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
+                RallyRoomHistory.record(roomPrefs(), code)
+                AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
+                Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
+                if (admin) {
+                    rosterStatus = ""
+                } else {
+                    // 이름을 저장하고 곧바로 방 명단에 올려, 관리자 목록에 바로 나타나게 한다.
+                    PreferencesHelper.setRallyCharacterName(this, name)
+                    binding.etCharName.setText(name)
+                    rosterStatus = "명단에 등록하는 중…"
+                    val memberId = PreferencesHelper.getRallyMemberId(this)
+                    val auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
+                        load = { roomPrefs().getString("fb_refresh", null) },
+                        save = { t -> roomPrefs().edit().putString("fb_refresh", t).apply() })
+                    Thread {
+                        val err = RallyRoomSync.registerMember(RallyRoomSync.DB_URL, auth, code, memberId, name)
+                        runOnUiThread {
+                            rosterStatus = if (err == null) "✓ 명단에 등록됐어요 ($name)" else "✗ 명단 등록 실패: $err"
+                            updateRallyInfoCard()
+                        }
+                    }.start()
+                }
+                updateRallyInfoCard()
+            }
             if (admin) {
-                rosterStatus = ""
+                enter()
             } else {
-                // 이름을 저장하고 곧바로 방 명단에 올려, 관리자 목록에 바로 나타나게 한다.
-                PreferencesHelper.setRallyCharacterName(this, name)
-                binding.etCharName.setText(name)
-                rosterStatus = "명단에 등록하는 중…"
-                val memberId = PreferencesHelper.getRallyMemberId(this)
+                // 팀장은 방을 만들 수 없다. 없는 번호면 입장도 명단 등록도 하지 않고, 입장 목록에도 남기지 않는다.
+                rosterStatus = "방을 확인하는 중…"
+                updateRallyInfoCard()
                 val auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
                     load = { roomPrefs().getString("fb_refresh", null) },
                     save = { t -> roomPrefs().edit().putString("fb_refresh", t).apply() })
                 Thread {
-                    val err = RallyRoomSync.registerMember(RallyRoomSync.DB_URL, auth, code, memberId, name)
+                    val exists = RallyRoomSync.roomExists(RallyRoomSync.DB_URL, auth, code)
                     runOnUiThread {
-                        rosterStatus = if (err == null) "✓ 명단에 등록됐어요 ($name)" else "✗ 명단 등록 실패: $err"
-                        updateRallyInfoCard()
+                        when (exists) {
+                            true -> enter()
+                            false -> {
+                                rosterStatus = "✗ 없는 방이에요. 관리자에게 받은 방 번호를 확인해 주세요"
+                                Toast.makeText(this, "없는 방이에요. 방 번호를 확인해 주세요.", Toast.LENGTH_LONG).show()
+                                updateRallyInfoCard()
+                            }
+                            null -> {
+                                rosterStatus = "✗ 서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요"
+                                Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()
+                                updateRallyInfoCard()
+                            }
+                        }
                     }
                 }.start()
             }
-            updateRallyInfoCard()
         }
         binding.btnNewRoom.setOnClickListener {
             val code = (100000..999999).random().toString()
