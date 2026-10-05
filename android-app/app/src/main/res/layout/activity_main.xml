@@ -542,13 +542,15 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <EditText
+                    <AutoCompleteTextView
                         android:id="@+id/etRoomCode"
                         android:layout_width="0dp"
                         android:layout_height="44dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_compact_picker"
-                        android:hint="방 번호"
+                        android:completionThreshold="0"
+                        android:drawableEnd="@android:drawable/arrow_down_float"
+                        android:hint="방 번호 (눌러서 선택)"
                         android:imeOptions="actionDone"
                         android:inputType="number"
                         android:maxLength="8"

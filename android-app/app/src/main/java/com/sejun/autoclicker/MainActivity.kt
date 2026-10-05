@@ -446,7 +446,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** 방 번호 칸을 콤보처럼: 누르면 들어갔던 방 목록이 펼쳐져 고를 수 있다. 처음 받은 번호는 그대로 칠 수도 있다. */
+    private fun setupRoomCombo() {
+        val box = binding.etRoomCode
+        fun reload() {
+            box.setAdapter(android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, RallyRoomHistory.load(roomPrefs())))
+        }
+        reload()
+        box.setOnClickListener { reload(); box.showDropDown() }
+        box.setOnFocusChangeListener { _, has -> if (has) { reload(); box.post { if (box.isAttachedToWindow) box.showDropDown() } } }
+        box.setOnItemClickListener { _, _, _, _ -> box.dismissDropDown() } // 고르면 칸이 채워진다. 입장은 버튼으로
+    }
+
     private fun setupRoomCard() {
+        setupRoomCombo()
         // 입장 버튼을 누르지 않고 앱을 나가도 입력한 이름이 남도록, 입력하는 즉시 기기에 저장한다.
         binding.etCharName.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
