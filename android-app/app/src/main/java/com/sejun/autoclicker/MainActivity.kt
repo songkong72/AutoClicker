@@ -632,6 +632,7 @@ class MainActivity : AppCompatActivity() {
             val server = adminServer()
             val uid = server.uid().value ?: return@Thread
             val owner = server.isOwner(uid)
+            rememberOwner(owner)
             val admin = if (owner == Check.YES) Check.YES else server.isAdmin(uid)
             // 서버 명단에 있는 관리자면 마지막 접속 시각과 앱 버전을 적는다(개발자 화면에 보인다)
             val inRoster = if (owner == Check.YES) server.isAdmin(uid) else admin
@@ -651,18 +652,32 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
+    /** 서버가 알려 준 개발자 여부를 기억해 둔다. 확인하지 못했을 때(네트워크 오류)는 이전 값을 그대로 둔다. */
+    private fun rememberOwner(owner: Check) {
+        if (owner == Check.UNKNOWN) return
+        roomPrefs().edit().putBoolean("is_owner_cached", owner == Check.YES).apply()
+    }
+
     private fun showAdminMenu() {
-        val items = arrayOf("초대코드 발급 · 관리자 패널", "관리자 관리 (개발자 전용)", "내 기기 ID 보기", "관리자 모드 해제 (팀장 화면으로)")
+        // "관리자 관리"는 개발자에게만 보인다(서버 규칙상 개발자만 쓸 수 있다)
+        val owner = roomPrefs().getBoolean("is_owner_cached", false)
+        val items = buildList {
+            add("초대코드 발급 · 관리자 패널")
+            if (owner) add("관리자 관리 (개발자 전용)")
+            add("내 기기 ID 보기")
+            add("관리자 모드 해제 (팀장 화면으로)")
+        }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("관리자")
             .setItems(items) { _, which ->
-                when (which) {
-                    0 -> showAdminPanelDialog()
-                    1 -> AdminRosterUi(this, adminServer()).showManage()
-                    2 -> AdminRosterUi(this, adminServer()).showMyId()
+                when (items[which]) {
+                    "초대코드 발급 · 관리자 패널" -> showAdminPanelDialog()
+                    "관리자 관리 (개발자 전용)" -> AdminRosterUi(this, adminServer()).showManage()
+                    "내 기기 ID 보기" -> AdminRosterUi(this, adminServer()).showMyId()
                     else -> {
                         PreferencesHelper.setAdminMode(this, false)
                         PreferencesHelper.setAdminViaServer(this, false)
+                        roomPrefs().edit().putBoolean("is_owner_cached", false).apply()
                         AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
                         Toast.makeText(this, "관리자 모드를 해제했어요.", Toast.LENGTH_SHORT).show()
                         updateAuthUI()
@@ -772,6 +787,7 @@ class MainActivity : AppCompatActivity() {
             val server = adminServer()
             val uid = server.uid().value
             val owner = if (uid == null) Check.UNKNOWN else server.isOwner(uid)
+            rememberOwner(owner)
             runOnUiThread {
                 when (owner) {
                     Check.YES -> {
