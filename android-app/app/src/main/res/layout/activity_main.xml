@@ -532,8 +532,9 @@
 
             </LinearLayout>
 
-            <!-- Card 4: 집결 방 (같은 방 = 같은 시각에 성에 도착할 팀들) -->
+            <!-- Card 4: 집결 방 (같은 방 = 같은 시각에 성에 도착할 팀들). 인증한 회원·관리자에게만 보인다 -->
             <LinearLayout
+                android:id="@+id/cardRallyRoom"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_card"
