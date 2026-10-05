@@ -689,7 +689,7 @@ class MainActivity : AppCompatActivity() {
         // "관리자 관리"와 "내 기기 ID 보기"는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 관리자와 팀장은 필요 없다)
         val owner = roomPrefs().getBoolean("is_owner_cached", false)
         val items = buildList {
-            add("초대코드 발급 · 관리자 패널")
+            add("집결장 코드 발급")
             if (owner) add("관리자 관리 (개발자 전용)")
             if (owner) add("내 기기 ID 보기")
             add("관리자 모드 해제 (팀장 화면으로)")
@@ -698,7 +698,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle("관리자")
             .setItems(items) { _, which ->
                 when (items[which]) {
-                    "초대코드 발급 · 관리자 패널" -> showAdminPanelDialog()
+                    "집결장 코드 발급" -> showAdminPanelDialog()
                     "관리자 관리 (개발자 전용)" -> AdminRosterUi(this, adminServer()).showManage()
                     "내 기기 ID 보기" -> AdminRosterUi(this, adminServer()).showMyId()
                     else -> {
