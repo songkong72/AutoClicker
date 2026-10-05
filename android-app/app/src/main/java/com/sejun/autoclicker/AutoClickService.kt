@@ -169,30 +169,20 @@ class AutoClickService : AccessibilityService() {
         toggleRallyPanel()
     }
 
-    /** 헌터(곰) 모드는 개발자 기기 전용이다. 서버가 개발자라고 확인해 준 기기에서만 true. 관리자·집결장은 false. */
-    private fun isDeveloperDevice(): Boolean =
-        PreferencesHelper.isAdminMode(this) &&
-            getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("is_owner_cached", false)
-
     /**
-     * 조작판 아이콘을 권한에 맞춘다. 조작판을 만들 때와, 앱 화면에서 인증 상태가 바뀌었을 때 부른다.
-     * - 집결(깃발): 인증한 회원·관리자만. 인증하지 않은 사용자는 연타만 쓴다.
-     * - 헌터(곰): 개발자 기기에서 숨은 개방을 했을 때만. 인증한 회원이나 관리자에게도 보이지 않는다.
+     * 인증하지 않은 사용자는 연타만 쓴다: 조작판의 집결(깃발)과 헌터(곰) 아이콘을 숨긴다.
+     * 조작판을 만들 때와, 앱 화면에서 인증 상태가 바뀌었을 때 부른다.
      */
     fun refreshMemberIcons() {
         val control = controlView ?: return
         val member = PreferencesHelper.hasAccess(this)
         val bearUnlocked = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("bear_mode_unlocked", false)
-        val showBear = isDeveloperDevice() && bearUnlocked
         control.findViewById<ImageButton>(R.id.btnRally)?.visibility = if (member) View.VISIBLE else View.GONE
-        control.findViewById<ImageButton>(R.id.btnBearMode)?.visibility = if (showBear) View.VISIBLE else View.GONE
-        // 아이콘이 사라지는 기기에서 헌터 모드가 켜져 있었다면 함께 끈다(발사 버튼만 남지 않게)
-        if (!showBear && HunterModeManager.isHunterModeEnabled) toggleBearMode()
+        control.findViewById<ImageButton>(R.id.btnBearMode)?.visibility = if (member && bearUnlocked) View.VISIBLE else View.GONE
     }
 
     /** 숨은 곰 사냥 모드를 개방한다. 이미 열려 있으면 안내만 한다. 새 집결 팝업과 옛 대화창 양쪽에서 쓴다. */
     fun unlockBearMode() {
-        if (!isDeveloperDevice()) return // 개발자 기기가 아니면 5번 연타해도 아무 일도 없다
         val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
         if (!prefs.getBoolean("bear_mode_unlocked", false)) {
             prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
