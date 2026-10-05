@@ -659,12 +659,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAdminMenu() {
-        // "관리자 관리"는 개발자에게만 보인다(서버 규칙상 개발자만 쓸 수 있다)
+        // "관리자 관리"와 "내 기기 ID 보기"는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 관리자와 팀장은 필요 없다)
         val owner = roomPrefs().getBoolean("is_owner_cached", false)
         val items = buildList {
             add("초대코드 발급 · 관리자 패널")
             if (owner) add("관리자 관리 (개발자 전용)")
-            add("내 기기 ID 보기")
+            if (owner) add("내 기기 ID 보기")
             add("관리자 모드 해제 (팀장 화면으로)")
         }.toTypedArray()
         AlertDialog.Builder(this)
