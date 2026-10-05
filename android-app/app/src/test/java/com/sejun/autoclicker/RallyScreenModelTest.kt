@@ -245,7 +245,7 @@ class RallyScreenModelTest {
         assertFalse(build(excluded).warnings.any { it.contains("클릭 위치") })
     }
 
-    // 방: 3군 50s, 2군 30s, 1군 10s / 준비 15s, 대기 300s → 클릭 시각 3군 0s, 2군 20s, 1군 40s, 출발 시각은 클릭+300s, 전원 도착 365s
+    // 방: 3군 50s, 2군 30s, 1군 10s / 준비 15s, 대기 300s → 클릭 시각 3군 15s, 2군 35s, 1군 55s, 출발은 클릭+300s(마지막 355s), 전원 도착 365s
     @Test
     fun `군단이 없는 관리자는 시작 직후 행군이 아니라 집결 대기로 보인다`() {
         val m = build(room(RallyRunState.RUNNING, elapsed = 0.0, mine = ""))
@@ -262,7 +262,7 @@ class RallyScreenModelTest {
         assertEquals("집결 중", gather.hero.label)
         assertEquals(1, gather.hero.phase)
         assertEquals(gather.arriveAtSec - 100.0, gather.hero.remainingSec!!, d)
-        val march = build(room(RallyRunState.RUNNING, elapsed = 345.0, mine = ""))
+        val march = build(room(RallyRunState.RUNNING, elapsed = 360.0, mine = ""))
         assertEquals("행군 중", march.hero.label)
         assertEquals(2, march.hero.phase)
     }
