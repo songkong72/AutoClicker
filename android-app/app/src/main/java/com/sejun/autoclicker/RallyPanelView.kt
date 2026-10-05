@@ -16,6 +16,7 @@ import android.widget.TextView
 class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     private companion object {
+        const val MAX_VISIBLE_ROWS = 5
         val PHASE_COLORS = listOf("#FBBF24", "#60A5FA", "#A78BFA", "#22C55E")
     }
 
@@ -58,6 +59,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val heroProgress = root.findViewById<ProgressBar>(R.id.rallyHeroProgress)
     private val warning = root.findViewById<TextView>(R.id.rallyWarning)
     private val rows = root.findViewById<LinearLayout>(R.id.rallyRows)
+    private val rowsScroll = root.findViewById<MaxHeightScrollView>(R.id.rallyRowsScroll)
     private val adminBar = root.findViewById<View>(R.id.rallyAdminBar)
     private val btnStart = root.findViewById<TextView>(R.id.rallyBtnStart)
     private val btnStop = root.findViewById<TextView>(R.id.rallyBtnStop)
@@ -222,6 +224,11 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val inflater = LayoutInflater.from(themed)
             repeat(list.size) { rows.addView(inflater.inflate(R.layout.item_rally_team_row, rows, false)) }
         }
+        // 군단이 많으면 5줄 높이까지만 보이고 나머지는 스크롤한다(줄 높이는 첫 줄 기준).
+        rows.post {
+            val h = rows.getChildAt(0)?.height ?: 0
+            rowsScroll.maxHeightPx = if (list.size > MAX_VISIBLE_ROWS && h > 0) h * MAX_VISIBLE_ROWS else 0
+        }
         // 내 줄에는 이 폰의 "내 보정"(내 기기)도 더한다. 다른 팀장 폰의 보정은 방 데이터에 없어 알 수 없다.
         val lags = RallyPanelFormat.lagLabels(list.map { LagInput(it.marchSec, it.adminAdjustMs + (if (it.isMine) correctionShownMs else 0), it.excluded) })
         list.forEachIndexed { i, r ->
@@ -359,7 +366,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val hide = if (min) View.GONE else View.VISIBLE
         heroSub.visibility = hide
         heroProgress.visibility = hide
-        rows.visibility = hide
+        rowsScroll.visibility = hide
         root.findViewById<View>(R.id.phaseRow).visibility = hide
         root.findViewById<View>(R.id.devToggle).visibility = hide
         if (min) {

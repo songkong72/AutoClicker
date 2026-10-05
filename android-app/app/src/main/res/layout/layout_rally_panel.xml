@@ -116,12 +116,20 @@
         android:visibility="gone" />
 
     <!-- 팀 줄 -->
-    <LinearLayout
-        android:id="@+id/rallyRows"
+    <com.sejun.autoclicker.MaxHeightScrollView
+        android:id="@+id/rallyRowsScroll"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:orientation="vertical" />
+        android:overScrollMode="never"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/rallyRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </com.sejun.autoclicker.MaxHeightScrollView>
 
     <LinearLayout
         android:id="@+id/rallySettingsRow"
