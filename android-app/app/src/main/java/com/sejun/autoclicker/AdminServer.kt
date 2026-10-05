@@ -91,6 +91,13 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         return Reply(RoomData(parseMap(t1), parseMap(t2)), null)
     }
 
+    /** 개발자 전용: 방 하나와 그 방의 명단을 서버에서 지운다. 성공하면 null, 실패하면 이유. 규칙에서 개발자(owners)와 관리자만 방을 쓸 수 있고, 지우기는 개발자 화면에서만 연다. */
+    fun deleteRoom(room: String): String? {
+        if (room.isEmpty() || room.any { it in "./#$[]" }) return "방 번호가 올바르지 않아요"
+        delete("rallyMembers/$room")?.let { return it }
+        return delete("rallyRooms/$room")
+    }
+
     /** 내가 서버 명단에 있는 관리자일 때 마지막 접속 시각과 앱 버전을 적는다. 실패해도 조용히 넘어간다. */
     fun reportSelf(uid: String, now: Long, appVersion: String) {
         call("PUT", "admins/$uid/lastSeen", now.toString())

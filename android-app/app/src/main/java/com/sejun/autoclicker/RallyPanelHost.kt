@@ -39,6 +39,8 @@ class RallyPanelHost(
         fun characterName(): String = ""
         /** 지금 들어와 있는 방 번호 */
         fun roomCode(): String = ""
+        /** 관리자 화면에 보일 "마지막 변경: 누구 · 언제" 한 줄. 없으면 빈 문자열. */
+        fun changeNote(): String = ""
         fun onSetCharacterName(name: String) {}
         /** 관리자가 고를 수 있는 방 명단. 가져오지 못하면 null. */
         fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) { onLoaded(emptyList()) }
@@ -268,7 +270,7 @@ class RallyPanelHost(
         cue.onCountdown(waiting, remain ?: 99.0)?.let { n ->
             p.root.performHapticFeedback(if (n == 1) android.view.HapticFeedbackConstants.LONG_PRESS else android.view.HapticFeedbackConstants.CLOCK_TICK)
         }
-        val note = listOf(stateSource.arrivalNote(), stateSource.clickNote()).filter { it.isNotEmpty() }.joinToString(" · ")
+        val note = listOf(stateSource.arrivalNote(), stateSource.clickNote(), stateSource.changeNote()).filter { it.isNotEmpty() }.joinToString(" · ")
         p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING, note,
             stateSource.connection(), RallyCountdownCue.urgent(waiting, remain))
         if (minimized) p.setMinimized(true, model.hero)

@@ -35,7 +35,9 @@ class RallyRoomSync(
     private val onClickArm: (Boolean) -> Unit = {},
     /** 시작 신호를 처음 받은 순간. 패널이 닫혀 있으면 다시 띄워 카운트다운이 보이게 한다. */
     private val onRallyStart: () -> Unit = {},
-    private val onCancel: () -> Unit
+    private val onCancel: () -> Unit,
+    /** 다른 관리자가 방을 바꾼 것이 도착했을 때(관리자 기기에서만). 인자는 바꾼 사람의 표시 이름. */
+    private val onOtherAdminChange: (String) -> Unit = {}
 ) : RallyPanelHost.StateSource {
 
     private val main = Handler(Looper.getMainLooper())
@@ -59,6 +61,10 @@ class RallyRoomSync(
     @Volatile var clickResult = ""
 
     /** 내가 방금 바꾼 값이 서버에 반영되기 전에 도착한 옛 응답이 화면을 되돌리지 않도록, 변경 직후 잠시 서버 응답을 무시한다. */
+    /** 이 기기가 마지막으로 본 방 변경 시각. -1이면 아직 첫 문서를 받지 못한 것(첫 로드에서는 알리지 않는다). */
+    private var seenChangeAt = -1L
+    private val myLabel: String get() = RallyChangeNote.label(getCharacterName(), memberId)
+
     @Volatile private var holdRemoteUntil = 0L
     private fun holdRemote() { holdRemoteUntil = SystemClock.elapsedRealtime() + 2500L }
 
@@ -193,6 +199,7 @@ class RallyRoomSync(
         MainThreadWatchdog.lastStall.ifEmpty { null }
     ).joinToString("\n")
     override fun roomCode(): String = room
+    override fun changeNote(): String = if (isAdmin) RallyChangeNote.text(doc, myLabel, System.currentTimeMillis()) else ""
     override fun onSavePosition() = savePosition()
 
     override fun onStart() = change(RallyRoomEdit::startOrRegroup)
@@ -205,12 +212,14 @@ class RallyRoomSync(
         if (!RallyRoomEdit.canEditMarch(d, isAdmin, myTeamId, teamId)) return
         val idx = d.teams.indexOfFirst { it.id == teamId }
         if (idx < 0) return
-        val next = RallyRoomEdit.setMarch(d, teamId, sec)
-        if (next === d) return
+        val changed = RallyRoomEdit.setMarch(d, teamId, sec)
+        if (changed === d) return
+        val now = System.currentTimeMillis()
+        val next = if (isAdmin) RallyChangeNote.stamp(changed, myLabel, now) else changed
         holdRemote()
         apply(next)
         val value = next.teams[idx].marchSec
-        Thread { try { putField("teams/$idx/marchSec", value) } catch (_: Exception) { } }.start()
+        Thread { try { putField("teams/$idx/marchSec", value); if (isAdmin) putStamp(now) } catch (_: Exception) { } }.start()
     }
 
     override fun onMarchDelta(teamId: String, deltaSec: Double) {
@@ -224,12 +233,14 @@ class RallyRoomSync(
         val d = effectiveDoc()
         val idx = d.teams.indexOfFirst { it.id == teamId }
         if (idx < 0) return
-        val next = RallyRoomEdit.setAdminAdjust(d, teamId, ms)
-        if (next === d) return
+        val changed = RallyRoomEdit.setAdminAdjust(d, teamId, ms)
+        if (changed === d) return
+        val now = System.currentTimeMillis()
+        val next = RallyChangeNote.stamp(changed, myLabel, now)
         holdRemote()
         apply(next)
         val value = next.teams[idx].adminAdjustMs
-        Thread { try { putField("teams/$idx/adminAdjustMs", value.toDouble()) } catch (_: Exception) { } }.start()
+        Thread { try { putField("teams/$idx/adminAdjustMs", value.toDouble()); putStamp(now) } catch (_: Exception) { } }.start()
     }
 
     override fun onAddTeam() = change { RallyRoomEdit.addTeam(it, "${it.teams.size + 1}군", 30.0) }
@@ -342,8 +353,9 @@ class RallyRoomSync(
     private fun change(op: (RallyRoomDoc) -> RallyRoomDoc) {
         if (!isAdmin) return
         val cur = effectiveDoc()
-        val next = op(cur)
-        if (next === cur) return
+        val changed = op(cur)
+        if (changed === cur) return
+        val next = RallyChangeNote.stamp(changed, myLabel, System.currentTimeMillis())
         holdRemote()
         apply(next)
         Thread { try { put(next) } catch (_: Exception) { } }.start()
@@ -361,6 +373,11 @@ class RallyRoomSync(
 
     private fun apply(d: RallyRoomDoc, fromRemote: Boolean = false) {
         doc = d
+        if (fromRemote && isAdmin) {
+            val prev = seenChangeAt
+            if (prev >= 0 && RallyChangeNote.foreignChange(prev, d, myLabel)) onOtherAdminChange(d.lastBy)
+            seenChangeAt = maxOf(prev, d.lastAt)
+        }
         if (startDetector.onDoc(d.startSeq, d.run, fromRemote)) {
             startedAt = SystemClock.elapsedRealtime()
             clickWallMs = null
@@ -439,13 +456,21 @@ class RallyRoomSync(
         c.inputStream.close()
     }
 
-    private fun putField(path: String, value: Double) {
+    /** 관리자가 한 필드만 바꿨을 때도 "마지막 변경"이 남도록 이름과 시각을 쓴다. */
+    private fun putStamp(nowMs: Long) {
+        putRaw("lastBy", JSONObject.quote(myLabel))
+        putRaw("lastAt", nowMs.toString())
+    }
+
+    private fun putField(path: String, value: Double) = putRaw(path, value.toString())
+
+    private fun putRaw(path: String, json: String) {
         val c = URL(FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room/$path.json", auth?.token())).openConnection() as HttpURLConnection
         c.requestMethod = "PUT"
         c.setRequestProperty("Content-Type", "application/json")
         c.connectTimeout = 3000; c.readTimeout = 3000
         c.doOutput = true
-        c.outputStream.use { it.write(value.toString().toByteArray()) }
+        c.outputStream.use { it.write(json.toByteArray()) }
         c.inputStream.close()
     }
 

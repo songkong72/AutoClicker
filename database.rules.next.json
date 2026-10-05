@@ -6,7 +6,7 @@
       ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
       "$room": {
         ".read": "auth != null",
-        ".write": "auth != null && $room.length >= 1 && $room.length <= 40",
+        ".write": "auth != null && $room.length >= 1 && $room.length <= 40 && (root.child('owners').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())",
         "teams": {
           "$i": {
             ".validate": "$i.matches(/^[0-9]{1,2}$/)",
@@ -20,6 +20,7 @@
               ".validate": "newData.isString() && newData.val().length <= 40"
             },
             "marchSec": {
+              ".write": "auth != null && data.parent().exists()",
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
             },
             "excluded": {
@@ -46,6 +47,12 @@
           ".validate": "newData.isString() && newData.val().matches(/^[A-Z_]{1,16}$/)"
         },
         "startSeq": {
+          ".validate": "newData.isNumber()"
+        },
+        "lastBy": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 40"
+        },
+        "lastAt": {
           ".validate": "newData.isNumber()"
         },
         "$other": {

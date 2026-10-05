@@ -188,7 +188,22 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             .setTitle("방 $code")
             .setMessage(text)
             .setPositiveButton("복사") { _, _ -> copy("방 $code", text) }
+            .setNeutralButton("방 삭제") { _, _ -> confirmDeleteRoom(code) }
             .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    private fun confirmDeleteRoom(code: String) {
+        AlertDialog.Builder(activity)
+            .setTitle("방 $code 삭제")
+            .setMessage("이 방과 방 명단을 서버에서 지워요. 되돌릴 수 없고, 그 방에 들어가 있던 사람들은 다시 입장해야 합니다. 정말 지울까요?")
+            .setPositiveButton("삭제") { _, _ ->
+                Thread {
+                    val err = server.deleteRoom(code)
+                    ui { toast(err ?: "방 $code 을(를) 지웠어요") }
+                }.start()
+            }
+            .setNegativeButton("취소", null)
             .show()
     }
 

@@ -24,12 +24,15 @@ data class RallyRoomDoc(
     val prepSec: Double,
     val waitSec: Double,
     val run: String,          // "IDLE" | "RUNNING" | "CANCELLED"
-    val startSeq: Long
+    val startSeq: Long,
+    /** 마지막으로 방을 바꾼 관리자의 표시 이름과 시각(ms). 바꾼 적이 없으면 빈 문자열과 0. */
+    val lastBy: String = "",
+    val lastAt: Long = 0L
 )
 
 /** Firebase JSON <-> RallyRoomDoc 변환. org.json 대신 Map/List를 써서 JVM 단위 테스트가 가능하다. */
 object RallyRoomCodec {
-    fun encode(doc: RallyRoomDoc): Map<String, Any?> = mapOf(
+    fun encode(doc: RallyRoomDoc): Map<String, Any?> = (mapOf(
         "teams" to doc.teams.map {
             mapOf(
                 "id" to it.id, "name" to it.name, "leaderName" to it.leaderName,
@@ -41,7 +44,7 @@ object RallyRoomCodec {
         "waitSec" to doc.waitSec,
         "run" to doc.run,
         "startSeq" to doc.startSeq
-    )
+    ) + (if (doc.lastAt > 0L && doc.lastBy.isNotEmpty()) mapOf("lastBy" to doc.lastBy, "lastAt" to doc.lastAt) else emptyMap()))
 
     /** 값이 없거나 숫자가 Int/Long으로 와도 안전하게 읽는다. (Firebase는 빈 리스트를 아예 빼 버린다) */
     fun decode(map: Map<String, Any?>?): RallyRoomDoc {
@@ -64,7 +67,9 @@ object RallyRoomCodec {
             prepSec = (map["prepSec"] as? Number)?.toDouble() ?: 0.0,
             waitSec = (map["waitSec"] as? Number)?.toDouble() ?: 0.0,
             run = map["run"] as? String ?: "IDLE",
-            startSeq = (map["startSeq"] as? Number)?.toLong() ?: 0L
+            startSeq = (map["startSeq"] as? Number)?.toLong() ?: 0L,
+            lastBy = map["lastBy"] as? String ?: "",
+            lastAt = (map["lastAt"] as? Number)?.toLong() ?: 0L
         )
     }
 }
