@@ -169,52 +169,28 @@ class RallyPanelHost(
         handler.post(tick)
     }
 
-    /** 방 번호를 직접 입력해 옮긴다. 이미 있는 방으로만 옮겨지고, 없는 번호를 쳐도 방이 새로 만들어지지는 않는다. */
-    private fun promptRoomNumber(current: String) {
-        input.show("방 번호 (4~20자, 영문·숫자)", "", freeText = true,
-            errorText = "방 번호는 영문·숫자 4~20자로 입력해 주세요") { text ->
-            val code = RallyRoomCode.normalize(text) ?: return@show false
-            if (code != current) handler.post { onSwitchRoom(code) } // 이 창과 패널이 닫힌 뒤에 옮긴다
-            true
-        }
-    }
-
-    /** 들어갔던 방 목록에서 골라 옮긴다. 방 만들기는 앱 첫 화면(첫 입장)에서만 한다. */
+    /**
+     * 방을 목록에서 골라 옮긴다(입력 없음). 관리자와 팀장은 이 기기에서 들어갔던 방, 개발자는 서버에 만들어진 모든 방이 나온다.
+     * 방 만들기는 앱 첫 화면(첫 입장)에서만 한다. 현재 방을 고르면 아무 일 없이 창이 닫힌다.
+     */
     private fun showRoomPicker(current: String) {
         val prefs = context.getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
         if (current.isNotEmpty()) RallyRoomHistory.record(prefs, current)
-        val items = RallyRoomHistory.load(prefs).map { code ->
-            RallyPickPopup.Item(if (code == current) "$code  ·  현재 방" else code, if (code == current) "#60A5FA" else "#E2E8F0") {
+        fun item(code: String, label: String) =
+            RallyPickPopup.Item(if (code == current) "$label  ·  현재 방" else label, if (code == current) "#60A5FA" else "#E2E8F0") {
                 if (code != current) handler.post { onSwitchRoom(code) }
             }
+        val mine = RallyRoomHistory.load(prefs)
+        if (mine.isEmpty()) {
+            Toast.makeText(context, "들어갔던 방이 없어요. 앱 첫 화면에서 방을 만들거나 입장해 주세요", Toast.LENGTH_LONG).show()
+            return
         }
-        pick.show("방 선택", items,
-            "들어갔던 방이 아직 없어요. 방 번호를 직접 입력하거나, 새 방은 앱 첫 화면에서 만드세요",
-            listOf(
-                RallyPickPopup.Item("서버의 전체 방 보기 (개발자)") { showAllRooms(current) },
-                RallyPickPopup.Item("방 번호 직접 입력") { promptRoomNumber(current) },
-                RallyPickPopup.Item("닫기") { }
-            ))
-    }
-
-    /** 개발자: 서버에 만들어진 모든 방을 목록으로 보고 골라 옮긴다. 관리자와 팀장은 서버 규칙상 읽을 수 없다. */
-    private fun showAllRooms(current: String) {
-        val back = RallyPickPopup.Item("뒤로") { showRoomPicker(current) }
-        pick.show("서버의 전체 방", emptyList(), "방 목록을 불러오는 중…", listOf(back))
-        stateSource.loadAllRooms { rooms, error ->
-            if (panel == null) return@loadAllRooms
-            if (rooms == null) {
-                pick.show("서버의 전체 방", emptyList(),
-                    "전체 방은 개발자만 볼 수 있어요. 들어갔던 방 목록이나 방 번호 직접 입력을 쓰세요" + if (error.isNotEmpty()) "\n($error)" else "",
-                    listOf(back))
-                return@loadAllRooms
-            }
-            val items = rooms.map { (code, line) ->
-                RallyPickPopup.Item(if (code == current) "$line  ·  현재 방" else line, if (code == current) "#60A5FA" else "#E2E8F0") {
-                    if (code != current) handler.post { onSwitchRoom(code) }
-                }
-            }
-            pick.show("서버의 전체 방 (${rooms.size}개)", items, "만들어진 방이 없어요", listOf(back))
+        pick.show("방 선택", mine.map { item(it, it) }, "", emptyList())
+        if (!stateSource.isAdmin) return
+        // 개발자라면 곧 서버의 전체 방 목록으로 바뀐다(규칙상 개발자만 읽을 수 있어, 아니면 위 목록이 그대로 남는다)
+        stateSource.loadAllRooms { rooms, _ ->
+            if (panel == null || rooms == null || rooms.isEmpty()) return@loadAllRooms
+            pick.show("방 선택 (${rooms.size}개)", rooms.map { (code, line) -> item(code, line) }, "", emptyList())
         }
     }
 
