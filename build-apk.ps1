@@ -2,9 +2,6 @@
 # Your current working folder, branch and uncommitted changes are NOT touched.
 param([string]$Branch = 'main')
 $ErrorActionPreference = 'Continue'
-# read/print native tool output (git, gradle) as UTF-8 so Korean text is not garbled
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Set-Location -Path $PSScriptRoot
 $log = Join-Path $PSScriptRoot 'build-log.txt'
 "=== build started $(Get-Date -Format s) ===" | Set-Content -Path $log -Encoding utf8
@@ -35,12 +32,12 @@ if ((Step "git fetch" { git fetch origin }) -ne 0) { Log "RESULT: FAIL (git fetc
 Step "git worktree prune" { git worktree prune } | Out-Null
 
 if (-not (Test-Path (Join-Path $wt '.git'))) {
-    if ((Step "create build folder" { git worktree add --detach _build origin/$Branch }) -ne 0) { Log "RESULT: FAIL (worktree add)"; exit 1 }
+    if ((Step "create build folder" { git worktree add -q --detach _build origin/$Branch }) -ne 0) { Log "RESULT: FAIL (worktree add)"; exit 1 }
 } else {
-    if ((Step "update build folder" { git -C _build checkout --force --detach origin/$Branch }) -ne 0) { Log "RESULT: FAIL (checkout)"; exit 1 }
+    if ((Step "update build folder" { git -C _build checkout -q --force --detach origin/$Branch }) -ne 0) { Log "RESULT: FAIL (checkout)"; exit 1 }
 }
 Log "branch: origin/$Branch"
-Step "commit being built" { git -C _build log -1 --oneline } | Out-Null
+Step "commit being built" { git -C _build log -1 --format="%h  %cd" --date=format:%Y-%m-%d_%H:%M } | Out-Null
 
 # local.properties (SDK path) is not in git: copy it from the main folder if it exists
 $lp = Join-Path $PSScriptRoot 'android-app\local.properties'
