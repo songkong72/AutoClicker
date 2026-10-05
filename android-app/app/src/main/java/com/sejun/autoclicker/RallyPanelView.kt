@@ -187,11 +187,11 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             else -> ""
         }
         heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
-        heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else if (urgent) Color.parseColor("#F87171") else heroColor(hero.kind))
+        heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else if (urgent) Color.parseColor("#F87171") else heroColor(hero))
         val sub = if (previewTotal) RallyScreenModel.idleSub(hero.subLabel, model.rows.count { !it.excluded }) else hero.subLabel
         // 집결이 시작된 뒤에는 한 줄만: "도착 예정 15:53:24 · ✓ 클릭함 15:47:56.080" (단계 설명은 큰 숫자·단계 표시가 대신한다)
         heroSub.text = if (arrivalNote.isEmpty()) sub else arrivalNote
-        renderPhases(hero.kind)
+        renderPhases(hero.kind, hero.phase)
         heroProgress.progress = (hero.progress * 1000).toInt()
 
         warning.visibility = if (model.warnings.isEmpty()) View.GONE else View.VISIBLE
@@ -304,8 +304,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     }
 
     /** 대기 · 집결 · 행군 · 도착 중 지금 단계만 밝게 보여준다. */
-    private fun renderPhases(kind: HeroKind) {
+    private fun renderPhases(kind: HeroKind, phase: Int? = null) {
         val current = when (kind) {
+            HeroKind.OVERVIEW -> phase ?: 0
             HeroKind.GATHERING -> 1
             HeroKind.MARCHING -> 2
             HeroKind.ARRIVED -> 3
@@ -320,6 +321,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             t.setTypeface(null, if (i == current) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
         }
     }
+
+    private fun heroColor(h: HeroModel): Int =
+        if (h.kind == HeroKind.OVERVIEW) Color.parseColor(PHASE_COLORS[(h.phase ?: 0).coerceIn(0, 3)]) else heroColor(h.kind)
 
     private fun heroColor(kind: HeroKind): Int = Color.parseColor(
         when (kind) {
@@ -342,6 +346,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         HeroKind.ARRIVED -> "전원 도착"
         HeroKind.CANCELLED -> "작전 취소"
         HeroKind.EXCLUDED -> "제외됨"
+        HeroKind.OVERVIEW -> h.label
         HeroKind.IDLE -> if (h.label.contains("배정")) "군단 배정 대기" else if (h.label.contains("구성")) "팀 구성 중" else "시작 대기"
     }
 
@@ -370,7 +375,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val dp = root.resources.displayMetrics.density
         if (min) {
             // 알약: 단계 색 점 + 짧은 단계명 한 줄, 아래에 큰 시간. 테두리도 단계 색으로 은은하게 칠한다.
-            val c = heroColor(hero.kind)
+            val c = heroColor(hero)
             title.text = "● " + minLabel(hero)
             title.setTextColor(c)
             title.textSize = 13f

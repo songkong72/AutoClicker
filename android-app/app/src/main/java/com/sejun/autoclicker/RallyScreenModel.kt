@@ -2,7 +2,9 @@ package com.sejun.autoclicker
 
 enum class RallyRunState { IDLE, RUNNING, ARRIVED, CANCELLED }
 
-enum class HeroKind { IDLE, MOVE, WAIT_CLICK, GATHERING, MARCHING, ARRIVED, CANCELLED, EXCLUDED }
+enum class HeroKind { IDLE, MOVE, WAIT_CLICK, GATHERING, MARCHING, ARRIVED, CANCELLED, EXCLUDED,
+    /** 내 군단이 없는 사람(관리자 등)이 진행 중에 보는 전체 상황. 큰 숫자는 전원 도착까지, 단계는 [HeroModel.phase]. */
+    OVERVIEW }
 
 data class RallyTeamState(
     val id: String,
@@ -38,7 +40,9 @@ data class HeroModel(
     val remainingSec: Double?,
     val subLabel: String,
     /** 0.0 ~ 1.0 */
-    val progress: Double
+    val progress: Double,
+    /** [HeroKind.OVERVIEW]에서만: 전체 단계 0 대기 · 1 집결 · 2 행군. */
+    val phase: Int? = null
 )
 
 data class TeamRowModel(
@@ -88,7 +92,7 @@ object RallyScreenModel {
         val editable = run != RallyRunState.RUNNING
 
         return ScreenModel(
-            hero = hero(state, myPlan, run, plan.arriveAtSec),
+            hero = hero(state, myPlan, run, plan),
             rows = rows(state, plan, run),
             maxMarchSec = plan.maxMarchSec,
             editable = editable,
@@ -101,7 +105,7 @@ object RallyScreenModel {
         )
     }
 
-    private fun hero(state: RallyRoomState, my: RallyTeamPlan?, run: RallyRunState, arriveAtSec: Double): HeroModel = when {
+    private fun hero(state: RallyRoomState, my: RallyTeamPlan?, run: RallyRunState, plan: RallyPlan): HeroModel = when {
         run == RallyRunState.CANCELLED ->
             HeroModel(HeroKind.CANCELLED, "작전 취소됨", null, "예약된 클릭이 모두 멈췄어요", 1.0)
         run == RallyRunState.ARRIVED ->
@@ -110,8 +114,7 @@ object RallyScreenModel {
             HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
         // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
         state.teams.none { it.id == state.myTeamId } && run == RallyRunState.RUNNING ->
-            HeroModel(HeroKind.MARCHING, "진행 중", Math.max(0.0, arriveAtSec - state.elapsedSec), "전원 도착까지",
-                if (arriveAtSec <= 0.0) 1.0 else (state.elapsedSec / arriveAtSec).coerceIn(0.0, 1.0))
+            overviewHero(plan, state.elapsedSec)
         state.teams.none { it.id == state.myTeamId } ->
             HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "관리자가 군단을 배정하면 시작할 수 있어요", 0.0)
         my == null ->
@@ -119,6 +122,16 @@ object RallyScreenModel {
         run == RallyRunState.IDLE ->
             HeroModel(HeroKind.IDLE, "관리자 시작 대기중", null, "시작 후 ${Math.ceil(my.clickAtSec).toInt()}초에 내 집결 클릭", 0.0)
         else -> runningHero(state, my)
+    }
+
+    /** 단계 이름은 최소화한 알약과 같은 글자를 쓴다. 첫 클릭 전 대기 → 첫 클릭부터 집결 → 모든 군단이 출발한 뒤 행군. */
+    private fun overviewHero(plan: RallyPlan, e: Double): HeroModel {
+        val firstClick = plan.teams.minOfOrNull { it.clickAtSec } ?: 0.0
+        val lastDepart = plan.teams.maxOfOrNull { it.departAtSec } ?: 0.0
+        val phase = when { e < firstClick -> 0; e < lastDepart -> 1; else -> 2 }
+        val label = when (phase) { 0 -> "집결 대기"; 1 -> "집결 중"; else -> "행군 중" }
+        val progress = if (plan.arriveAtSec <= 0.0) 1.0 else (e / plan.arriveAtSec).coerceIn(0.0, 1.0)
+        return HeroModel(HeroKind.OVERVIEW, label, Math.max(0.0, plan.arriveAtSec - e), "전원 도착까지", progress, phase)
     }
 
     private fun runningHero(state: RallyRoomState, my: RallyTeamPlan): HeroModel {
