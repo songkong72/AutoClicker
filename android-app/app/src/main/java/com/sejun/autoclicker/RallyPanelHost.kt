@@ -182,8 +182,7 @@ class RallyPanelHost(
             return
         }
         pick.showSelect("방 선택", mine.map { it to it }, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
-        if (!stateSource.isAdmin) return
-        // 개발자라면 곧 서버의 전체 방 목록으로 바뀐다(규칙상 개발자만 읽을 수 있어, 아니면 위 목록이 그대로 남는다)
+        // 곧 서버의 전체 방 목록으로 바뀐다. 목록에 없는 번호(없는 방)는 고를 수 없다. 서버 목록을 못 읽으면 이 기기의 기록이 그대로 남는다.
         stateSource.loadAllRooms { rooms, error ->
             if (panel == null) return@loadAllRooms
             if (rooms == null) {
