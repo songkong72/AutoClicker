@@ -177,21 +177,26 @@ class RallyPanelHost(
         val prefs = context.getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
         if (current.isNotEmpty()) RallyRoomHistory.record(prefs, current)
         val mine = RallyRoomHistory.load(prefs)
-        if (mine.isEmpty()) {
+        val cached = RoomListCache.load(prefs)
+        if (mine.isEmpty() && cached.isEmpty()) {
             Toast.makeText(context, "들어갔던 방이 없어요. 앱 첫 화면에서 방을 만들거나 입장해 주세요", Toast.LENGTH_LONG).show()
             return
         }
-        pick.showSelect("방 선택", mine.map { it to it }, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
-        // 곧 서버의 전체 방 목록으로 바뀐다. 목록에 없는 번호(없는 방)는 고를 수 없다. 서버 목록을 못 읽으면 이 기기의 기록이 그대로 남는다.
+        val onMove = { code: String -> handler.post { onSwitchRoom(code) }; Unit }
+        // 열자마자 마지막으로 받은 서버 목록(없으면 이 기기의 입장 기록)을 보여 주고, 뒤에서 새로 받아 바꾼다.
+        if (cached.isNotEmpty()) pick.showSelect("방 선택 (${cached.size}개) · 불러오는 중…", cached, current, "이동", onMove)
+        else pick.showSelect("방 선택 · 불러오는 중…", mine.map { it to it }, current, "이동", onMove)
         stateSource.loadAllRooms { rooms, error ->
             if (panel == null) return@loadAllRooms
             if (rooms == null) {
-                // 서버 목록을 못 읽으면 이 기기의 기록만 보인다. 이유를 제목에 적어 둔다(규칙 게시 여부 확인용).
-                pick.showSelect("방 선택 · 서버 방 목록을 불러오지 못했어요${if (error.isNotEmpty()) " ($error)" else ""}", mine.map { it to it }, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
+                // 서버 목록을 못 읽으면 남아 있던 목록이 그대로 보인다. 이유를 제목에 적어 둔다(규칙 게시 여부 확인용).
+                val shown = if (cached.isNotEmpty()) cached else mine.map { it to it }
+                pick.showSelect("방 선택 · 서버 방 목록을 불러오지 못했어요${if (error.isNotEmpty()) " ($error)" else ""}", shown, current, "이동", onMove)
                 return@loadAllRooms
             }
             if (rooms.isEmpty()) return@loadAllRooms
-            pick.showSelect("방 선택 (${rooms.size}개)", rooms, current, "이동") { code -> handler.post { onSwitchRoom(code) } }
+            RoomListCache.save(prefs, rooms)
+            pick.showSelect("방 선택 (${rooms.size}개)", rooms, current, "이동", onMove)
         }
     }
 
