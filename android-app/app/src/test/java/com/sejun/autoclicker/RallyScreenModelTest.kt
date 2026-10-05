@@ -250,7 +250,7 @@ class RallyScreenModelTest {
     // 군단이 없는 관리자의 큰 숫자는 팀장처럼 "다음 단계까지 남은 시간"이다.
     @Test
     fun `군단이 없는 관리자는 시작 직후 첫 클릭까지 이동 준비로 센다`() {
-        val m = build(room(RallyRunState.RUNNING, elapsed = 0.0, mine = ""))
+        val m = build(room(RallyRunState.RUNNING, elapsed = 0.0, mine = "").copy(isAdmin = true))
         assertEquals(HeroKind.OVERVIEW, m.hero.kind)
         assertEquals("이동 준비", m.hero.label)
         assertEquals(0, m.hero.phase)
@@ -260,15 +260,15 @@ class RallyScreenModelTest {
 
     @Test
     fun `군단이 없는 관리자의 첫 클릭까지 숫자는 시간이 갈수록 줄어든다`() {
-        val a = build(room(RallyRunState.RUNNING, elapsed = 3.0, mine = ""))
-        val b = build(room(RallyRunState.RUNNING, elapsed = 10.0, mine = ""))
+        val a = build(room(RallyRunState.RUNNING, elapsed = 3.0, mine = "").copy(isAdmin = true))
+        val b = build(room(RallyRunState.RUNNING, elapsed = 10.0, mine = "").copy(isAdmin = true))
         assertEquals(12.0, a.hero.remainingSec!!, d)
         assertEquals(5.0, b.hero.remainingSec!!, d)
     }
 
     @Test
     fun `군단이 없는 관리자는 첫 클릭 뒤 전원 출발까지를 집결 중으로 센다`() {
-        val m = build(room(RallyRunState.RUNNING, elapsed = 100.0, mine = ""))
+        val m = build(room(RallyRunState.RUNNING, elapsed = 100.0, mine = "").copy(isAdmin = true))
         assertEquals("집결 중", m.hero.label)
         assertEquals(1, m.hero.phase)
         assertEquals("전원 출발까지", m.hero.subLabel)
@@ -277,11 +277,19 @@ class RallyScreenModelTest {
 
     @Test
     fun `군단이 없는 관리자는 전원 출발 뒤 전원 도착까지를 행군 중으로 센다`() {
-        val m = build(room(RallyRunState.RUNNING, elapsed = 360.0, mine = ""))
+        val m = build(room(RallyRunState.RUNNING, elapsed = 360.0, mine = "").copy(isAdmin = true))
         assertEquals("행군 중", m.hero.label)
         assertEquals(2, m.hero.phase)
         assertEquals("전원 도착까지", m.hero.subLabel)
         assertEquals(5.0, m.hero.remainingSec!!, d)
+    }
+
+    @Test
+    fun `군단이 배정되지 않은 팀장은 진행 중에도 전체 보기 대신 배정 안내를 본다`() {
+        val m = build(room(RallyRunState.RUNNING, elapsed = 20.0, mine = ""))
+        assertEquals(HeroKind.IDLE, m.hero.kind)
+        assertEquals("아직 군단이 배정되지 않았어요", m.hero.label)
+        assertNull(m.hero.remainingSec)
     }
 
     @Test

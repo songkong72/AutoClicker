@@ -345,9 +345,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         HeroKind.MARCHING -> "행군 중"
         HeroKind.ARRIVED -> "전원 도착"
         HeroKind.CANCELLED -> "작전 취소"
-        HeroKind.EXCLUDED -> "제외됨"
+        HeroKind.EXCLUDED -> "참여 안 함"
         HeroKind.OVERVIEW -> h.label
-        HeroKind.IDLE -> if (h.label.contains("배정")) "군단 배정 대기" else if (h.label.contains("구성")) "팀 구성 중" else "시작 대기"
+        HeroKind.IDLE -> if (h.label.contains("배정")) "군단 배정 대기" else if (h.label.contains("참여하지")) "참여 안 함" else if (h.label.contains("구성")) "팀 구성 중" else "시작 대기"
     }
 
     /** 최소화: 카운트다운 한 줄만 남기고 나머지는 숨긴다. */
