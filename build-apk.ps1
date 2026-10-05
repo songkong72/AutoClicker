@@ -2,6 +2,9 @@
 # Your current working folder, branch and uncommitted changes are NOT touched.
 param([string]$Branch = 'main')
 $ErrorActionPreference = 'Continue'
+# read/print native tool output (git, gradle) as UTF-8 so Korean text is not garbled
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Set-Location -Path $PSScriptRoot
 $log = Join-Path $PSScriptRoot 'build-log.txt'
 "=== build started $(Get-Date -Format s) ===" | Set-Content -Path $log -Encoding utf8
