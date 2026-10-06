@@ -81,10 +81,6 @@ class MainActivity : AppCompatActivity() {
         setupPresets()
         setupRepeatConditionListeners()
 
-        // 인증하지 않은 사용자는 연타만 쓰므로, 접혀 있던 일반 연타 모드를 처음부터 펼쳐 둔다(인증 창을 먼저 띄우지 않는다)
-        if (!PreferencesHelper.hasAccess(this)) {
-            binding.layoutGeneralModes.visibility = View.VISIBLE
-        }
     }
 
     override fun onResume() {
@@ -135,8 +131,6 @@ class MainActivity : AppCompatActivity() {
 
         // 일반 연타 모드 접기/펼치기
         binding.tvGeneralModeToggle.setOnClickListener {
-            // 집결을 못 쓰는 사람은 접지 않는다: 접으면 하나뿐인 띄우기 버튼이 사라진다
-            if (!PreferencesHelper.hasAccess(this)) return@setOnClickListener
             val open = binding.layoutGeneralModes.visibility != View.VISIBLE
             binding.layoutGeneralModes.visibility = if (open) View.VISIBLE else View.GONE
             updateServiceState()
@@ -429,10 +423,21 @@ class MainActivity : AppCompatActivity() {
             binding.btnStartService.text = "🚀 오토클리커 띄우기"
             binding.btnStartService.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
         }
-        // 띄우기/숨기기 버튼이 접힌 영역 안에 있으므로, 접혀 있어도 떠 있는지는 제목에서 알 수 있게 한다
+        updateStartButtonVisibility()
+        // 회원은 접어 두면 띄우기 버튼이 안 보이므로, 떠 있는지는 제목에서도 알 수 있게 한다
         val open = binding.layoutGeneralModes.visibility == View.VISIBLE
         binding.tvGeneralModeToggle.text = "일반 연타 모드" + (if (isShowing) " · 떠 있음" else "") + (if (open) "  ▴" else "  ▾")
         updateRallyInfoCard()
+    }
+
+    /**
+     * 띄우기/숨기기 버튼: 집결을 못 쓰는 사람(일반 사용자·개발자 미리보기)에게는 연타 영역을 접어도 늘 보인다(쓸 버튼이 이것뿐이다).
+     * 회원·관리자는 집결이 주 기능이라, 연타 영역을 펼쳤을 때만 보인다.
+     */
+    private fun updateStartButtonVisibility() {
+        val open = binding.layoutGeneralModes.visibility == View.VISIBLE
+        binding.btnStartService.visibility = if (open || !PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
+        binding.tvVolumeTip.visibility = if (open) View.VISIBLE else View.GONE
     }
 
     private fun roomAuth() = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
@@ -770,8 +775,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnAdminIcon.visibility = if (roster || userView) View.GONE else View.VISIBLE
         // 집결 방 카드는 인증한 회원·관리자에게만 보인다
         binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
-        // 집결을 못 쓰는 사람은 연타가 전부라, 띄우기 버튼이 든 영역을 펼쳐 둔다(접혀 있으면 버튼이 안 보인다)
-        if (!PreferencesHelper.hasAccess(this)) binding.layoutGeneralModes.visibility = View.VISIBLE
+        updateStartButtonVisibility()
         // 조작판이 떠 있는 채로 인증 상태가 바뀌어도 집결·헌터 아이콘이 바로 맞춰지게 한다
         AutoClickService.instance?.refreshMemberIcons()
     }
