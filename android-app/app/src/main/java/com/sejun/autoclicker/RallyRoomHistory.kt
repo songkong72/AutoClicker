@@ -21,6 +21,11 @@ object RallyRoomHistory {
     fun decode(raw: String?): List<String> =
         (raw ?: "").split(",").mapNotNull { RallyRoomCode.normalize(it) }.distinct().take(MAX)
 
+    /** 지워진 방은 기록에서도 뺀다. */
+    fun forget(prefs: SharedPreferences, code: String) {
+        prefs.edit().putString(KEY, encode(load(prefs).filter { it != code })).apply()
+    }
+
     fun load(prefs: SharedPreferences): List<String> = decode(prefs.getString(KEY, null))
 
     fun record(prefs: SharedPreferences, code: String) {

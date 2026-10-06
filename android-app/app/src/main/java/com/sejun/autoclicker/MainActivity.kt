@@ -488,6 +488,7 @@ class MainActivity : AppCompatActivity() {
                                 if (e.code == current) Toast.makeText(this, "지금 들어와 있는 방이에요.", Toast.LENGTH_SHORT).show()
                                 else joinRoom(e.code)
                             RoomChooser.Kind.NEW -> confirmNewRoom()
+                            RoomChooser.Kind.DELETE -> pickRoomToDelete(server.orEmpty(), current)
                             RoomChooser.Kind.TYPE -> askRoomNumber()
                         }
                     }
@@ -495,6 +496,43 @@ class MainActivity : AppCompatActivity() {
                     .show()
             }
         }.start()
+    }
+
+    /** 관리자: 지울 방을 고른다. 고른 뒤 한 번 더 확인하고 서버에서 방과 방 명단을 함께 지운다. */
+    private fun pickRoomToDelete(rooms: List<Pair<String, String>>, current: String) {
+        if (rooms.isEmpty()) return
+        AlertDialog.Builder(this)
+            .setTitle("지울 방 선택")
+            .setItems(rooms.map { (code, line) -> if (code == current) "✓ $line" else line }.toTypedArray()) { _, i -> confirmDeleteRoom(rooms[i].first, current) }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun confirmDeleteRoom(code: String, current: String) {
+        val mine = if (code == current) "\n\n지금 들어와 있는 방이에요. 지우면 이 기기도 방에서 나옵니다." else ""
+        AlertDialog.Builder(this)
+            .setTitle("방 $code 삭제")
+            .setMessage("이 방과 방 명단을 서버에서 지워요. 되돌릴 수 없고, 그 방에 들어가 있던 사람들은 다시 입장해야 합니다. 정말 지울까요?$mine")
+            .setPositiveButton("삭제") { _, _ ->
+                Thread {
+                    val err = adminServer().deleteRoom(code)
+                    runOnUiThread {
+                        if (err != null) { Toast.makeText(this, "방을 지우지 못했어요: $err", Toast.LENGTH_LONG).show(); return@runOnUiThread }
+                        RallyRoomHistory.forget(roomPrefs(), code)
+                        RoomListCache.save(roomPrefs(), RoomListCache.load(roomPrefs()).filter { it.first != code })
+                        // 지운 방에 들어와 있었다면 방에서 나온다. 번호를 남겨 두면 집결 화면이 그 방을 다시 만들어 버린다.
+                        if (code == (roomPrefs().getString("cloud_room_number", "") ?: "")) {
+                            roomPrefs().edit().remove("cloud_room_number").remove("cloud_room_creatable").apply()
+                            AutoClickService.instance?.leaveRallyRoom()
+                            rosterStatus = ""
+                        }
+                        Toast.makeText(this, "방 $code 을(를) 지웠어요.", Toast.LENGTH_SHORT).show()
+                        updateRallyInfoCard()
+                    }
+                }.start()
+            }
+            .setNegativeButton("취소", null)
+            .show()
     }
 
     /** 목록에 없는 방 번호를 직접 넣는다. */

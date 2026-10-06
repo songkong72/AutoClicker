@@ -7,10 +7,10 @@ class RoomChooserTest {
     private val server = listOf("0001" to "0001 · 군단 3개 (배정 3)", "482913" to "482913 · 군단 0개 (배정 0)")
 
     @Test
-    fun `관리자는 서버 방 목록 아래에 새 방 만들기와 번호 직접 입력이 보인다`() {
+    fun `관리자는 서버 방 목록 아래에 새 방 만들기와 방 삭제와 번호 직접 입력이 보인다`() {
         val e = RoomChooser.entries(server, emptyList(), "", admin = true)
-        assertEquals(listOf("0001 · 군단 3개 (배정 3)", "482913 · 군단 0개 (배정 0)", RoomChooser.NEW_LABEL, RoomChooser.TYPE_LABEL), e.map { it.label })
-        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW, RoomChooser.Kind.TYPE), e.map { it.kind })
+        assertEquals(listOf("0001 · 군단 3개 (배정 3)", "482913 · 군단 0개 (배정 0)", RoomChooser.NEW_LABEL, RoomChooser.DELETE_LABEL, RoomChooser.TYPE_LABEL), e.map { it.label })
+        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW, RoomChooser.Kind.DELETE, RoomChooser.Kind.TYPE), e.map { it.kind })
         assertEquals("482913", e[1].code)
     }
 
@@ -18,6 +18,14 @@ class RoomChooserTest {
     fun `집결장에게는 새 방 만들기가 보이지 않는다`() {
         val e = RoomChooser.entries(server, emptyList(), "", admin = false)
         assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.ROOM, RoomChooser.Kind.TYPE), e.map { it.kind })
+    }
+
+    @Test
+    fun `서버 목록을 받지 못했거나 방이 없으면 관리자에게도 방 삭제는 보이지 않는다`() {
+        val none = RoomChooser.entries(null, listOf("0001"), "", admin = true).map { it.kind }
+        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW, RoomChooser.Kind.TYPE), none)
+        val empty = RoomChooser.entries(emptyList(), emptyList(), "", admin = true).map { it.kind }
+        assertEquals(listOf(RoomChooser.Kind.NEW, RoomChooser.Kind.TYPE), empty)
     }
 
     @Test

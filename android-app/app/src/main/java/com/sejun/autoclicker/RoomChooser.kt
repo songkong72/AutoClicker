@@ -5,21 +5,24 @@ package com.sejun.autoclicker
  * 안드로이드 클래스를 쓰지 않아 단위 테스트가 된다.
  */
 internal object RoomChooser {
-    enum class Kind { ROOM, NEW, TYPE }
+    enum class Kind { ROOM, NEW, DELETE, TYPE }
 
     data class Entry(val label: String, val kind: Kind, val code: String = "")
 
     const val NEW_LABEL = "+ 새 방 만들기"
+    const val DELETE_LABEL = "방 삭제…"
     const val TYPE_LABEL = "번호 직접 입력"
 
     /**
      * [server]는 서버에서 받은 (방 번호, 한 줄 설명) 목록. 받지 못했으면 null이고, 그때는 이 기기가 들어갔던 방([history])을 대신 보여 준다.
      * 지금 들어와 있는 방([current])에는 ✓를 붙인다. 새 방 만들기는 관리자([admin])에게만, 번호 직접 입력은 누구에게나 맨 아래에 둔다.
+     * 방 삭제도 관리자에게만 보이고, 서버 목록을 받아서 지울 방이 있을 때만 나온다(받지 못한 목록으로는 지우지 않는다).
      */
     fun entries(server: List<Pair<String, String>>?, history: List<String>, current: String, admin: Boolean): List<Entry> {
         val rooms = server ?: history.map { it to it }
         return rooms.map { (code, line) -> Entry(if (code == current) "✓ $line" else line, Kind.ROOM, code) } +
             (if (admin) listOf(Entry(NEW_LABEL, Kind.NEW)) else emptyList()) +
+            (if (admin && !server.isNullOrEmpty()) listOf(Entry(DELETE_LABEL, Kind.DELETE)) else emptyList()) +
             Entry(TYPE_LABEL, Kind.TYPE)
     }
 
