@@ -721,29 +721,29 @@ class MainActivity : AppCompatActivity() {
     private fun createNewRoom(typed: String) {
         Thread {
             val codes = RallyRoomSync.roomCodes(RallyRoomSync.DB_URL, roomAuth())
-            runOnUiThread {
-                if (codes == null) {
-                    Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()
-                    return@runOnUiThread
-                }
-                val code = when (RoomChooser.newRoom(typed, codes)) {
-                    RoomChooser.NewRoom.TOO_SHORT -> { Toast.makeText(this, "방 번호를 4자리 이상 입력해 주세요.", Toast.LENGTH_SHORT).show(); return@runOnUiThread }
-                    RoomChooser.NewRoom.EXISTS -> { Toast.makeText(this, "이미 있는 방이에요. 방 목록에서 골라 주세요.", Toast.LENGTH_LONG).show(); return@runOnUiThread }
-                    RoomChooser.NewRoom.OK -> typed.trim()
-                    RoomChooser.NewRoom.RANDOM -> generateSequence { (100000..999999).random().toString() }.first { it !in codes }
-                }
-                when (RoomLimit.decide(codes, code)) {
-                    RoomLimit.Verdict.FULL -> Toast.makeText(this, RoomLimit.fullMessage(), Toast.LENGTH_LONG).show()
-                    RoomLimit.Verdict.UNKNOWN -> Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()
-                    RoomLimit.Verdict.ALLOW -> {
-                        roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply()
-                        RallyRoomHistory.record(roomPrefs(), code)
-                        AutoClickService.instance?.leaveRallyRoom()
-                        rosterStatus = ""
-                        Toast.makeText(this, "새 방 $code 을 만들었어요. 집결장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
-                        updateRallyInfoCard()
+            // 화면에 보여 줄 실패 이유. 방을 만들었으면 null
+            var code = ""
+            val problem: String? = when {
+                codes == null -> "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요."
+                else -> when (RoomChooser.newRoom(typed, codes)) {
+                    RoomChooser.NewRoom.TOO_SHORT -> "방 번호를 4자리 이상 입력해 주세요."
+                    RoomChooser.NewRoom.EXISTS -> "이미 있는 방이에요. 방 목록에서 골라 주세요."
+                    else -> {
+                        code = typed.trim().ifEmpty { generateSequence { (100000..999999).random().toString() }.first { it !in codes } }
+                        if (RoomLimit.decide(codes, code) == RoomLimit.Verdict.FULL) RoomLimit.fullMessage()
+                        // 서버에 바로 만들어, 집결 화면을 열기 전에도 방 목록에 보이게 한다
+                        else RallyRoomSync.createRoom(RallyRoomSync.DB_URL, roomAuth(), code)?.let { "방을 만들지 못했어요: $it" }
                     }
                 }
+            }
+            runOnUiThread {
+                if (problem != null) { Toast.makeText(this, problem, Toast.LENGTH_LONG).show(); return@runOnUiThread }
+                roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply()
+                RallyRoomHistory.record(roomPrefs(), code)
+                AutoClickService.instance?.leaveRallyRoom()
+                rosterStatus = ""
+                Toast.makeText(this, "새 방 $code 을 만들었어요. 집결장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
+                updateRallyInfoCard()
             }
         }.start()
     }
