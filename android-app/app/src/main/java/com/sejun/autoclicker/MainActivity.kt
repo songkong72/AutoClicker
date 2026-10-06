@@ -126,6 +126,7 @@ class MainActivity : AppCompatActivity() {
         // 회원 인증 관리 버튼
         binding.btnAuthAction.setOnClickListener {
             when {
+                PreferencesHelper.isUserView(this) -> setUserView(false)
                 PreferencesHelper.isAdminMode(this) -> showAdminMenu()
                 PreferencesHelper.isRosterAdmin(this) -> enterFromRoster(askCodeIfNot = true)
                 else -> showVerificationDialog()
@@ -141,11 +142,13 @@ class MainActivity : AppCompatActivity() {
 
         // 상단 관리자 설정 아이콘
         binding.btnAdminIcon.setOnClickListener {
+            if (PreferencesHelper.isUserView(this)) return@setOnClickListener
             // 이미 관리자면 로그인 창을 다시 띄우지 않고 관리 메뉴를 연다
             if (PreferencesHelper.isAdminMode(this)) showAdminMenu() else showAdminLoginDialog()
         }
 
         // 관리자로 등록된 기기: 한 번 눌러 관리자 ↔ 집결장 화면을 오간다(코드를 다시 받지 않는다)
+        binding.btnUserView.setOnClickListener { enterUserView() }
         binding.btnRoleSwitch.setOnClickListener {
             if (PreferencesHelper.isAdminMode(this)) switchToLeader() else enterFromRoster(askCodeIfNot = true)
         }
@@ -162,6 +165,7 @@ class MainActivity : AppCompatActivity() {
             titleTapCount++
             if (titleTapCount >= 5) {
                 titleTapCount = 0
+                if (PreferencesHelper.isUserView(this)) return@setOnClickListener
                 if (PreferencesHelper.isAdminMode(this)) showAdminMenu() else showAdminLoginDialog()
             }
         }
@@ -720,7 +724,15 @@ class MainActivity : AppCompatActivity() {
         val isVerified = PreferencesHelper.isVerified(this)
         val userId = PreferencesHelper.getVerifiedUserId(this)
 
-        if (PreferencesHelper.isAdminMode(this)) {
+        if (PreferencesHelper.isUserView(this)) {
+            // 개발자가 일반 사용자 화면을 보는 중: 집결 기능은 가려지고 연타만 남는다
+            binding.tvAuthStatusTitle.text = "👤 일반 화면 (개발자 미리보기)"
+            binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#F59E0B"))
+            binding.tvAuthStatusSubtitle.text = "일반 사용자가 보는 화면이에요. 눌러서 원래 화면으로 돌아가세요."
+            binding.btnAuthAction.text = "개발자 화면으로 복귀"
+            binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
+            binding.layoutGeneralModes.visibility = View.VISIBLE
+        } else if (PreferencesHelper.isAdminMode(this)) {
             binding.tvAuthStatusTitle.text = "👑 관리자 모드"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#2563EB"))
             binding.tvAuthStatusSubtitle.text = "방을 만들고 집결장에게 방 번호와 초대코드를 공유하세요."
@@ -747,10 +759,14 @@ class MainActivity : AppCompatActivity() {
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#3B82F6"))
         }
         // 전환 버튼은 서버 명단에 있다고 확인된 기기에만 보이고, 그때는 열쇠(코드 입력) 아이콘이 필요 없다
-        val roster = PreferencesHelper.isRosterAdmin(this)
+        val userView = PreferencesHelper.isUserView(this)
+        val roster = PreferencesHelper.isRosterAdmin(this) && !userView
+        // 개발자로 확인된 기기에만 "일반 화면" 버튼을 보여 준다(누를 때 서버에 다시 확인한다)
+        binding.btnUserView.visibility =
+            if (!userView && roomPrefs().getBoolean("is_owner_cached", false)) View.VISIBLE else View.GONE
         binding.btnRoleSwitch.visibility = if (roster) View.VISIBLE else View.GONE
         binding.btnRoleSwitch.text = if (PreferencesHelper.isAdminMode(this)) "집결장으로 전환" else "관리자로 전환"
-        binding.btnAdminIcon.visibility = if (roster) View.GONE else View.VISIBLE
+        binding.btnAdminIcon.visibility = if (roster || userView) View.GONE else View.VISIBLE
         // 집결 방 카드는 인증한 회원·관리자에게만 보인다
         binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
         // 조작판이 떠 있는 채로 인증 상태가 바뀌어도 집결·헌터 아이콘이 바로 맞춰지게 한다
@@ -817,6 +833,7 @@ class MainActivity : AppCompatActivity() {
             if (owner) add("관리자 관리 (개발자 전용)")
             if (owner) add("내 기기 ID 보기")
             add("집결장으로 전환")
+            if (owner) add("일반 화면으로 전환 (개발자 전용)")
         }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("관리자")
@@ -825,6 +842,7 @@ class MainActivity : AppCompatActivity() {
                     "집결장 코드 발급" -> showAdminPanelDialog()
                     "관리자 관리 (개발자 전용)" -> AdminRosterUi(this, adminServer()).showManage()
                     "내 기기 ID 보기" -> AdminRosterUi(this, adminServer()).showMyId()
+                    "일반 화면으로 전환 (개발자 전용)" -> enterUserView()
                     else -> switchToLeader()
                 }
             }
@@ -926,11 +944,39 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 서버의 개발자 목록(owners)에 이 기기가 있으면 코드 없이 관리자 모드로 들어간다. */
+    /** 개발자만: 서버에 개발자인지 다시 확인한 뒤 일반 사용자 화면으로 바꾼다. 확인하지 못하면 바꾸지 않는다. */
+    private fun enterUserView() {
+        Toast.makeText(this, "개발자 여부를 확인하는 중…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val server = adminServer()
+            val uid = server.uid().value
+            val owner = if (uid == null) Check.UNKNOWN else server.isOwner(uid)
+            rememberOwner(owner)
+            runOnUiThread {
+                when (owner) {
+                    Check.YES -> setUserView(true)
+                    Check.NO -> {
+                        Toast.makeText(this, "개발자로 등록된 기기만 쓸 수 있어요.", Toast.LENGTH_LONG).show()
+                        updateAuthUI()
+                    }
+                    Check.UNKNOWN -> Toast.makeText(this, "서버에서 확인하지 못했어요. 네트워크를 확인하고 다시 눌러 주세요.", Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun setUserView(on: Boolean) {
+        PreferencesHelper.setUserView(this, on)
+        AutoClickService.instance?.leaveRallyRoom() // 보이는 권한이 바뀌면 집결 패널을 닫는다
+        Toast.makeText(this, if (on) "일반 화면으로 바꿨어요." else "개발자 화면으로 돌아왔어요.", Toast.LENGTH_SHORT).show()
+        updateAuthUI()
+        updateRallyInfoCard()
+    }
+
     /** 관리자 화면을 끄고 집결장 화면으로 간다. 서버 명단에는 그대로 남아 있어, 나중에 코드 없이 다시 관리자로 전환할 수 있다. */
     private fun switchToLeader() {
         PreferencesHelper.setAdminMode(this, false)
         PreferencesHelper.setAdminViaServer(this, false)
-        roomPrefs().edit().putBoolean("is_owner_cached", false).apply()
         AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
         Toast.makeText(this, "집결장으로 전환했어요.", Toast.LENGTH_SHORT).show()
         updateAuthUI()

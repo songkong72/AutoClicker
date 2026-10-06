@@ -174,7 +174,20 @@ object PreferencesHelper {
     private const val KEY_VERIFIED_USER_ID = "key_verified_user_id"
 
     /** 기능 사용 권한: 초대코드 인증을 했거나 관리자로 로그인한 기기. */
-    fun hasAccess(context: Context): Boolean = isVerified(context) || isAdminMode(context) || isRosterAdmin(context)
+    fun hasAccess(context: Context): Boolean =
+        !isUserView(context) && (isVerified(context) || isAdminMode(context) || isRosterAdmin(context))
+
+    private const val KEY_USER_VIEW = "key_user_view"
+
+    /**
+     * 개발자가 일반 사용자 화면을 보는 중인지. 켜져 있으면 인증·관리자 상태는 그대로 두고 집결 기능만 가린다
+     * (서버 등록과 초대 인증은 건드리지 않아서 끄면 바로 원래 화면으로 돌아온다).
+     */
+    fun isUserView(context: Context): Boolean = getPrefs(context).getBoolean(KEY_USER_VIEW, false)
+
+    fun setUserView(context: Context, on: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_USER_VIEW, on).apply()
+    }
 
     fun isVerified(context: Context): Boolean {
         return getPrefs(context).getBoolean(KEY_IS_VERIFIED, false)

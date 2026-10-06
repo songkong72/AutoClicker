@@ -58,6 +58,20 @@
                         android:textSize="13sp" />
                 </LinearLayout>
 
+                <!-- 개발자에게만 보인다: 일반 사용자 화면으로 바꿔 본다 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUserView"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="6dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingHorizontal="12dp"
+                    android:text="일반 화면"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
                 <!-- 관리자로 등록된 기기에서만 보인다: 한 번 눌러 관리자 ↔ 집결장 화면을 오간다 -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRoleSwitch"
