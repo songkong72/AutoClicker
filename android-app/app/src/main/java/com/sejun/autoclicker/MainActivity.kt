@@ -429,170 +429,27 @@ class MainActivity : AppCompatActivity() {
     /** 입장 직후 명단 등록 결과(성공/실패 이유). 토스트가 안 보이는 기기가 있어 방 상태 글에 붙여 보여 준다. */
     private var rosterStatus = ""
 
-    /** 방에 들어와 있는 상태에서 "방 바꾸기"를 눌러 번호 입력칸을 펼쳤는지 */
-    private var roomEditOpen = false
-
     private fun updateRallyInfoCard() {
         val room = roomPrefs().getString("cloud_room_number", "") ?: ""
         val admin = PreferencesHelper.isAdminMode(this)
-        // 이미 방에 들어와 있으면 번호 입력칸·입장 버튼은 접어 두고 "방 바꾸기"를 눌렀을 때만 펼친다
-        // 집결장은 입장한 뒤로는 방·이름을 집결 화면의 "내 기기"에서만 바꾼다(같은 입력이 두 곳에 있던 것을 한 곳으로).
-        // 다만 명단 등록에 실패했으면 여기서 다시 입장할 수 있게 입력칸을 남긴다.
-        val retry = !admin && rosterStatus.startsWith("✗")
-        val showEntry = room.isEmpty() || (admin && roomEditOpen) || retry
-        binding.layoutRoomEntry.visibility = if (showEntry) View.VISIBLE else View.GONE
-        binding.etCharName.visibility = if (!admin && showEntry) View.VISIBLE else View.GONE
-        binding.layoutRoomAdmin.visibility = if (admin && showEntry) View.VISIBLE else View.GONE // 새 방 만들기
+        // 방 번호를 치지 않고 서버의 방 목록에서 고른다. 방이 없으면 큰 "방 선택", 있으면 상태 줄 옆의 "방 바꾸기".
+        binding.btnPickRoom.visibility = if (room.isEmpty()) View.VISIBLE else View.GONE
+        binding.btnChangeRoom.visibility = if (room.isNotEmpty()) View.VISIBLE else View.GONE
         binding.btnShareRoom.visibility = if (admin && room.isNotEmpty()) View.VISIBLE else View.GONE
-        binding.btnChangeRoom.visibility = if (admin && room.isNotEmpty()) View.VISIBLE else View.GONE
-        binding.btnChangeRoom.text = if (roomEditOpen) "닫기" else "방 바꾸기"
         // 방이 이미 있는 관리자에게는 "방을 만들고 공유하세요" 안내를 되풀이하지 않는다
         binding.tvAuthStatusSubtitle.visibility = if (admin && room.isNotEmpty()) View.GONE else View.VISIBLE
-        if (!admin && binding.etCharName.text.isNullOrEmpty()) binding.etCharName.setText(PreferencesHelper.getRallyCharacterName(this))
-        // 패널에서 방을 바꿨을 수 있으니, 입력 중이 아니면 칸을 현재 방 번호에 맞춘다
-        if (room.isNotEmpty() && !binding.etRoomCode.hasFocus() && binding.etRoomCode.text.toString() != room) binding.etRoomCode.setText(room)
+        val note = if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
         binding.tvRoomStatus.text = when {
-            room.isEmpty() && admin -> "아직 방이 없어요. 새 방을 만들어 번호를 집결장에게 공유하세요."
-            room.isEmpty() -> "관리자에게 받은 방 번호를 입력하고 입장하세요." + if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
-            admin -> "방 $room · 관리자"
-            else -> "방 $room · 집결장" + (if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else "") +
-                (if (retry) "" else "\n방·이름은 집결 화면의 '내 기기'에서 바꿔요")
+            room.isEmpty() && admin -> "아직 방이 없어요. 방을 고르거나 새로 만드세요.$note"
+            room.isEmpty() -> "들어갈 방을 골라 주세요.$note"
+            admin -> "방 $room · 관리자$note"
+            else -> "방 $room · 집결장$note"
         }
     }
 
     private fun setupRoomCard() {
-        // 입장 버튼을 누르지 않고 앱을 나가도 입력한 이름이 남도록, 입력하는 즉시 기기에 저장한다.
-        binding.etCharName.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                if (!PreferencesHelper.isAdminMode(this@MainActivity)) {
-                    val name = RallyRoster.cleanName(s?.toString() ?: "")
-                    if (name != PreferencesHelper.getRallyCharacterName(this@MainActivity)) {
-                        PreferencesHelper.setRallyCharacterName(this@MainActivity, name)
-                    }
-                }
-            }
-        })
-        binding.btnChangeRoom.setOnClickListener {
-            roomEditOpen = !roomEditOpen
-            updateRallyInfoCard()
-        }
-        binding.btnJoinRoom.setOnClickListener {
-            val code = binding.etRoomCode.text.toString().trim()
-            if (code.length < 4) {
-                Toast.makeText(this, "방 번호를 4자리 이상 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val admin = PreferencesHelper.isAdminMode(this)
-            val name = RallyRoster.cleanName(binding.etCharName.text.toString())
-            if (!admin && name.isEmpty()) {
-                Toast.makeText(this, "캐릭터명을 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                rosterStatus = "캐릭터명을 입력해야 입장할 수 있어요"
-                updateRallyInfoCard()
-                return@setOnClickListener
-            }
-            // 입장 동작. 관리자는 없는 방이면 만들고(첫 입장), 집결장은 아래에서 방이 있다고 확인된 뒤에만 부른다.
-            fun enter() {
-                roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
-                RallyRoomHistory.record(roomPrefs(), code)
-                AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
-                roomEditOpen = false
-                Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
-                if (admin) {
-                    rosterStatus = ""
-                } else {
-                    // 이름을 저장하고 곧바로 방 명단에 올려, 관리자 목록에 바로 나타나게 한다.
-                    PreferencesHelper.setRallyCharacterName(this, name)
-                    binding.etCharName.setText(name)
-                    rosterStatus = "명단에 등록하는 중…"
-                    val memberId = PreferencesHelper.getRallyMemberId(this)
-                    val auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
-                        load = { roomPrefs().getString("fb_refresh", null) },
-                        save = { t -> roomPrefs().edit().putString("fb_refresh", t).apply() })
-                    Thread {
-                        val err = RallyRoomSync.registerMember(RallyRoomSync.DB_URL, auth, code, memberId, name)
-                        runOnUiThread {
-                            rosterStatus = if (err == null) "✓ 명단에 등록됐어요 ($name)" else "✗ 명단 등록 실패: $err"
-                            updateRallyInfoCard()
-                        }
-                    }.start()
-                }
-                updateRallyInfoCard()
-            }
-            if (admin) {
-                // 새 번호로 방을 만들 때는 서버의 방 수 상한(10개)을 본다. 이미 있는 방이면 그냥 들어간다.
-                rosterStatus = "방을 확인하는 중…"
-                updateRallyInfoCard()
-                Thread {
-                    val codes = RallyRoomSync.roomCodes(RallyRoomSync.DB_URL, roomAuth())
-                    runOnUiThread {
-                        when (RoomLimit.decide(codes, code)) {
-                            RoomLimit.Verdict.ALLOW -> enter()
-                            RoomLimit.Verdict.FULL -> { rosterStatus = "✗ " + RoomLimit.fullMessage(); Toast.makeText(this, RoomLimit.fullMessage(), Toast.LENGTH_LONG).show(); updateRallyInfoCard() }
-                            RoomLimit.Verdict.UNKNOWN -> { rosterStatus = "✗ 서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요"; Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show(); updateRallyInfoCard() }
-                        }
-                    }
-                }.start()
-            } else {
-                // 집결장은 방을 만들 수 없다. 없는 번호면 입장도 명단 등록도 하지 않고, 입장 목록에도 남기지 않는다.
-                rosterStatus = "방을 확인하는 중…"
-                updateRallyInfoCard()
-                val auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
-                    load = { roomPrefs().getString("fb_refresh", null) },
-                    save = { t -> roomPrefs().edit().putString("fb_refresh", t).apply() })
-                Thread {
-                    val exists = RallyRoomSync.roomExists(RallyRoomSync.DB_URL, auth, code)
-                    runOnUiThread {
-                        when (exists) {
-                            true -> enter()
-                            false -> {
-                                rosterStatus = "✗ 없는 방이에요. 관리자에게 받은 방 번호를 확인해 주세요"
-                                Toast.makeText(this, "없는 방이에요. 방 번호를 확인해 주세요.", Toast.LENGTH_LONG).show()
-                                updateRallyInfoCard()
-                            }
-                            null -> {
-                                rosterStatus = "✗ 서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요"
-                                Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()
-                                updateRallyInfoCard()
-                            }
-                        }
-                    }
-                }.start()
-            }
-        }
-        fun createNewRoom() {
-            val code = (100000..999999).random().toString()
-            Thread {
-                val codes = RallyRoomSync.roomCodes(RallyRoomSync.DB_URL, roomAuth())
-                runOnUiThread {
-                    when (RoomLimit.decide(codes, code)) {
-                        RoomLimit.Verdict.FULL -> Toast.makeText(this, RoomLimit.fullMessage(), Toast.LENGTH_LONG).show()
-                        RoomLimit.Verdict.UNKNOWN -> Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()
-                        RoomLimit.Verdict.ALLOW -> {
-                            roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply()
-                            RallyRoomHistory.record(roomPrefs(), code)
-                            AutoClickService.instance?.leaveRallyRoom()
-                            roomEditOpen = false
-                            binding.etRoomCode.setText(code)
-                            Toast.makeText(this, "새 방 $code 을 만들었어요. 집결장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
-                            updateRallyInfoCard()
-                        }
-                    }
-                }
-            }.start()
-        }
-        binding.btnNewRoom.setOnClickListener {
-            // 이미 방이 있으면 한 번 확인한다: 관리자만 새 방으로 옮겨 가고 집결장들은 이전 방에 남기 때문
-            val current = roomPrefs().getString("cloud_room_number", "") ?: ""
-            if (current.isEmpty()) createNewRoom()
-            else AlertDialog.Builder(this)
-                .setTitle("새 방 만들기")
-                .setMessage("방 $current 에서 나가 새 방을 만들까요?\n집결장들은 이전 방에 남으니 새 번호를 다시 공유해야 해요.")
-                .setPositiveButton("새 방 만들기") { _, _ -> createNewRoom() }
-                .setNegativeButton("취소", null)
-                .show()
-        }
+        binding.btnPickRoom.setOnClickListener { showRoomChooser() }
+        binding.btnChangeRoom.setOnClickListener { showRoomChooser() }
         binding.btnShareRoom.setOnClickListener {
             val code = roomPrefs().getString("cloud_room_number", "") ?: ""
             if (code.isEmpty()) {
@@ -601,10 +458,218 @@ class MainActivity : AppCompatActivity() {
             }
             val send = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, "집결 방 번호: $code (오토클릭커 앱 > 집결 방에 입력)")
+                putExtra(Intent.EXTRA_TEXT, "집결 방 번호: $code (오토클릭커 앱 > 집결 방 > 방 선택)")
             }
             startActivity(Intent.createChooser(send, "방 번호 공유"))
         }
+    }
+
+    /**
+     * 서버의 방 목록을 받아 고르게 한다. 관리자에게는 "+ 새 방 만들기"가 함께 보인다.
+     * 목록을 받지 못하면(인터넷·서버 규칙) 이 기기가 들어갔던 방들을 대신 보여 주고, 언제나 번호를 직접 넣을 수 있다.
+     */
+    private fun showRoomChooser() {
+        val current = roomPrefs().getString("cloud_room_number", "") ?: ""
+        val admin = PreferencesHelper.isAdminMode(this)
+        Toast.makeText(this, "방 목록을 불러오는 중…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val r = AdminServer(RallyRoomSync.DB_URL, roomAuth()).loadRoomsOnly()
+            val server = if (r.error != null) null else RoomList.summarize(r.value, null).map { it.code to RoomList.lineBrief(it) }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                if (!server.isNullOrEmpty()) RoomListCache.save(roomPrefs(), server) // 집결 화면의 방 선택도 같은 목록으로 바로 뜬다
+                val entries = RoomChooser.entries(server, RallyRoomHistory.load(roomPrefs()), current, admin)
+                AlertDialog.Builder(this)
+                    .setTitle(RoomChooser.title(server, r.error))
+                    .setItems(entries.map { it.label }.toTypedArray()) { _, i ->
+                        val e = entries[i]
+                        when (e.kind) {
+                            RoomChooser.Kind.ROOM ->
+                                if (e.code == current) Toast.makeText(this, "지금 들어와 있는 방이에요.", Toast.LENGTH_SHORT).show()
+                                else joinRoom(e.code)
+                            RoomChooser.Kind.NEW -> confirmNewRoom()
+                            RoomChooser.Kind.DELETE -> pickRoomToDelete(server.orEmpty(), current)
+                            RoomChooser.Kind.TYPE -> askRoomNumber()
+                        }
+                    }
+                    .setNegativeButton("닫기", null)
+                    .show()
+            }
+        }.start()
+    }
+
+    /** 관리자: 지울 방을 고른다. 고른 뒤 한 번 더 확인하고 서버에서 방과 방 명단을 함께 지운다. */
+    private fun pickRoomToDelete(rooms: List<Pair<String, String>>, current: String) {
+        if (rooms.isEmpty()) return
+        AlertDialog.Builder(this)
+            .setTitle("지울 방 선택")
+            .setItems(rooms.map { (code, line) -> if (code == current) "✓ $line" else line }.toTypedArray()) { _, i -> confirmDeleteRoom(rooms[i].first, current) }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun confirmDeleteRoom(code: String, current: String) {
+        val mine = if (code == current) "\n\n지금 들어와 있는 방이에요. 지우면 이 기기도 방에서 나옵니다." else ""
+        AlertDialog.Builder(this)
+            .setTitle("방 $code 삭제")
+            .setMessage("이 방과 방 명단을 서버에서 지워요. 되돌릴 수 없고, 그 방에 들어가 있던 사람들은 다시 입장해야 합니다. 정말 지울까요?$mine")
+            .setPositiveButton("삭제") { _, _ ->
+                Thread {
+                    val err = adminServer().deleteRoom(code)
+                    runOnUiThread {
+                        if (err != null) { Toast.makeText(this, "방을 지우지 못했어요: $err", Toast.LENGTH_LONG).show(); return@runOnUiThread }
+                        RallyRoomHistory.forget(roomPrefs(), code)
+                        RoomListCache.save(roomPrefs(), RoomListCache.load(roomPrefs()).filter { it.first != code })
+                        // 지운 방에 들어와 있었다면 방에서 나온다. 번호를 남겨 두면 집결 화면이 그 방을 다시 만들어 버린다.
+                        if (code == (roomPrefs().getString("cloud_room_number", "") ?: "")) {
+                            roomPrefs().edit().remove("cloud_room_number").remove("cloud_room_creatable").apply()
+                            AutoClickService.instance?.leaveRallyRoom()
+                            rosterStatus = ""
+                        }
+                        Toast.makeText(this, "방 $code 을(를) 지웠어요.", Toast.LENGTH_SHORT).show()
+                        updateRallyInfoCard()
+                    }
+                }.start()
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    /** 목록에 없는 방 번호를 직접 넣는다. */
+    private fun askRoomNumber() {
+        val input = EditText(this).apply {
+            hint = "방 번호"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            filters = arrayOf(android.text.InputFilter.LengthFilter(8))
+            setPadding(50, 40, 50, 40)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("방 번호 입력")
+            .setView(input)
+            .setPositiveButton("입장") { _, _ ->
+                val code = input.text.toString().trim()
+                if (code.length < 4) Toast.makeText(this, "방 번호를 4자리 이상 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                else joinRoom(code)
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    /** 집결장이 처음 입장할 때 한 번 묻는다. 관리자가 군단을 배정할 때 명단에 이 이름으로 보인다. 나중에는 집결 화면의 "내 기기"에서 바꾼다. */
+    private fun askCharName(onDone: (String) -> Unit) {
+        val input = EditText(this).apply {
+            hint = "캐릭터명"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            filters = arrayOf(android.text.InputFilter.LengthFilter(20))
+            setSingleLine(true)
+            setPadding(50, 40, 50, 40)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("캐릭터명 입력")
+            .setMessage("관리자가 군단을 배정할 때 이 이름으로 보여요.")
+            .setView(input)
+            .setPositiveButton("확인") { _, _ ->
+                val name = RallyRoster.cleanName(input.text.toString())
+                if (name.isEmpty()) Toast.makeText(this, "캐릭터명을 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                else { PreferencesHelper.setRallyCharacterName(this, name); onDone(name) }
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    /** 방에 입장한다. 관리자는 없는 번호면 새로 만들고(방 수 상한 확인), 집결장은 서버에 있는 방에만 들어가 명단에 이름을 올린다. */
+    private fun joinRoom(code: String) {
+        val admin = PreferencesHelper.isAdminMode(this)
+        val name = RallyRoster.cleanName(PreferencesHelper.getRallyCharacterName(this))
+        if (!admin && name.isEmpty()) { askCharName { joinRoom(code) }; return }
+
+        // 입장 동작. 관리자는 없는 방이면 만들고(첫 입장), 집결장은 아래에서 방이 있다고 확인된 뒤에만 부른다.
+        fun enter() {
+            roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
+            RallyRoomHistory.record(roomPrefs(), code)
+            AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
+            Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
+            if (admin) {
+                rosterStatus = ""
+            } else {
+                // 곧바로 방 명단에 올려, 관리자 목록에 바로 나타나게 한다.
+                rosterStatus = "명단에 등록하는 중…"
+                val memberId = PreferencesHelper.getRallyMemberId(this)
+                Thread {
+                    val err = RallyRoomSync.registerMember(RallyRoomSync.DB_URL, roomAuth(), code, memberId, name)
+                    runOnUiThread {
+                        rosterStatus = if (err == null) "✓ 명단에 등록됐어요 ($name)" else "✗ 명단 등록 실패: $err · 방 바꾸기에서 다시 골라 주세요"
+                        updateRallyInfoCard()
+                    }
+                }.start()
+            }
+            updateRallyInfoCard()
+        }
+        fun fail(status: String, toast: String) {
+            rosterStatus = "✗ $status"
+            Toast.makeText(this, toast, Toast.LENGTH_LONG).show()
+            updateRallyInfoCard()
+        }
+        rosterStatus = "방을 확인하는 중…"
+        updateRallyInfoCard()
+        if (admin) {
+            // 새 번호로 방을 만들 때는 서버의 방 수 상한(10개)을 본다. 이미 있는 방이면 그냥 들어간다.
+            Thread {
+                val codes = RallyRoomSync.roomCodes(RallyRoomSync.DB_URL, roomAuth())
+                runOnUiThread {
+                    when (RoomLimit.decide(codes, code)) {
+                        RoomLimit.Verdict.ALLOW -> enter()
+                        RoomLimit.Verdict.FULL -> fail(RoomLimit.fullMessage(), RoomLimit.fullMessage())
+                        RoomLimit.Verdict.UNKNOWN -> fail("서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요", "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.")
+                    }
+                }
+            }.start()
+        } else {
+            // 집결장은 방을 만들 수 없다. 없는 번호면 입장도 명단 등록도 하지 않고, 입장 목록에도 남기지 않는다.
+            Thread {
+                val exists = RallyRoomSync.roomExists(RallyRoomSync.DB_URL, roomAuth(), code)
+                runOnUiThread {
+                    when (exists) {
+                        true -> enter()
+                        false -> fail("없는 방이에요. 관리자에게 받은 방 번호를 확인해 주세요", "없는 방이에요. 방 번호를 확인해 주세요.")
+                        null -> fail("서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요", "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.")
+                    }
+                }
+            }.start()
+        }
+    }
+
+    /** 관리자: 새 방을 만든다. 이미 방에 들어와 있으면 한 번 확인한다(관리자만 옮겨 가고 집결장들은 이전 방에 남기 때문). */
+    private fun confirmNewRoom() {
+        val current = roomPrefs().getString("cloud_room_number", "") ?: ""
+        if (current.isEmpty()) { createNewRoom(); return }
+        AlertDialog.Builder(this)
+            .setTitle("새 방 만들기")
+            .setMessage("방 $current 에서 나가 새 방을 만들까요?\n집결장들은 이전 방에 남으니 새 번호를 다시 공유해야 해요.")
+            .setPositiveButton("새 방 만들기") { _, _ -> createNewRoom() }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun createNewRoom() {
+        val code = (100000..999999).random().toString()
+        Thread {
+            val codes = RallyRoomSync.roomCodes(RallyRoomSync.DB_URL, roomAuth())
+            runOnUiThread {
+                when (RoomLimit.decide(codes, code)) {
+                    RoomLimit.Verdict.FULL -> Toast.makeText(this, RoomLimit.fullMessage(), Toast.LENGTH_LONG).show()
+                    RoomLimit.Verdict.UNKNOWN -> Toast.makeText(this, "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()
+                    RoomLimit.Verdict.ALLOW -> {
+                        roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply()
+                        RallyRoomHistory.record(roomPrefs(), code)
+                        AutoClickService.instance?.leaveRallyRoom()
+                        rosterStatus = ""
+                        Toast.makeText(this, "새 방 $code 을 만들었어요. 집결장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
+                        updateRallyInfoCard()
+                    }
+                }
+            }
+        }.start()
     }
 
     private fun hasAccessibilityPermission(): Boolean {
