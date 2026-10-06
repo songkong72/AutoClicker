@@ -424,19 +424,19 @@ class MainActivity : AppCompatActivity() {
             binding.btnStartService.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
         }
         updateStartButtonVisibility()
-        // 회원은 접어 두면 띄우기 버튼이 안 보이므로, 떠 있는지는 제목에서도 알 수 있게 한다
+        // 회원 화면에는 띄우기 버튼이 없으므로, 조작판이 떠 있는지는 제목에서 알 수 있게 한다
         val open = binding.layoutGeneralModes.visibility == View.VISIBLE
         binding.tvGeneralModeToggle.text = "일반 연타 모드" + (if (isShowing) " · 떠 있음" else "") + (if (open) "  ▴" else "  ▾")
         updateRallyInfoCard()
     }
 
     /**
-     * 띄우기/숨기기 버튼: 집결을 못 쓰는 사람(일반 사용자·개발자 미리보기)에게는 연타 영역을 접어도 늘 보인다(쓸 버튼이 이것뿐이다).
-     * 회원·관리자는 집결이 주 기능이라, 연타 영역을 펼쳤을 때만 보인다.
+     * 띄우기/숨기기 버튼은 집결을 못 쓰는 사람(일반 사용자·개발자 미리보기)에게만 보인다(연타 영역을 접어도 늘 보인다).
+     * 회원·관리자는 "집결 화면 열기"가 조작판까지 띄워 주므로 이 버튼을 두지 않는다(큰 버튼은 늘 하나). 조작판은 조작판의 ✕ 로 끈다.
      */
     private fun updateStartButtonVisibility() {
         val open = binding.layoutGeneralModes.visibility == View.VISIBLE
-        binding.btnStartService.visibility = if (open || !PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
+        binding.btnStartService.visibility = if (!PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
         binding.tvVolumeTip.visibility = if (open) View.VISIBLE else View.GONE
     }
 
