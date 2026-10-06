@@ -135,6 +135,8 @@ class MainActivity : AppCompatActivity() {
 
         // 일반 연타 모드 접기/펼치기
         binding.tvGeneralModeToggle.setOnClickListener {
+            // 집결을 못 쓰는 사람은 접지 않는다: 접으면 하나뿐인 띄우기 버튼이 사라진다
+            if (!PreferencesHelper.hasAccess(this)) return@setOnClickListener
             val open = binding.layoutGeneralModes.visibility != View.VISIBLE
             binding.layoutGeneralModes.visibility = if (open) View.VISIBLE else View.GONE
             updateServiceState()
@@ -427,7 +429,7 @@ class MainActivity : AppCompatActivity() {
             binding.btnStartService.text = "🚀 오토클리커 띄우기"
             binding.btnStartService.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
         }
-        // 띄우기/숨기기 버튼은 접히는 영역 밖에 있어 항상 보인다. 제목에도 떠 있는지 함께 적는다
+        // 띄우기/숨기기 버튼이 접힌 영역 안에 있으므로, 접혀 있어도 떠 있는지는 제목에서 알 수 있게 한다
         val open = binding.layoutGeneralModes.visibility == View.VISIBLE
         binding.tvGeneralModeToggle.text = "일반 연타 모드" + (if (isShowing) " · 떠 있음" else "") + (if (open) "  ▴" else "  ▾")
         updateRallyInfoCard()
@@ -768,6 +770,8 @@ class MainActivity : AppCompatActivity() {
         binding.btnAdminIcon.visibility = if (roster || userView) View.GONE else View.VISIBLE
         // 집결 방 카드는 인증한 회원·관리자에게만 보인다
         binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
+        // 집결을 못 쓰는 사람은 연타가 전부라, 띄우기 버튼이 든 영역을 펼쳐 둔다(접혀 있으면 버튼이 안 보인다)
+        if (!PreferencesHelper.hasAccess(this)) binding.layoutGeneralModes.visibility = View.VISIBLE
         // 조작판이 떠 있는 채로 인증 상태가 바뀌어도 집결·헌터 아이콘이 바로 맞춰지게 한다
         AutoClickService.instance?.refreshMemberIcons()
     }
@@ -969,6 +973,7 @@ class MainActivity : AppCompatActivity() {
         AutoClickService.instance?.leaveRallyRoom() // 보이는 권한이 바뀌면 집결 패널을 닫는다
         Toast.makeText(this, if (on) "일반 화면으로 바꿨어요." else "개발자 화면으로 돌아왔어요.", Toast.LENGTH_SHORT).show()
         updateAuthUI()
+        updateServiceState() // 펼침 상태가 바뀌었으니 제목의 ▴/▾ 와 띄우기 버튼 글자를 다시 맞춘다
         updateRallyInfoCard()
     }
 
