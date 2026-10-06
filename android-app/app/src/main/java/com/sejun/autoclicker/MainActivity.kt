@@ -970,6 +970,8 @@ class MainActivity : AppCompatActivity() {
         AutoClickService.instance?.leaveRallyRoom() // 보이는 권한이 바뀌면 집결 패널을 닫는다
         Toast.makeText(this, if (on) "일반 화면으로 바꿨어요." else "개발자 화면으로 돌아왔어요.", Toast.LENGTH_SHORT).show()
         updateAuthUI()
+        // 일반 연타 모드 영역을 펼쳤으니 제목의 ▴/▾ 와 띄우기 버튼 글자도 지금 상태로 맞춘다(안 맞추면 눌렀을 때 오히려 접힌다)
+        updateServiceState()
         updateRallyInfoCard()
     }
 
