@@ -748,9 +748,8 @@ class MainActivity : AppCompatActivity() {
             // 관리자로 등록된 기기가 집결장 화면으로 지내는 중
             binding.tvAuthStatusTitle.text = "🚩 집결장 모드"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
-            binding.tvAuthStatusSubtitle.text = "관리자로 등록된 기기예요. 코드 없이 관리자로 전환할 수 있어요."
+            binding.tvAuthStatusSubtitle.text = "관리자로 등록된 기기예요. 위쪽 버튼으로 코드 없이 관리자로 전환할 수 있어요."
             binding.btnAuthAction.text = "관리자로 전환"
-            binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
         } else if (isVerified) {
             binding.tvAuthStatusTitle.text = "✅ 정회원 인증 완료"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
@@ -773,6 +772,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnRoleSwitch.visibility = if (roster) View.VISIBLE else View.GONE
         binding.btnRoleSwitch.text = if (PreferencesHelper.isAdminMode(this)) "집결장으로 전환" else "관리자로 전환"
         binding.btnAdminIcon.visibility = if (roster || userView) View.GONE else View.VISIBLE
+        // 집결장 화면에서는 위쪽 전환 버튼 하나만 둔다: 카드 안에 같은 "관리자로 전환"을 또 두지 않는다
+        binding.btnAuthAction.visibility =
+            if (roster && !PreferencesHelper.isAdminMode(this)) View.GONE else View.VISIBLE
         // 집결 방 카드는 인증한 회원·관리자에게만 보인다
         binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
         updateStartButtonVisibility()
@@ -839,7 +841,7 @@ class MainActivity : AppCompatActivity() {
             add("집결장 코드 발급")
             if (owner) add("관리자 관리 (개발자 전용)")
             if (owner) add("내 기기 ID 보기")
-            add("집결장으로 전환")
+            if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add("집결장으로 전환") // 위쪽 전환 버튼이 없을 때만
             if (owner) add("일반 화면으로 전환 (개발자 전용)")
         }.toTypedArray()
         AlertDialog.Builder(this)
