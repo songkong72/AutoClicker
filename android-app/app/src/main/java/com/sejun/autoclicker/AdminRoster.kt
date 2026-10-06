@@ -160,6 +160,16 @@ internal object AdminRoster {
      * 서버가 개발자나 관리자라고 하면 유지(옛 기기는 서버 방식으로 표시), 둘 다 아니라고 분명히 답할 때만 푼다.
      * 모르겠으면(네트워크 오류, 규칙 미적용) 건드리지 않는다.
      */
+    /**
+     * 코드 없이 관리자로 들어가도 되는지. 서버가 개발자나 관리자라고 답하면 YES, 둘 다 아니라고 분명히 답하면 NO.
+     * 확인하지 못했으면(네트워크 오류 등) UNKNOWN이고, 그때는 들여보내지 않는다.
+     */
+    fun rosterEntry(owner: Check, admin: Check): Check = when {
+        owner == Check.YES || admin == Check.YES -> Check.YES
+        owner == Check.NO && admin == Check.NO -> Check.NO
+        else -> Check.UNKNOWN
+    }
+
     fun reconcile(viaServer: Boolean, owner: Check, admin: Check): AdminModeFix = when {
         owner == Check.YES || admin == Check.YES -> if (viaServer) AdminModeFix.KEEP else AdminModeFix.MARK_SERVER
         owner == Check.NO && admin == Check.NO -> AdminModeFix.CLEAR

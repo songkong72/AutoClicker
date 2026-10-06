@@ -252,4 +252,23 @@ class AdminRosterTest {
         val text = AdminRoster.exportText(admins, emptyList(), nowMs = 0L)
         assertTrue(text, text.contains("1. 저장이름 · ID …AAAAAA"))
     }
+
+    @Test
+    fun `서버 명단에 있는 기기는 코드 없이 관리자로 들어간다`() {
+        assertEquals(Check.YES, AdminRoster.rosterEntry(Check.YES, Check.NO))
+        assertEquals(Check.YES, AdminRoster.rosterEntry(Check.NO, Check.YES))
+        assertEquals(Check.YES, AdminRoster.rosterEntry(Check.UNKNOWN, Check.YES))
+    }
+
+    @Test
+    fun `명단에 없다고 분명히 답하면 들어가지 못한다`() {
+        assertEquals(Check.NO, AdminRoster.rosterEntry(Check.NO, Check.NO))
+    }
+
+    @Test
+    fun `서버에서 확인하지 못하면 들여보내지 않는다`() {
+        assertEquals(Check.UNKNOWN, AdminRoster.rosterEntry(Check.UNKNOWN, Check.UNKNOWN))
+        assertEquals(Check.UNKNOWN, AdminRoster.rosterEntry(Check.NO, Check.UNKNOWN))
+        assertEquals(Check.UNKNOWN, AdminRoster.rosterEntry(Check.UNKNOWN, Check.NO))
+    }
 }

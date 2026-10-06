@@ -195,7 +195,7 @@ class AutoClickService : AccessibilityService() {
 
     fun toggleRallyPanel() {
         val isAdmin = PreferencesHelper.isAdminMode(this)
-        if (!isAdmin && !PreferencesHelper.isVerified(this)) {
+        if (!PreferencesHelper.hasAccess(this)) {
             Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
             return
         }
