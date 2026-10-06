@@ -534,7 +534,9 @@
                 </RadioGroup>
             </LinearLayout>
 
-            <!-- 일반 연타용 오토클리커 띄우기/숨기기: 집결이 주 기능이라 접힌 영역 안에 둔다 -->
+            </LinearLayout>
+
+            <!-- 일반 연타용 오토클리커 띄우기/숨기기: 접히는 영역 밖에 둔다. 집결을 못 쓰는 사람에게는 접혀도 보이고, 회원에게는 펼쳤을 때만 보인다(코드에서 정한다) -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnStartService"
                 android:layout_width="match_parent"
@@ -549,6 +551,7 @@
 
             <!-- Minimal Tip Footer -->
             <TextView
+                android:id="@+id/tvVolumeTip"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
@@ -557,7 +560,6 @@
                 android:layout_marginBottom="20dp"
                 android:textSize="12sp" />
 
-            </LinearLayout>
 
             <!-- Card 4: 집결 방 (같은 방 = 같은 시각에 성에 도착할 팀들). 인증한 회원·관리자에게만 보인다 -->
             <LinearLayout
