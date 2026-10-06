@@ -7,43 +7,55 @@ class RoomChooserTest {
     private val server = listOf("0001" to "0001 · 군단 3개 (배정 3)", "482913" to "482913 · 군단 0개 (배정 0)")
 
     @Test
-    fun `관리자는 서버 방 목록 아래에 새 방 만들기와 방 삭제와 번호 직접 입력이 보인다`() {
+    fun `관리자는 서버 방 목록 아래에 새 방 만들기만 보이고 방 줄마다 휴지통이 붙는다`() {
         val e = RoomChooser.entries(server, emptyList(), "", admin = true)
-        assertEquals(listOf("0001 · 군단 3개 (배정 3)", "482913 · 군단 0개 (배정 0)", RoomChooser.NEW_LABEL, RoomChooser.DELETE_LABEL, RoomChooser.TYPE_LABEL), e.map { it.label })
-        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW, RoomChooser.Kind.DELETE, RoomChooser.Kind.TYPE), e.map { it.kind })
+        assertEquals(listOf("0001 · 군단 3개 (배정 3)", "482913 · 군단 0개 (배정 0)", RoomChooser.NEW_LABEL), e.map { it.label })
+        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW), e.map { it.kind })
+        assertEquals(listOf(true, true, false), e.map { it.deletable })
         assertEquals("482913", e[1].code)
     }
 
     @Test
-    fun `집결장에게는 새 방 만들기가 보이지 않는다`() {
+    fun `집결장에게는 방 목록만 보이고 휴지통도 없다`() {
         val e = RoomChooser.entries(server, emptyList(), "", admin = false)
-        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.ROOM, RoomChooser.Kind.TYPE), e.map { it.kind })
+        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.ROOM), e.map { it.kind })
+        assertEquals(listOf(false, false), e.map { it.deletable })
     }
 
     @Test
-    fun `서버 목록을 받지 못했거나 방이 없으면 관리자에게도 방 삭제는 보이지 않는다`() {
-        val none = RoomChooser.entries(null, listOf("0001"), "", admin = true).map { it.kind }
-        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW, RoomChooser.Kind.TYPE), none)
+    fun `서버 목록을 받지 못하면 관리자에게도 휴지통은 없고 번호 직접 입력이 비상구로 보인다`() {
+        val none = RoomChooser.entries(null, listOf("0001"), "", admin = true)
+        assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW, RoomChooser.Kind.TYPE), none.map { it.kind })
+        assertEquals(false, none[0].deletable)
         val empty = RoomChooser.entries(emptyList(), emptyList(), "", admin = true).map { it.kind }
-        assertEquals(listOf(RoomChooser.Kind.NEW, RoomChooser.Kind.TYPE), empty)
+        assertEquals(listOf(RoomChooser.Kind.NEW), empty)
     }
 
     @Test
     fun `지금 들어와 있는 방에는 표시가 붙는다`() {
         val e = RoomChooser.entries(server, emptyList(), "0001", admin = false)
-        assertEquals("✓ 0001 · 군단 3개 (배정 3)", e[0].label)
+        assertEquals("✓ 0001 · 군단 3개 (배정 3) · 현재", e[0].label)
         assertEquals("482913 · 군단 0개 (배정 0)", e[1].label)
     }
 
     @Test
     fun `서버 목록을 받지 못하면 들어갔던 방을 대신 보여 준다`() {
         val e = RoomChooser.entries(null, listOf("0001", "7777"), "7777", admin = false)
-        assertEquals(listOf("0001", "✓ 7777", RoomChooser.TYPE_LABEL), e.map { it.label })
+        assertEquals(listOf("0001", "✓ 7777 · 현재", RoomChooser.TYPE_LABEL), e.map { it.label })
     }
 
     @Test
-    fun `방이 하나도 없어도 번호 직접 입력은 남는다`() {
-        assertEquals(listOf(RoomChooser.TYPE_LABEL), RoomChooser.entries(emptyList(), listOf("0001"), "", admin = false).map { it.label })
+    fun `서버 목록을 받았으면 방이 없어도 번호 직접 입력은 보이지 않는다`() {
+        assertEquals(emptyList<String>(), RoomChooser.entries(emptyList(), listOf("0001"), "", admin = false).map { it.label })
+    }
+
+    @Test
+    fun `새 방 번호는 비우면 자동이고 짧거나 이미 있으면 만들지 않는다`() {
+        val existing = setOf("1111", "2222")
+        assertEquals(RoomChooser.NewRoom.RANDOM, RoomChooser.newRoom("  ", existing))
+        assertEquals(RoomChooser.NewRoom.TOO_SHORT, RoomChooser.newRoom("123", existing))
+        assertEquals(RoomChooser.NewRoom.EXISTS, RoomChooser.newRoom(" 1111 ", existing))
+        assertEquals(RoomChooser.NewRoom.OK, RoomChooser.newRoom("5555", existing))
     }
 
     @Test
