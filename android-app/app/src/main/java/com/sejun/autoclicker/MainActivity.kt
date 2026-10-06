@@ -427,7 +427,7 @@ class MainActivity : AppCompatActivity() {
             binding.btnStartService.text = "🚀 오토클리커 띄우기"
             binding.btnStartService.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
         }
-        // 띄우기/숨기기 버튼이 접힌 영역 안에 있으므로, 접혀 있어도 떠 있는지는 제목에서 알 수 있게 한다
+        // 띄우기/숨기기 버튼은 접히는 영역 밖에 있어 항상 보인다. 제목에도 떠 있는지 함께 적는다
         val open = binding.layoutGeneralModes.visibility == View.VISIBLE
         binding.tvGeneralModeToggle.text = "일반 연타 모드" + (if (isShowing) " · 떠 있음" else "") + (if (open) "  ▴" else "  ▾")
         updateRallyInfoCard()
@@ -731,7 +731,6 @@ class MainActivity : AppCompatActivity() {
             binding.tvAuthStatusSubtitle.text = "일반 사용자가 보는 화면이에요. 눌러서 원래 화면으로 돌아가세요."
             binding.btnAuthAction.text = "개발자 화면으로 복귀"
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
-            binding.layoutGeneralModes.visibility = View.VISIBLE
         } else if (PreferencesHelper.isAdminMode(this)) {
             binding.tvAuthStatusTitle.text = "👑 관리자 모드"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#2563EB"))
@@ -970,8 +969,6 @@ class MainActivity : AppCompatActivity() {
         AutoClickService.instance?.leaveRallyRoom() // 보이는 권한이 바뀌면 집결 패널을 닫는다
         Toast.makeText(this, if (on) "일반 화면으로 바꿨어요." else "개발자 화면으로 돌아왔어요.", Toast.LENGTH_SHORT).show()
         updateAuthUI()
-        // 일반 연타 모드 영역을 펼쳤으니 제목의 ▴/▾ 와 띄우기 버튼 글자도 지금 상태로 맞춘다(안 맞추면 눌렀을 때 오히려 접힌다)
-        updateServiceState()
         updateRallyInfoCard()
     }
 
