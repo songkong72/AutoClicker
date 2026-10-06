@@ -559,73 +559,6 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
-                <!-- 방 번호 입력: 아직 방이 없거나 "방 바꾸기"를 눌렀을 때만 보인다 -->
-                <LinearLayout
-                    android:id="@+id/layoutRoomEntry"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <EditText
-                        android:id="@+id/etRoomCode"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_compact_picker"
-                        android:hint="방 번호"
-                        android:imeOptions="actionDone"
-                        android:inputType="number"
-                        android:maxLength="8"
-                        android:paddingHorizontal="12dp"
-                        android:textColor="@color/text_primary"
-                        android:textColorHint="@color/text_tertiary"
-                        android:textSize="15sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnJoinRoom"
-                        android:layout_width="wrap_content"
-                        android:layout_height="44dp"
-                        android:layout_marginStart="8dp"
-                        android:text="입장"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
-
-                <EditText
-                    android:id="@+id/etCharName"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/bg_compact_picker"
-                    android:hint="캐릭터명 (관리자가 군단을 배정할 때 보여요)"
-                    android:imeOptions="actionDone"
-                    android:inputType="text"
-                    android:maxLength="20"
-                    android:paddingHorizontal="12dp"
-                    android:singleLine="true"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_tertiary"
-                    android:textSize="15sp" />
-
-                <LinearLayout
-                    android:id="@+id/layoutRoomAdmin"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal"
-                    android:visibility="gone">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNewRoom"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_weight="1"
-                        android:text="새 방 만들기"
-                        android:textSize="13sp" />
-                </LinearLayout>
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -666,6 +599,17 @@
                         android:textStyle="bold"
                         android:visibility="gone" />
                 </LinearLayout>
+
+                <!-- 아직 방이 없을 때: 서버의 방 목록에서 골라 입장한다 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPickRoom"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="8dp"
+                    android:text="방 선택"
+                    android:textSize="13.5sp"
+                    android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnOpenRallySettings"
