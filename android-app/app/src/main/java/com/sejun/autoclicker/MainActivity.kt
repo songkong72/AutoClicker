@@ -460,8 +460,8 @@ class MainActivity : AppCompatActivity() {
         binding.tvAuthStatusSubtitle.visibility = if (admin && room.isNotEmpty()) View.GONE else View.VISIBLE
         val note = if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
         binding.tvRoomStatus.text = when {
-            room.isEmpty() && admin -> "아직 방이 없어요. 방을 고르거나 새로 만드세요.$note"
-            room.isEmpty() -> "들어갈 방을 골라 주세요.$note"
+            room.isEmpty() && admin -> "방을 고르거나 만들어 주세요.$note"
+            room.isEmpty() -> "방을 선택해 주세요.$note"
             admin -> "방 $room · 관리자$note"
             else -> "방 $room · 집결장$note"
         }
