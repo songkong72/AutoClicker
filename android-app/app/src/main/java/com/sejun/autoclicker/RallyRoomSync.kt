@@ -341,6 +341,32 @@ class RallyRoomSync(
 
         /** 방 명단에 이 기기를 올린다. 성공하면 null, 실패하면 화면에 보여 줄 이유를 돌려준다. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다. */
         /** 방이 서버에 있는지. 있으면 true, 없으면 false, 확인하지 못했으면 null. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다. */
+        /** 새로 만든 방의 처음 내용(군단 3개, 대기 상태). */
+        fun seedDoc() = RallyRoomDoc(
+            teams = listOf(
+                RallyTeamDoc("t1", "1군", marchSec = 10.0),
+                RallyTeamDoc("t2", "2군", marchSec = 30.0),
+                RallyTeamDoc("t3", "3군", marchSec = 50.0)
+            ),
+            prepSec = 15.0, waitSec = 300.0, run = "IDLE", startSeq = 0L
+        )
+
+        /**
+         * 방을 서버에 바로 만든다(관리자가 "새 방 만들기"를 누른 즉시 방 목록에 보이게). 성공하면 null, 실패하면 이유.
+         * 이미 있는 방을 덮어쓰지 않도록 부르는 쪽에서 없는 번호인지 먼저 확인한다. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다.
+         */
+        fun createRoom(dbUrl: String, auth: FirebaseAuthClient?, room: String): String? = try {
+            val c = URL(FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room.json", auth?.token())).openConnection() as HttpURLConnection
+            c.requestMethod = "PUT"
+            c.setRequestProperty("Content-Type", "application/json")
+            c.connectTimeout = 3000; c.readTimeout = 3000
+            c.doOutput = true
+            c.outputStream.use { it.write(JSONObject(RallyRoomCodec.encode(seedDoc())).toString().toByteArray()) }
+            val code = c.responseCode
+            if (code == 401 || code == 403) auth?.invalidate()
+            if (code in 200..299) null else "서버가 거절했어요 ($code)"
+        } catch (e: Exception) { "인터넷 연결을 확인해 주세요" }
+
         fun roomExists(dbUrl: String, auth: FirebaseAuthClient?, room: String): Boolean? = try {
             val url = FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room/run.json", auth?.token())
             val c = URL(url).openConnection() as HttpURLConnection
@@ -471,14 +497,7 @@ class RallyRoomSync(
         main.post { onClickArm(false) }
     }
 
-    private fun seedRoom() = RallyRoomDoc(
-        teams = listOf(
-            RallyTeamDoc("t1", "1군", marchSec = 10.0),
-            RallyTeamDoc("t2", "2군", marchSec = 30.0),
-            RallyTeamDoc("t3", "3군", marchSec = 50.0)
-        ),
-        prepSec = 15.0, waitSec = 300.0, run = "IDLE", startSeq = 0L
-    )
+    private fun seedRoom() = seedDoc()
 
     private fun get(): Map<String, Any?>? {
         val c = URL(url).openConnection() as HttpURLConnection
