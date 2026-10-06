@@ -58,6 +58,19 @@
                         android:textSize="13sp" />
                 </LinearLayout>
 
+                <!-- 관리자로 등록된 기기에서만 보인다: 한 번 눌러 관리자 ↔ 집결장 화면을 오간다 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRoleSwitch"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingHorizontal="12dp"
+                    android:text="관리자로 전환"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
                 <ImageView
                     android:id="@+id/btnAdminIcon"
                     android:layout_width="40dp"

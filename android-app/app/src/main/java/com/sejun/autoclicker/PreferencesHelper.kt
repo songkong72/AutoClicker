@@ -174,7 +174,7 @@ object PreferencesHelper {
     private const val KEY_VERIFIED_USER_ID = "key_verified_user_id"
 
     /** 기능 사용 권한: 초대코드 인증을 했거나 관리자로 로그인한 기기. */
-    fun hasAccess(context: Context): Boolean = isVerified(context) || isAdminMode(context)
+    fun hasAccess(context: Context): Boolean = isVerified(context) || isAdminMode(context) || isRosterAdmin(context)
 
     fun isVerified(context: Context): Boolean {
         return getPrefs(context).getBoolean(KEY_IS_VERIFIED, false)
@@ -223,6 +223,18 @@ object PreferencesHelper {
 
     fun setAdminViaServer(context: Context, viaServer: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_ADMIN_VIA_SERVER, viaServer).apply()
+    }
+
+    private const val KEY_ROSTER_ADMIN = "key_roster_admin"
+
+    /**
+     * 서버가 이 기기를 개발자나 관리자로 알고 있다고 마지막으로 확인됐는지. 관리자 화면을 끄고 집결장으로 지내는 동안에도 남는다.
+     * 이 표시가 있으면 "관리자로 전환" 버튼을 보여 주고, 누를 때마다 서버 명단을 다시 확인한다(여기 값만 믿고 들여보내지 않는다).
+     */
+    fun isRosterAdmin(context: Context): Boolean = getPrefs(context).getBoolean(KEY_ROSTER_ADMIN, false)
+
+    fun setRosterAdmin(context: Context, known: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_ROSTER_ADMIN, known).apply()
     }
 
     fun getVerifiedUserId(context: Context): String {
