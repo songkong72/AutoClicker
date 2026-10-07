@@ -261,7 +261,7 @@
         android:layout_marginTop="6dp"
         android:padding="4dp"
         android:ellipsize="end"
-        android:maxLines="1"
+        android:maxLines="2"
         android:text="내 기기 ▾"
         android:textColor="#94A3B8"
         android:textSize="12sp" />
