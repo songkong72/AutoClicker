@@ -30,6 +30,8 @@ class RallyDragLayout @JvmOverloads constructor(context: Context, attrs: Attribu
 
     /** 패널이 화면에서 차지할 수 있는 최대 높이 비율. 넘치는 만큼은 군단 목록이 줄어들어 그 안에서 스크롤된다. */
     var maxScreenRatio = 0.86f
+    /** 목록이 한 번에 보여 줄 높이(px)를 돌려준다(예: 군단 4줄). 0 이하면 화면 한도만 쓴다. */
+    var visibleListHeight: (() -> Int)? = null
 
     /**
      * 패널 높이를 화면 안에 맞춘다. 먼저 제한 없이 재서 "목록을 뺀 나머지" 높이를 알아내고,
@@ -42,7 +44,9 @@ class RallyDragLayout @JvmOverloads constructor(context: Context, attrs: Attribu
         super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED))
         val others = measuredHeight - list.measuredHeight
         val dm = resources.displayMetrics
-        val limit = Math.max((dm.heightPixels * maxScreenRatio).toInt() - others, (96 * dm.density).toInt())
+        val byScreen = Math.max((dm.heightPixels * maxScreenRatio).toInt() - others, (96 * dm.density).toInt())
+        val byRows = visibleListHeight?.invoke() ?: 0
+        val limit = if (byRows > 0) Math.min(byScreen, byRows) else byScreen
         if (list.measuredHeight > limit) {
             list.setMaxHeightDuringMeasure(limit)
             super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED))

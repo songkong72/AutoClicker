@@ -17,6 +17,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     private companion object {
         const val ADJUST_STEP_MS = 500
+        /** 군단 목록이 한 번에 보여 주는 줄 수. 그보다 많으면 목록 안에서 스크롤한다. */
+        const val VISIBLE_ROWS = 4
         val PHASE_COLORS = listOf("#FBBF24", "#3B82F6", "#A78BFA", "#4ADE80")
         val PHASE_NAMES = listOf("대기", "집결", "행군", "도착")
     }
@@ -79,6 +81,16 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val blocked = root.findViewById<TextView>(R.id.rallyBlockedReason)
 
     init {
+        // 목록은 군단 4줄 높이까지만 보인다(얇은 제외 줄도 한 줄로 센다). 펼친 줄이 그보다 크면 그 줄은 다 보이게 한다.
+        (root as RallyDragLayout).visibleListHeight = {
+            var sum = 0; var tallest = 0
+            for (i in 0 until rows.childCount) {
+                val h = rows.getChildAt(i).measuredHeight
+                if (i < VISIBLE_ROWS) sum += h
+                if (h > tallest) tallest = h
+            }
+            if (rows.childCount > VISIBLE_ROWS) Math.max(sum, tallest) else 0
+        }
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
         // ✎: 관리자 편집 모드. 평소엔 읽기 전용으로 깔끔하게, 켜면 −/+ · ✕ · 밑줄(눌러서 고치기)이 나타난다.
@@ -343,10 +355,18 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 r.isMine && !editing -> v.setBackgroundResource(R.drawable.bg_row_mine)
                 else -> v.background = null
             }
-            // 제외된 군단은 줄 전체를 흐리게
+            // 제외된 군단은 줄 전체를 흐리게, 그리고 얇게(32dp 한 줄, 막대 없음) 보여 자리를 아낀다. 순서는 그대로.
             v.alpha = if (r.excluded) 0.6f else 1f
+            val thin = r.excluded
+            val d = v.resources.displayMetrics.density
+            v.setPadding(0, 0, (8 * d).toInt(), if (thin) 0 else (6 * d).toInt())
+            v.findViewById<View>(R.id.rowHead).minimumHeight = ((if (thin) 32 else 48) * d).toInt()
             v.findViewById<View>(R.id.rowExpand).visibility = if (open) View.VISIBLE else View.GONE
             v.findViewById<android.widget.ImageView>(R.id.rowDot).apply {
+                layoutParams = layoutParams.apply { height = ((if (thin) 32 else 44) * d).toInt() }
+                // 얇은 줄의 체크박스는 조금 작게(20dp)
+                val sc = if (thin && editing) 0.84f else 1f
+                scaleX = sc; scaleY = sc
                 // 편집 모드에서는 접속 점 대신 체크박스: 파란 ✓ = 참여, 빈 칸 = 제외. 눌러서 바꾼다.
                 if (editing) {
                     setImageResource(if (r.excluded) R.drawable.ic_rp_check_off else R.drawable.ic_rp_check_on)
@@ -369,6 +389,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                     setSpan(android.text.style.RelativeSizeSpan(0.82f), r.name.length, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                     setSpan(android.text.style.ForegroundColorSpan(Color.parseColor(if (r.leaderName.isNotBlank()) "#CBD5E1" else "#8190A8")), r.name.length, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (thin) 14f else 17f)
+                minHeight = if (thin) 0 else (40 * d).toInt()
                 // 편집 모드에서 이름을 누르면 맡을 사람을 고른다
                 setOnClickListener { if (editing) callbacks.onAssignLeader(r.id, r.name) }
                 isClickable = editing
@@ -402,6 +424,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                     else -> listOf(r.statusLabel, "보정 " + RallyInputParse.formatCorrection(r.adminAdjustMs)).filter { it.isNotEmpty() && it != "보정 " }.joinToString("\n")
                 }
                 visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (thin) 11f else 12f)
+                minHeight = ((if (thin) 20 else 24) * dp).toInt()
                 if (r.excluded) { setBackgroundResource(R.drawable.bg_pill_outline); setPadding((10 * dp).toInt(), 0, (10 * dp).toInt(), 0) }
                 else { background = null; setPadding(0, 0, 0, 0) }
                 setOnClickListener { if (editing && r.excluded) callbacks.onToggleExclude(r.id) }
@@ -418,7 +442,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 setOnClickListener { if (editing && !r.excluded) toggleOpen() }
                 isClickable = editing && !r.excluded
             }
-            v.findViewById<RallyTimelineBar>(R.id.rowBar).visibility = if (showBars) View.VISIBLE else View.GONE
+            v.findViewById<RallyTimelineBar>(R.id.rowBar).visibility = if (showBars && !thin) View.VISIBLE else View.GONE
             v.findViewById<RallyTimelineBar>(R.id.rowBar).set(scale, r.clickAtSec, r.departAtSec, r.arriveAtSec, nowSec, r.excluded)
 
             // 펼친 부분: 행군 시간(−/+, 숫자를 누르면 직접 입력) · 보정(−/+, 숫자를 누르면 직접 입력)
