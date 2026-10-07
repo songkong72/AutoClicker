@@ -311,7 +311,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 gravity = android.view.Gravity.CENTER_HORIZONTAL
                 text = if (sub.isEmpty()) android.text.SpannableStringBuilder(main)
                 else android.text.SpannableStringBuilder("$main\n$sub").apply {
-                    setSpan(android.text.style.RelativeSizeSpan(0.8f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    setSpan(android.text.style.RelativeSizeSpan(0.92f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
             }
             v.findViewById<TextView>(R.id.rowStatus).apply {
