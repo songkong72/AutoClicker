@@ -18,7 +18,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private companion object {
         const val ADJUST_STEP_MS = 500
         /** 군단 목록이 한 번에 보여 주는 줄 수. 그보다 많으면 목록 안에서 스크롤한다. */
-        const val VISIBLE_ROWS = 4
+        const val VISIBLE_ROWS = 6
         val PHASE_COLORS = listOf("#FBBF24", "#3B82F6", "#A78BFA", "#4ADE80")
         val PHASE_NAMES = listOf("대기", "집결", "행군", "도착")
     }
@@ -84,7 +84,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val blocked = root.findViewById<TextView>(R.id.rallyBlockedReason)
 
     init {
-        // 목록은 군단 4줄 높이까지만 보인다(얇은 제외 줄도 한 줄로 센다). 펼친 줄이 그보다 크면 그 줄은 다 보이게 한다.
+        // 목록은 군단 6줄 높이까지만 보인다(얇은 제외 줄도 한 줄로 센다). 펼친 줄이 그보다 크면 그 줄은 다 보이게 한다.
         (root as RallyDragLayout).visibleListHeight = {
             var sum = 0; var tallest = 0
             for (i in 0 until rows.childCount) {
