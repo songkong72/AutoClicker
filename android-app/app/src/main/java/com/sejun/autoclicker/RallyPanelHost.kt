@@ -32,6 +32,8 @@ class RallyPanelHost(
         fun current(): RallyRoomState
         val isAdmin: Boolean
         fun onStart()
+        /** 시작을 서버에 쓰는 중이면 true: 버튼을 "시작하는 중…"으로 보인다. */
+        fun isStarting(): Boolean = false
         fun onStop()
         fun onMarchDelta(teamId: String, deltaSec: Double) {}
         fun onToggleExclude(teamId: String) {}
@@ -301,7 +303,7 @@ class RallyPanelHost(
         }
         val note = listOf(stateSource.arrivalNote(), stateSource.clickNote(), stateSource.changeNote()).filter { it.isNotEmpty() }.joinToString(" · ")
         p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING, note,
-            stateSource.connection(), RallyCountdownCue.urgent(waiting, remain))
+            stateSource.connection(), RallyCountdownCue.urgent(waiting, remain), stateSource.isStarting())
         if (minimized) p.setMinimized(true, model.hero)
     }
 

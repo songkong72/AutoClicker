@@ -623,7 +623,8 @@ class AutoClickService : AccessibilityService() {
         btnClose.setOnClickListener {
             vibrate(20)
             hideOverlays()
-            showToast("✕ 오토클리커가 종료되었습니다.")
+            // 방에 들어가 있으면 화면만 닫히고 방 연결은 남는다: 완전히 꺼진 것으로 오해하지 않게 알린다.
+            showToast(if (rallyRoomSync != null) "화면만 닫았어요. 집결이 시작되면 자동으로 클릭해요." else "✕ 오토클리커가 종료되었습니다.")
         }
 
         // 6. 접기 / 펼치기 토글 버튼 (^ / v)

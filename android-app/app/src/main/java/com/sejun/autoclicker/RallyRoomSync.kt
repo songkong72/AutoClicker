@@ -206,9 +206,52 @@ class RallyRoomSync(
     override fun changeNote(): String = if (isAdmin) RallyChangeNote.text(doc, myLabel, System.currentTimeMillis()) else ""
     override fun onSavePosition() = savePosition()
 
-    override fun onStart() = change(RallyRoomEdit::startOrRegroup)
+    /** 시작을 서버에 쓰는 중인지(버튼을 "시작하는 중…"으로 보이고 두 번 눌리지 않게 한다). */
+    @Volatile private var starting = false
+    override fun isStarting(): Boolean = starting
 
-    override fun onStop() = change(RallyRoomEdit::cancel)
+    /**
+     * 집결 시작: 서버에 먼저 쓰고, 성공한 뒤에 이 기기에도 적용한다.
+     * 먼저 이 기기에 적용하면 서버 쓰기가 실패했을 때 관리자만 혼자 출발한다.
+     * 쓰는 동안 실시간 수신으로 같은 시작이 먼저 도착하면 그때 시작되고, 아래 적용은 같은 번호라 다시 시작하지 않는다.
+     */
+    override fun onStart() {
+        if (!isAdmin || starting) return
+        val cur = effectiveDoc()
+        val changed = RallyRoomEdit.startOrRegroup(cur)
+        if (changed === cur) return
+        val next = RallyChangeNote.stamp(changed, myLabel, System.currentTimeMillis())
+        starting = true
+        Thread {
+            try {
+                put(next)
+                main.post { starting = false; apply(next) }
+            } catch (e: Exception) {
+                dropTokenIf401(e)
+                val why = WriteError.explainStart(e.message)
+                main.post { starting = false; onWriteFailed(why) }
+            }
+        }.start()
+    }
+
+    /** 취소: 이 기기는 바로 멈추고(안전한 쪽), 서버에는 몇 번까지 다시 써 본다. */
+    override fun onStop() {
+        if (!isAdmin) return
+        val cur = effectiveDoc()
+        val changed = RallyRoomEdit.cancel(cur)
+        if (changed === cur) return
+        val next = RallyChangeNote.stamp(changed, myLabel, System.currentTimeMillis())
+        holdRemote()
+        apply(next)
+        Thread {
+            val err = Retry.run(3, pause = { try { Thread.sleep(400) } catch (_: InterruptedException) { } }) { put(next) }
+            if (err != null) {
+                dropTokenIf401(err)
+                val why = WriteError.explainCancel(err.message)
+                main.post { onWriteFailed(why) }
+            }
+        }.start()
+    }
 
     /** 행군시간은 관리자(모든 팀) 또는 집결장(내 팀)이 고친다. 서버에는 그 팀의 필드 하나만 써서 다른 변경을 덮어쓰지 않는다. */
     override fun onSetMarch(teamId: String, sec: Double) {
@@ -416,16 +459,18 @@ class RallyRoomSync(
         val next = RallyChangeNote.stamp(changed, myLabel, System.currentTimeMillis())
         holdRemote()
         apply(next)
-        writeAsync { put(next) }
+        // 저장이 실패하면 화면에 틀린 값이 남지 않게 서버 내용을 다시 받아 되돌린다.
+        writeAsync(onFail = { holdRemoteUntil = 0L; pollOnce() }) { put(next) }
     }
 
     /** 서버 쓰기를 백그라운드에서 하고, 실패하면 이유를 화면에 알린다(조용히 되돌아가 보이지 않게). */
-    private fun writeAsync(block: () -> Unit) {
+    private fun writeAsync(onFail: () -> Unit = {}, block: () -> Unit) {
         Thread {
             try { block() } catch (e: Exception) {
                 dropTokenIf401(e)
                 val why = WriteError.explain(e.message)
                 main.post { onWriteFailed(why) }
+                onFail()
             }
         }.start()
     }

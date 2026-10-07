@@ -190,7 +190,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     }
 
     fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "",
-               conn: RallyConnection = RallyConnection.LIVE, urgent: Boolean = false) {
+               conn: RallyConnection = RallyConnection.LIVE, urgent: Boolean = false, starting: Boolean = false) {
         val hero = model.hero
         val name = if (isAdmin) "관리자" else "집결장"
         // 연결 상태 점: 초록=실시간, 주황=1초 확인, 빨강=끊김. 알약(최소화)에서는 단계 표시가 대신 쓴다.
@@ -198,7 +198,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val c = when (conn) { RallyConnection.LIVE -> "#22C55E"; RallyConnection.POLLING -> "#F59E0B"; RallyConnection.OFFLINE -> "#EF4444" }
             setSpan(android.text.style.ForegroundColorSpan(Color.parseColor(c)), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
-        lastRender = { render(model, isAdmin, hasStarted, arrivalNote, conn, urgent) }
+        lastRender = { render(model, isAdmin, hasStarted, arrivalNote, conn, urgent, starting) }
         val editing = isAdmin && model.editable && editMode
         root.findViewById<TextView>(R.id.rallyEdit).apply {
             visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
@@ -239,8 +239,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             root.findViewById<TextView>(id).setTextColor(Color.parseColor(if (model.waitSec == sec) "#60A5FA" else "#CBD5E1"))
         }
         val canRegroup = model.hero.kind == HeroKind.ARRIVED || model.hero.kind == HeroKind.CANCELLED
-        btnStart.text = if (canRegroup || hasStarted) "다시 집결" else "집결 시작"
-        btnStart.isEnabled = model.startBlockedReason == null
+        // 서버에 시작을 쓰는 동안은 "시작하는 중…"으로 바꾸고 다시 눌리지 않게 한다.
+        btnStart.text = if (starting) "시작하는 중…" else if (canRegroup || hasStarted) "다시 집결" else "집결 시작"
+        btnStart.isEnabled = model.startBlockedReason == null && !starting
         // 지금 할 수 있는 버튼 하나만 넓게: 진행 중에는 "집결 취소", 그 밖에는 "집결 시작"/"다시 집결"
         val running = !model.editable
         btnStart.visibility = if (running) View.GONE else View.VISIBLE
