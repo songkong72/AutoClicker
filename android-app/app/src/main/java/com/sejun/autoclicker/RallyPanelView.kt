@@ -17,6 +17,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     private companion object {
         const val ADJUST_STEP_MS = 500
+        /** 취소 직후 이 시간 동안은 같은 자리의 "다시 집결"을 받지 않는다. */
+        const val START_GUARD_MS = 1500L
         /** 군단 목록이 한 번에 보여 주는 줄 수. 그보다 많으면 목록 안에서 스크롤한다. */
         const val VISIBLE_ROWS = 5
         val PHASE_COLORS = listOf("#FBBF24", "#3B82F6", "#A78BFA", "#4ADE80")
@@ -56,6 +58,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     val root: View = LayoutInflater.from(themed).inflate(R.layout.layout_rally_panel, null)
 
     private var prepShown = 0.0
+    private var stoppedAtMs = 0L
     private var correctionShownMs = 0
     private var charNameShown = ""
     private var roomShown = ""
@@ -104,8 +107,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         // 알약(최소화 상태)에서는 단계명이나 시간을 탭하면 펼쳐진다. 창을 끄는 일은 ✕만 한다.
         listOf<View>(heroLabel, heroTime, heroSub, miniTime, miniSub).forEach { v -> v.setOnClickListener { callbacks.onMinimize() } }
         title.setOnClickListener { if (isMinimized) callbacks.onMinimize() else callbacks.onTitleTap() }
-        btnStart.setOnClickListener { callbacks.onStart() }
-        btnStop.setOnClickListener { callbacks.onStop() }
+        // "집결 취소"와 "다시 집결"은 같은 자리에 번갈아 나온다. 취소 직후 같은 자리를 또 누른 것(연속 탭·자동 탭)이
+        // 곧바로 다시 집결이 되지 않게, 취소 뒤 잠깐은 시작을 받지 않는다.
+        btnStart.setOnClickListener {
+            if (android.os.SystemClock.elapsedRealtime() - stoppedAtMs >= START_GUARD_MS) callbacks.onStart()
+        }
+        btnStop.setOnClickListener { stoppedAtMs = android.os.SystemClock.elapsedRealtime(); callbacks.onStop() }
         listOf<View>(btnStart, btnStop).forEach { pressFeel(it) }
         root.findViewById<View>(R.id.devToggleRow).setOnClickListener { setDeviceOpen(!deviceOpen) }
         root.findViewById<TextView>(R.id.devToggle).setOnClickListener { setDeviceOpen(!deviceOpen) }

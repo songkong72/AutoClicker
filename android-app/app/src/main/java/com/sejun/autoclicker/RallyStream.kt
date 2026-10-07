@@ -114,6 +114,9 @@ class RallyStartDetector {
 
     fun onDoc(startSeq: Long, run: String, fromRemote: Boolean): Boolean {
         if (last == -1L && fromRemote) { last = startSeq; return false }
+        // 늦게 도착한 옛 번호의 상태는 무시한다. 받아들이면 그 뒤에 오는 현재 번호의 RUNNING이 "새 시작"으로 보여
+        // 취소한 집결이 다시 시작된다. (번호 0은 방을 새로 만든 경우라 받아들인다.)
+        if (startSeq < last && startSeq != 0L) return false
         val isNew = startSeq != last && run == "RUNNING"
         last = startSeq
         return isNew
