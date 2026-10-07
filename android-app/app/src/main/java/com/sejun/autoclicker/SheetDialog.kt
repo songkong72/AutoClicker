@@ -23,7 +23,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 internal class SheetDialog(
     private val activity: Activity,
     private val title: String,
-    private val message: String = ""
+    private val message: String = "",
+    /** false면 바깥을 눌러도, 뒤로 가기나 아래로 밀어도 닫히지 않는다. 버튼으로만 닫는다. */
+    private val cancelable: Boolean = true
 ) {
     enum class Kind { PRIMARY, NORMAL, DANGER, DANGER_FILL }
 
@@ -185,12 +187,13 @@ internal class SheetDialog(
         }, lp(top = 16))
 
         dialog.setContentView(root)
+        if (!cancelable) { dialog.setCancelable(false); dialog.setCanceledOnTouchOutside(false) }
         // 자판이 올라와도 입력 칸과 버튼이 가려지지 않게 창을 자판 위로 올린다
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.setOnShowListener {
             dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.let { sheet ->
                 sheet.setBackgroundColor(Color.TRANSPARENT)
-                BottomSheetBehavior.from(sheet).apply { state = BottomSheetBehavior.STATE_EXPANDED; skipCollapsed = true }
+                BottomSheetBehavior.from(sheet).apply { state = BottomSheetBehavior.STATE_EXPANDED; skipCollapsed = true; isHideable = cancelable }
             }
         }
         dialog.show()

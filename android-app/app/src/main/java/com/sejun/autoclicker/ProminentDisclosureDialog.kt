@@ -1,8 +1,7 @@
 package com.sejun.autoclicker
 
+import android.app.Activity
 import android.content.Context
-import androidx.appcompat.app.AlertDialog
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 object ProminentDisclosureDialog {
 
@@ -22,7 +21,7 @@ object ProminentDisclosureDialog {
     /**
      * 구글 플레이 접근성 API 정책(Accessibility API Policy) 필수 준수 팝업
      */
-    fun showIfNeeded(context: Context, onAgreed: () -> Unit, onDeclined: () -> Unit) {
+    fun showIfNeeded(context: Activity, onAgreed: () -> Unit, onDeclined: () -> Unit) {
         if (isAgreed(context)) {
             onAgreed()
             return
@@ -41,19 +40,15 @@ object ProminentDisclosureDialog {
             안전하고 편리한 자동 클릭 기능을 위해 위 내용에 동의해 주시기 바랍니다.
         """.trimIndent()
 
-        MaterialAlertDialogBuilder(context)
-            .setTitle("🔒 접근성 API 사용 및 개인정보 보호 고지")
-            .setMessage(message)
-            .setCancelable(false)
-            .setPositiveButton("동의하고 계속하기") { dialog, _ ->
+        // 동의하거나 종료를 눌러야만 닫힌다(바깥, 뒤로 가기, 아래로 밀기로는 닫히지 않는다).
+        val sheet = SheetDialog(context, "접근성 API 사용 및 개인정보 보호 고지", cancelable = false)
+        sheet.line(sheet.content, message).apply { textSize = 14f; setLineSpacing(0f, 1.3f) }
+        sheet.actions(
+            SheetDialog.act("종료") { onDeclined() },
+            SheetDialog.act("동의하고 계속하기", SheetDialog.Kind.PRIMARY) {
                 setAgreed(context, true)
-                dialog.dismiss()
                 onAgreed()
             }
-            .setNegativeButton("종료") { dialog, _ ->
-                dialog.dismiss()
-                onDeclined()
-            }
-            .show()
+        ).show()
     }
 }

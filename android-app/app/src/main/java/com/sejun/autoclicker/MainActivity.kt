@@ -14,7 +14,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.sejun.autoclicker.databinding.ActivityMainBinding
@@ -47,16 +46,16 @@ class MainActivity : AppCompatActivity() {
     private fun showUpdateDialog(url: String) {
         // 중복 방지
         if (isFinishing) return
-        android.app.AlertDialog.Builder(this)
-            .setTitle("🚀 새로운 버전 업데이트")
-            .setMessage("연맹 필수! 새로운 버전의 오토클리커가 준비되었습니다. 지금 다운로드하시겠습니까?")
-            .setPositiveButton("다운로드") { _, _ ->
-                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                startActivity(intent)
+        SheetDialog(
+            this, "새로운 버전 업데이트",
+            "연맹 필수! 새로운 버전의 오토클리커가 준비되었습니다. 지금 다운로드하시겠습니까?",
+            cancelable = false
+        ).actions(
+            SheetDialog.act("나중에"),
+            SheetDialog.act("다운로드", SheetDialog.Kind.PRIMARY) {
+                startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
             }
-            .setNegativeButton("나중에", null)
-            .setCancelable(false)
-            .show()
+        ).show()
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -495,11 +494,8 @@ class MainActivity : AppCompatActivity() {
         binding.btnPickRoom.setOnClickListener { showRoomChooser() }
         binding.btnManage.setOnClickListener { showAdminMenu() }
         binding.btnRoomHelp.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("집결 방")
-                .setMessage("같은 방에 들어온 팀들이 동시에 성에 도착하도록 집결 클릭 시각이 자동 계산돼요.")
-                .setPositiveButton("확인", null)
-                .show()
+            SheetDialog(this, "집결 방", "같은 방에 들어온 팀들이 동시에 성에 도착하도록 집결 클릭 시각이 자동 계산돼요.")
+                .actions(SheetDialog.act("확인", SheetDialog.Kind.PRIMARY)).show()
         }
         binding.btnChangeRoom.setOnClickListener { showRoomChooser() }
         binding.btnShareRoom.setOnClickListener {
