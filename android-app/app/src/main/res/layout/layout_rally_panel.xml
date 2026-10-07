@@ -25,15 +25,32 @@
             android:layout_marginEnd="10dp"
             android:background="@drawable/bg_conn_dot" />
 
-        <TextView
-            android:id="@+id/rallyTitle"
+        <LinearLayout
+            android:id="@+id/rallyTitleCol"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="집결"
-            android:textColor="#F8FAFC"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/rallyTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="집결"
+                android:textColor="#F8FAFC"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <!-- 알약(접힌 상태)에서만: 내 군단 · 방 -->
+            <TextView
+                android:id="@+id/rallyMiniSub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="#A9B4C7"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <!-- 알약(접힌 상태)에서만 보이는 남은 시간 -->
         <TextView
