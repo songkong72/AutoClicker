@@ -845,25 +845,13 @@ class MainActivity : AppCompatActivity() {
         // "관리자 관리"와 "내 기기 ID 보기"는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 관리자와 집결장은 필요 없다)
         val owner = roomPrefs().getBoolean("is_owner_cached", false)
         val items = buildList {
-            add("집결장 코드 발급")
-            if (owner) add("관리자 관리 (개발자 전용)")
-            if (owner) add("내 기기 ID 보기")
-            if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add("집결장으로 전환") // 위쪽 전환 버튼이 없을 때만
-            if (owner) add("일반 화면으로 전환 (개발자 전용)")
-        }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("관리자")
-            .setItems(items) { _, which ->
-                when (items[which]) {
-                    "집결장 코드 발급" -> showAdminPanelDialog()
-                    "관리자 관리 (개발자 전용)" -> AdminRosterUi(this, adminServer()).showManage()
-                    "내 기기 ID 보기" -> AdminRosterUi(this, adminServer()).showMyId()
-                    "일반 화면으로 전환 (개발자 전용)" -> enterUserView()
-                    else -> switchToLeader()
-                }
-            }
-            .setNegativeButton("닫기", null)
-            .show()
+            add(MenuSheet.Item("집결장 코드 발급") { showAdminPanelDialog() })
+            if (owner) add(MenuSheet.Item("관리자 관리", "개발자 전용") { AdminRosterUi(this@MainActivity, adminServer()).showManage() })
+            if (owner) add(MenuSheet.Item("내 기기 ID 보기") { AdminRosterUi(this@MainActivity, adminServer()).showMyId() })
+            if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add(MenuSheet.Item("집결장으로 전환") { switchToLeader() }) // 위쪽 전환 버튼이 없을 때만
+            if (owner) add(MenuSheet.Item("일반 화면으로 전환", "개발자 전용") { enterUserView() })
+        }
+        MenuSheet(this, "관리자", items).show()
     }
 
     private fun showVerificationDialog() {
