@@ -23,7 +23,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:layout_marginBottom="28dp">
+                android:layout_marginBottom="8dp">
 
                 <ImageView
                     android:layout_width="48dp"
@@ -45,6 +45,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="오토클리커 Pro"
+                        android:maxLines="1"
+                        android:ellipsize="end"
                         android:textColor="@color/text_primary"
                         android:textSize="22sp"
                         android:textStyle="bold" />
@@ -54,9 +56,30 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="스마트 자동 터치 매크로"
+                        android:maxLines="1"
+                        android:ellipsize="end"
                         android:textColor="@color/text_secondary"
                         android:textSize="13sp" />
                 </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/btnAdminIcon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_admin_key"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="관리자 로그인"
+                    app:tint="#64748B" />
+            </LinearLayout>
+
+            <!-- 화면 전환 버튼 줄: 제목 옆에 두면 좁은 화면에서 제목이 세로로 눌려서 아래 줄로 내렸다 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end|center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginBottom="20dp">
 
                 <!-- 개발자에게만 보인다: 일반 사용자 화면으로 바꿔 본다 -->
                 <com.google.android.material.button.MaterialButton
@@ -84,16 +107,6 @@
                     android:text="관리자로 전환"
                     android:textSize="12sp"
                     android:visibility="gone" />
-
-                <ImageView
-                    android:id="@+id/btnAdminIcon"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_admin_key"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="관리자 로그인"
-                    app:tint="#64748B" />
             </LinearLayout>
 
             <!-- Card 0: Membership Verification Status Card -->
