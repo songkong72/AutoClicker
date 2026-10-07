@@ -564,9 +564,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             heroLabel.visibility = View.GONE
             heroTime.visibility = View.GONE
             miniTime.visibility = View.VISIBLE
-            // 얇은 진행 막대: 알약 둥근 끝에 닿지 않게 안쪽으로 들인다
+            // 얇은 진행 막대: 알약 둥근 끝에 닿지 않게 안쪽으로 들인다. 진행 중이 아니면(취소·대기) 막대를 아예 숨긴다.
+            heroProgress.visibility = if (quiet) View.GONE else View.VISIBLE
             bar.height = (4 * dp).toInt(); bar.topMargin = 0
-            bar.leftMargin = (10 * dp).toInt(); bar.rightMargin = (22 * dp).toInt()
+            bar.leftMargin = (12 * dp).toInt(); bar.rightMargin = (24 * dp).toInt()
             root.background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(Color.parseColor("#F2121A2C"))
                 cornerRadius = 32 * dp
@@ -589,6 +590,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
             bar.height = (6 * dp).toInt(); bar.topMargin = (6 * dp).toInt()
             bar.leftMargin = 0; bar.rightMargin = 0
+            heroProgress.visibility = View.VISIBLE
         }
         heroProgress.layoutParams = bar
     }
