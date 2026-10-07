@@ -575,44 +575,32 @@ class MainActivity : AppCompatActivity() {
 
     /** 서버 방 목록을 받지 못했을 때만 쓰는 비상구: 받은 방 번호를 직접 넣어 들어간다. */
     private fun askRoomNumber() {
-        val input = EditText(this).apply {
-            hint = "방 번호"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            filters = arrayOf(android.text.InputFilter.LengthFilter(8))
-            setPadding(50, 40, 50, 40)
-        }
-        AlertDialog.Builder(this)
-            .setTitle("방 번호 입력")
-            .setView(input)
-            .setPositiveButton("입장") { _, _ ->
-                val code = input.text.toString().trim()
-                if (code.length < 4) Toast.makeText(this, "방 번호를 4자리 이상 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                else joinRoom(code)
-            }
-            .setNegativeButton("취소", null)
-            .show()
+        InputSheet(
+            this,
+            title = "방 번호 입력",
+            message = "집결장에게 받은 방 번호를 입력해 주세요.",
+            fields = listOf(InputSheet.Field(hint = "방 번호 (4자리 이상)", maxLength = 8)),
+            submitLabel = "입장"
+        ) { v ->
+            val code = v[0].trim()
+            if (code.length < 4) { Toast.makeText(this, "방 번호를 4자리 이상 입력해 주세요.", Toast.LENGTH_SHORT).show(); false }
+            else { joinRoom(code); true }
+        }.show()
     }
 
     /** 집결장이 처음 입장할 때 한 번 묻는다. 관리자가 군단을 배정할 때 명단에 이 이름으로 보인다. 나중에는 집결 화면의 "내 기기"에서 바꾼다. */
     private fun askCharName(onDone: (String) -> Unit) {
-        val input = EditText(this).apply {
-            hint = "캐릭터명"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-            filters = arrayOf(android.text.InputFilter.LengthFilter(20))
-            setSingleLine(true)
-            setPadding(50, 40, 50, 40)
-        }
-        AlertDialog.Builder(this)
-            .setTitle("캐릭터명 입력")
-            .setMessage("관리자가 군단을 배정할 때 이 이름으로 보여요.")
-            .setView(input)
-            .setPositiveButton("확인") { _, _ ->
-                val name = RallyRoster.cleanName(input.text.toString())
-                if (name.isEmpty()) Toast.makeText(this, "캐릭터명을 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                else { PreferencesHelper.setRallyCharacterName(this, name); onDone(name) }
-            }
-            .setNegativeButton("취소", null)
-            .show()
+        InputSheet(
+            this,
+            title = "캐릭터명 입력",
+            message = "관리자가 군단을 배정할 때 이 이름으로 보여요.",
+            fields = listOf(InputSheet.Field(hint = "캐릭터명", maxLength = 20, inputType = android.text.InputType.TYPE_CLASS_TEXT)),
+            submitLabel = "확인"
+        ) { v ->
+            val name = RallyRoster.cleanName(v[0])
+            if (name.isEmpty()) { Toast.makeText(this, "캐릭터명을 입력해 주세요.", Toast.LENGTH_SHORT).show(); false }
+            else { PreferencesHelper.setRallyCharacterName(this, name); onDone(name); true }
+        }.show()
     }
 
     /** 방에 입장한다. 관리자는 없는 번호면 새로 만들고(방 수 상한 확인), 집결장은 서버에 있는 방에만 들어가 명단에 이름을 올린다. */
@@ -688,10 +676,9 @@ class MainActivity : AppCompatActivity() {
             this,
             title = "새 방 만들기",
             message = "원하는 방 번호를 4자리 이상 적어 주세요. 비워 두면 번호를 자동으로 정해요.$moving",
-            hint = "방 번호 (비워 두면 자동)",
-            maxLength = 8,
+            fields = listOf(InputSheet.Field(hint = "방 번호 (비워 두면 자동)", maxLength = 8)),
             submitLabel = "만들기"
-        ) { typed -> createNewRoom(typed) }.show()
+        ) { v -> createNewRoom(v[0]); true }.show()
     }
 
     private fun createNewRoom(typed: String) {
@@ -889,96 +876,84 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showVerificationDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.layout_dialog_user_verification, null)
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .create()
-
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val etUserId = dialogView.findViewById<EditText>(R.id.etVerifyUserId)
-        val etCode = dialogView.findViewById<EditText>(R.id.etVerifyCode)
-        val btnSubmit = dialogView.findViewById<Button>(R.id.btnSubmitVerification)
-        val btnAdmin = dialogView.findViewById<TextView>(R.id.btnOpenAdminLogin)
-
-        val currentId = PreferencesHelper.getVerifiedUserId(this)
-        if (currentId.isNotEmpty()) {
-            etUserId.setText(currentId)
-        }
-
-        btnSubmit.setOnClickListener {
-            val userId = etUserId.text.toString().trim()
-            val code = etCode.text.toString().trim()
-
+        InputSheet(
+            this,
+            title = "회원 전용 초대코드 인증",
+            message = "본 앱은 인가된 회원 전용입니다. 발급받으신 이메일(또는 ID)과 전용 초대코드를 입력해 주세요.",
+            fields = listOf(
+                InputSheet.Field(
+                    hint = "예: user@gmail.com", maxLength = 100, label = "회원 이메일 또는 식별 ID",
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                    initial = PreferencesHelper.getVerifiedUserId(this)
+                ),
+                InputSheet.Field(
+                    hint = "예: AC-8F3K9A", maxLength = 20, label = "초대코드 (6자리)",
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+                )
+            ),
+            submitLabel = "인증 완료 및 시작하기",
+            showCancel = false,
+            link = InputSheet.Link("관리자 로그인 (코드 발급 및 관리)") { showAdminLoginDialog() }
+        ) { v ->
+            val userId = v[0].trim()
+            val code = v[1].trim()
             if (userId.isEmpty()) {
                 Toast.makeText(this, "회원 이메일 또는 식별 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (code.isEmpty()) {
+                false
+            } else if (code.isEmpty()) {
                 Toast.makeText(this, "초대코드를 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            if (InvitationManager.verifyInviteCode(this, userId, code)) {
+                false
+            } else if (InvitationManager.verifyInviteCode(this, userId, code)) {
                 PreferencesHelper.setVerified(this, true, userId)
                 Toast.makeText(this, "🎉 정회원 인증에 성공했습니다! 환영합니다.", Toast.LENGTH_LONG).show()
-                dialog.dismiss()
                 updateAuthUI()
+                true
             } else {
                 Toast.makeText(this, "❌ 유효하지 않은 초대코드이거나 일치하지 않는 ID입니다.", Toast.LENGTH_LONG).show()
+                false
             }
-        }
-
-        btnAdmin.setOnClickListener {
-            dialog.dismiss()
-            showAdminLoginDialog()
-        }
-
-        dialog.show()
+        }.show()
     }
 
     private fun showAdminLoginDialog() {
-        val input = EditText(this).apply {
-            hint = "관리자 코드 (AD-XXXXXXXX)"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-            setPadding(50, 40, 50, 40)
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("👑 관리자 로그인")
-            .setMessage("개발자에게 받은 관리자 코드를 입력해 주세요. 이미 관리자나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다.")
-            .setView(input)
-            .setPositiveButton("확인") { d, _ ->
-                val typed = input.text.toString().trim()
-                if (typed.isEmpty()) {
-                    enterFromRoster(askCodeIfNot = false)
-                } else if (AdminRoster.looksLikeCode(typed)) {
-                    // 관리자 코드: 서버 명단에 올라야 관리자가 된다
-                    Toast.makeText(this, "관리자 코드를 확인하는 중…", Toast.LENGTH_SHORT).show()
-                    Thread {
-                        val err = adminServer().redeem(typed)
-                        runOnUiThread {
-                            if (err == null) {
-                                PreferencesHelper.setAdminMode(this, true)
-                                PreferencesHelper.setAdminViaServer(this, true)
-                                PreferencesHelper.setRosterAdmin(this, true)
-                                AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
-                                updateAuthUI()
-                                updateRallyInfoCard()
-                                Toast.makeText(this, "👑 관리자로 등록됐어요. 다음부터는 코드 없이 전환할 수 있어요.", Toast.LENGTH_LONG).show()
-                            } else {
-                                Toast.makeText(this, "❌ $err", Toast.LENGTH_LONG).show()
-                            }
+        InputSheet(
+            this,
+            title = "관리자 로그인",
+            message = "개발자에게 받은 관리자 코드를 입력해 주세요. 이미 관리자나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다.",
+            fields = listOf(InputSheet.Field(
+                hint = "관리자 코드 (AD-XXXXXXXX)", maxLength = 40,
+                inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+            )),
+            submitLabel = "확인",
+            link = InputSheet.Link("내 기기 ID") { AdminRosterUi(this, adminServer()).showMyId() }
+        ) { v ->
+            val typed = v[0].trim()
+            if (typed.isEmpty()) {
+                enterFromRoster(askCodeIfNot = false)
+            } else if (AdminRoster.looksLikeCode(typed)) {
+                // 관리자 코드: 서버 명단에 올라야 관리자가 된다
+                Toast.makeText(this, "관리자 코드를 확인하는 중…", Toast.LENGTH_SHORT).show()
+                Thread {
+                    val err = adminServer().redeem(typed)
+                    runOnUiThread {
+                        if (err == null) {
+                            PreferencesHelper.setAdminMode(this, true)
+                            PreferencesHelper.setAdminViaServer(this, true)
+                            PreferencesHelper.setRosterAdmin(this, true)
+                            AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
+                            updateAuthUI()
+                            updateRallyInfoCard()
+                            Toast.makeText(this, "👑 관리자로 등록됐어요. 다음부터는 코드 없이 전환할 수 있어요.", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(this, "❌ $err", Toast.LENGTH_LONG).show()
                         }
-                    }.start()
-                } else {
-                    Toast.makeText(this, "❌ 관리자 코드는 AD- 로 시작해요. 개발자에게 받은 코드를 확인해 주세요.", Toast.LENGTH_LONG).show()
-                }
-                d.dismiss()
+                    }
+                }.start()
+            } else {
+                Toast.makeText(this, "❌ 관리자 코드는 AD- 로 시작해요. 개발자에게 받은 코드를 확인해 주세요.", Toast.LENGTH_LONG).show()
             }
-            .setNeutralButton("내 기기 ID") { _, _ -> AdminRosterUi(this, adminServer()).showMyId() }
-            .setNegativeButton("취소", null)
-            .show()
+            true
+        }.show()
     }
 
     /** 서버의 개발자 목록(owners)에 이 기기가 있으면 코드 없이 관리자 모드로 들어간다. */
