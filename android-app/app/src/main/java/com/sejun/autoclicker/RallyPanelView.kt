@@ -324,8 +324,18 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         // 준비·집결 시간과 팀 추가는 가끔만 고치므로 편집 모드(✎)에서만 보인다. 팀이 하나도 없을 때는 바로 추가할 수 있게 보여 준다.
         val showSetup = if (editing || (isAdmin && model.editable && model.rows.isEmpty())) View.VISIBLE else View.GONE
         // 군단이 최대(10개)면 더 만들 수 없으니 버튼을 숨긴다.
-        root.findViewById<View>(R.id.rallyAddTeam).visibility =
-            if (model.rows.size >= RallyRoomEdit.MAX_TEAMS) View.GONE else showSetup
+        // "+ 군단 추가"는 목록 위 머리글 줄에 있어 군단이 많아도 항상 보인다. 최대(10개)면 흐리게 두고 이유를 적는다.
+        val full = model.rows.size >= RallyRoomEdit.MAX_TEAMS
+        root.findViewById<TextView>(R.id.rallyAddTeam).apply {
+            visibility = showSetup
+            text = if (full) "최대 ${RallyRoomEdit.MAX_TEAMS}개" else "+ 군단 추가"
+            alpha = if (full) 0.45f else 1f
+            isEnabled = !full
+        }
+        val setupShown = showSetup == View.VISIBLE
+        rowsHeadLeft.text = if (setupShown) "군단 ${model.rows.size}/${RallyRoomEdit.MAX_TEAMS}" else "군단"
+        rowsHeadRight.visibility = if (setupShown) View.GONE else View.VISIBLE
+        rowsHead.visibility = if (isMinimized || (model.rows.isEmpty() && !setupShown)) View.GONE else View.VISIBLE
         prepShown = model.prepSec
         root.findViewById<View>(R.id.rallySettingsRow).visibility = showSetup
         root.findViewById<View>(R.id.rallyPrepRow).visibility = showSetup
@@ -361,7 +371,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         if (expandedId != null && list.none { it.id == expandedId }) expandedId = null
         // 머리글: 숫자의 뜻을 한 번만 적는다. 편집 모드에서는 줄 자체가 설명이 되므로 숨겨 높이를 아낀다.
         rowsHeadRight.text = if (editable) "행군 시간 · 위에서부터 차례로 클릭" else "행군 시간 · 클릭까지 남은 시간"
-        rowsHead.visibility = if (list.isEmpty() || isMinimized || editing) View.GONE else View.VISIBLE
+        // 머리글 줄을 보일지는 render()에서 정한다(편집 중에는 여기에 "+ 군단 추가"가 놓인다).
         // 내 줄에는 이 폰의 "내 보정"(내 기기)도 더한다. 다른 집결장 폰의 보정은 방 데이터에 없어 알 수 없다.
         val lags = RallyPanelFormat.lagLabels(list.map { LagInput(it.marchSec, it.adminAdjustMs + (if (it.isMine) correctionShownMs else 0), it.excluded) })
         val gray = Color.parseColor("#A9B4C7")
