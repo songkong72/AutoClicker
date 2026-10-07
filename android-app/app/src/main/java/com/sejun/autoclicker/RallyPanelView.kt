@@ -69,6 +69,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val connDot = root.findViewById<View>(R.id.rallyConnDot)
     private val rowsHeadRight = root.findViewById<TextView>(R.id.rallyRowsHeadRight)
     private val minimizeBtn = root.findViewById<android.widget.ImageView>(R.id.rallyMinimize)
+    private val titleCol = root.findViewById<View>(R.id.rallyTitleCol)
+    private val miniSub = root.findViewById<TextView>(R.id.rallyMiniSub)
+    private var myTeamShown = ""
     private val miniTime = root.findViewById<TextView>(R.id.rallyMiniTime)
     /** 편집 모드에서 펼쳐 둔 군단 줄(한 번에 하나). */
     private var expandedId: String? = null
@@ -97,7 +100,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.rallyEdit).setOnClickListener { editMode = !editMode; expandedId = null; deleteGuard.reset(); lastRender?.invoke() }
         // 카운트다운 상자(단계명·시간·안내)를 탭하면 축소/확대된다. 작은 —/▢ 버튼 옆의 ✕를 잘못 누르지 않게 큰 영역으로도 누를 수 있다.
         // 알약(최소화 상태)에서는 단계명이나 시간을 탭하면 펼쳐진다. 창을 끄는 일은 ✕만 한다.
-        listOf<View>(heroLabel, heroTime, heroSub, miniTime).forEach { v -> v.setOnClickListener { callbacks.onMinimize() } }
+        listOf<View>(heroLabel, heroTime, heroSub, miniTime, miniSub).forEach { v -> v.setOnClickListener { callbacks.onMinimize() } }
         title.setOnClickListener { if (isMinimized) callbacks.onMinimize() else callbacks.onTitleTap() }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
@@ -271,8 +274,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         heroTime.visibility = if (heroTime.text.isEmpty() || editing || isMinimized) View.GONE else View.VISIBLE
         val timeColor = if (previewTotal) Color.parseColor("#64748B") else if (urgent) Color.parseColor("#F87171") else heroColor(hero)
         heroTime.setTextColor(timeColor)
-        miniTime.text = heroTime.text
-        miniTime.setTextColor(timeColor)
+        // 알약 오른쪽: 남은 시간. 시간이 없으면 "완료"(전원 도착) 또는 "탭해서 펼치기".
+        val idleKind = hero.kind == HeroKind.CANCELLED || hero.kind == HeroKind.IDLE || hero.kind == HeroKind.EXCLUDED
+        val hasTime = hero.remainingSec != null
+        miniTime.text = when { hasTime -> heroTime.text; hero.kind == HeroKind.ARRIVED -> "완료"; else -> "탭해서 펼치기" }
+        miniTime.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, when { hasTime -> 30f; hero.kind == HeroKind.ARRIVED -> 22f; else -> 14f })
+        miniTime.setTypeface(null, if (hasTime || hero.kind == HeroKind.ARRIVED) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+        miniTime.setTextColor(if (hasTime) timeColor else if (idleKind) Color.parseColor("#A9B4C7") else heroColor(hero))
+        myTeamShown = model.rows.firstOrNull { it.isMine }?.name ?: ""
         val sub = if (previewTotal) RallyScreenModel.idleSub(hero.subLabel, model.rows.count { !it.excluded }) else hero.subLabel
         // 집결이 시작된 뒤에는 한 줄만: "도착 예정 15:53:24 · ✓ 클릭함 15:47:56.080" (단계 설명은 큰 숫자·단계 표시가 대신한다)
         heroSub.text = if (arrivalNote.isEmpty()) sub else arrivalNote
@@ -563,30 +572,37 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val bar = heroProgress.layoutParams as LinearLayout.LayoutParams
         if (min) {
             // 알약: [● 단계명 ........ 큰 시간 ▢ ✕] 한 줄, 아래에 얇은 진행 막대. 테두리와 막대는 단계 색.
-            val c = heroColor(hero)
+            // 진행 중이 아닐 때(대기·취소·참여 안 함)는 회색 테두리·점으로 조용하게.
+            val quiet = hero.kind == HeroKind.CANCELLED || hero.kind == HeroKind.IDLE || hero.kind == HeroKind.EXCLUDED
+            val c = if (quiet) Color.parseColor("#8190A8") else heroColor(hero)
             title.text = minLabel(hero)
             title.setTextColor(Color.parseColor("#F1F5F9"))
             connDot.background.mutate().setTint(c)
             title.textSize = 15f
             title.maxLines = 1
             title.ellipsize = android.text.TextUtils.TruncateAt.END
-            (title.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = LinearLayout.LayoutParams.WRAP_CONTENT; it.weight = 0f; it.marginEnd = (12 * dp).toInt(); title.layoutParams = it }
+            miniSub.text = listOf(myTeamShown, if (roomShown.isBlank()) "" else "방 $roomShown").filter { it.isNotEmpty() }.joinToString(" · ")
+            miniSub.visibility = if (miniSub.text.isEmpty()) View.GONE else View.VISIBLE
+            (titleCol.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = LinearLayout.LayoutParams.WRAP_CONTENT; it.weight = 0f; it.marginEnd = (16 * dp).toInt(); titleCol.layoutParams = it }
             root.minimumWidth = (236 * dp).toInt()
             heroLabel.visibility = View.GONE
             heroTime.visibility = View.GONE
-            miniTime.visibility = if (miniTime.text.isEmpty()) View.GONE else View.VISIBLE
+            miniTime.visibility = View.VISIBLE
+            // 얇은 진행 막대: 알약 둥근 끝에 닿지 않게 안쪽으로 들인다
             bar.height = (4 * dp).toInt(); bar.topMargin = 0
+            bar.leftMargin = (10 * dp).toInt(); bar.rightMargin = (22 * dp).toInt()
             root.background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(Color.parseColor("#F2121A2C"))
                 cornerRadius = 32 * dp
-                setStroke((2 * dp).toInt(), c)
+                setStroke((2 * dp).toInt(), if (quiet) Color.parseColor("#3A4560") else c)
             }
-            root.setPadding((18 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt(), (10 * dp).toInt())
+            root.setPadding((18 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt(), (8 * dp).toInt())
         } else {
             root.setBackgroundResource(R.drawable.bg_rally_panel)
             root.setPadding((16 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt(), (14 * dp).toInt())
             title.maxLines = Int.MAX_VALUE
-            (title.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = 0; it.weight = 1f; it.marginEnd = 0; title.layoutParams = it }
+            (titleCol.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = 0; it.weight = 1f; it.marginEnd = 0; titleCol.layoutParams = it }
+            miniSub.visibility = View.GONE
             root.minimumWidth = 0
             title.setTextColor(Color.parseColor("#F8FAFC"))
             title.textSize = 20f
@@ -596,6 +612,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             miniTime.visibility = View.GONE
             heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
             bar.height = (6 * dp).toInt(); bar.topMargin = (6 * dp).toInt()
+            bar.leftMargin = 0; bar.rightMargin = 0
         }
         heroProgress.layoutParams = bar
     }
