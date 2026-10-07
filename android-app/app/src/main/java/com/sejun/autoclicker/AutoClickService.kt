@@ -1496,7 +1496,13 @@ class AutoClickService : AccessibilityService() {
             WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT
-        ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = (90 * dp).toInt(); y = (40 * dp).toInt() }
+        ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; 
+            // 마지막으로 두었던 자리에서 연다. 화면이 달라졌을 수 있으니(폴드 접기 등) 화면 안으로 당긴다.
+            val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+            val dm = resources.displayMetrics
+            x = prefs.getInt("clock_x", (90 * dp).toInt()).coerceIn(0, Math.max(0, dm.widthPixels - (80 * dp).toInt()))
+            y = prefs.getInt("clock_y", (40 * dp).toInt()).coerceIn(0, Math.max(0, dm.heightPixels - (40 * dp).toInt()))
+        }
         var sx = 0; var sy = 0; var tx = 0f; var ty = 0f; var moved = false
         v.setOnTouchListener { _, e ->
             when (e.action) {
@@ -1509,7 +1515,11 @@ class AutoClickService : AccessibilityService() {
                         try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
                     }
                 }
-                android.view.MotionEvent.ACTION_UP -> if (!moved) {
+                android.view.MotionEvent.ACTION_UP -> if (moved) {
+                    // 옮긴 자리를 기억해 다음에 켤 때 그 자리에서 연다
+                    getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit()
+                        .putInt("clock_x", lp.x).putInt("clock_y", lp.y).apply()
+                } else {
                     clockUtc = !clockUtc
                     v.text = ClockText.format(System.currentTimeMillis(), java.util.TimeZone.getDefault(), clockUtc)
                 }
