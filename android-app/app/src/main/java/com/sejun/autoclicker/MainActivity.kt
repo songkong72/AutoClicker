@@ -1034,57 +1034,55 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAdminPanelDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.layout_dialog_admin_panel, null)
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .create()
-
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val btnClose = dialogView.findViewById<TextView>(R.id.btnAdminClose)
-        val etTargetId = dialogView.findViewById<EditText>(R.id.etTargetMemberId)
-        val btnGenerate = dialogView.findViewById<Button>(R.id.btnGenerateCode)
-        val layoutResult = dialogView.findViewById<View>(R.id.layoutGeneratedResult)
-        val tvCode = dialogView.findViewById<TextView>(R.id.tvGeneratedCode)
-        val btnCopy = dialogView.findViewById<Button>(R.id.btnCopyShareMessage)
-
-        btnClose.setOnClickListener { dialog.dismiss() }
+        val sheet = SheetDialog(this, "집결장 코드 발급", "회원의 이메일이나 고유 ID를 입력하면 1:1 전용 코드가 생성됩니다.")
+        val etTargetId = sheet.field(
+            hint = "회원 이메일 (예: friend@gmail.com)", maxLength = 100,
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        )
 
         var currentGeneratedCode = ""
         var currentMemberId = ""
-
-        btnGenerate.setOnClickListener {
-            val memberId = etTargetId.text.toString().trim()
-            if (memberId.isEmpty()) {
-                Toast.makeText(this, "회원 이메일 또는 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val code = InvitationManager.generateInviteCode(memberId)
-            if (code.isEmpty()) {
-                Toast.makeText(this, "이 빌드에는 초대코드 비밀 설정이 없어 발급할 수 없어요.", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
-            currentGeneratedCode = code
-            currentMemberId = memberId
-            tvCode.text = code
-            layoutResult.visibility = View.VISIBLE
-            Toast.makeText(this, "초대코드가 발급되었습니다.", Toast.LENGTH_SHORT).show()
+        val resultCard = sheet.card(top = 14)
+        val tvCode = sheet.line(resultCard, "", bold = true).apply {
+            textSize = 22f; setTextColor(SheetDialog.BLUE); gravity = android.view.Gravity.CENTER
+            setTextIsSelectable(true)
         }
-
-        btnCopy.setOnClickListener {
-            if (currentGeneratedCode.isEmpty()) return@setOnClickListener
+        resultCard.addView(sheet.pill("카카오톡 전달용 메시지 복사") {
+            if (currentGeneratedCode.isEmpty()) return@pill
             // 방 번호를 따로 한 번 더 보내지 않아도 되게, 지금 방이 있으면 같은 메시지에 넣는다
             val room = roomPrefs().getString("cloud_room_number", "") ?: ""
             val roomLine = if (room.isEmpty()) "" else "\n집결 방 번호: $room (인증 후 집결 방에 입력)"
             val shareMsg = "[AutoClicker Pro 정회원 초대]\n회원 ID: $currentMemberId\n초대코드: $currentGeneratedCode\n앱 실행 후 인증창에 입력하시면 정회원으로 등록됩니다.$roomLine"
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("AutoClickerInvite", shareMsg)
-            clipboard.setPrimaryClip(clip)
+            clipboard.setPrimaryClip(ClipData.newPlainText("AutoClickerInvite", shareMsg))
             Toast.makeText(this, "📋 카카오톡 전달 메시지가 복사되었습니다!", Toast.LENGTH_SHORT).show()
-        }
+        }, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, (44 * resources.displayMetrics.density).toInt()).apply {
+            topMargin = (10 * resources.displayMetrics.density).toInt()
+        })
+        resultCard.visibility = View.GONE
 
-        dialog.show()
+        // 생성 버튼은 입력 칸과 결과 상자 사이에 두려고 마지막에 끼워 넣는다
+        val btnGenerate = sheet.wideButton("전용 초대코드 생성", top = 12) {
+            val memberId = etTargetId.text.toString().trim()
+            if (memberId.isEmpty()) {
+                Toast.makeText(this, "회원 이메일 또는 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                return@wideButton
+            }
+            val code = InvitationManager.generateInviteCode(memberId)
+            if (code.isEmpty()) {
+                Toast.makeText(this, "이 빌드에는 초대코드 비밀 설정이 없어 발급할 수 없어요.", Toast.LENGTH_LONG).show()
+                return@wideButton
+            }
+            currentGeneratedCode = code
+            currentMemberId = memberId
+            tvCode.text = code
+            resultCard.visibility = View.VISIBLE
+            Toast.makeText(this, "초대코드가 발급되었습니다.", Toast.LENGTH_SHORT).show()
+        }
+        sheet.content.removeView(btnGenerate)
+        sheet.content.addView(btnGenerate, sheet.content.indexOfChild(resultCard))
+
+        sheet.actions(SheetDialog.act("닫기")).show()
     }
 }
 
