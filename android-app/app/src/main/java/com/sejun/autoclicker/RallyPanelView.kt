@@ -233,6 +233,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.rallyAddTeam).visibility = showSetup
         prepShown = model.prepSec
         root.findViewById<View>(R.id.rallySettingsRow).visibility = showSetup
+        root.findViewById<View>(R.id.setPrep).visibility = showSetup
         root.findViewById<TextView>(R.id.setPrep).text = "이동 준비 ${model.prepSec.toInt()}초"
         listOf(R.id.setWait3 to 180.0, R.id.setWait5 to 300.0, R.id.setWait10 to 600.0).forEach { (id, sec) ->
             root.findViewById<TextView>(id).setTextColor(Color.parseColor(if (model.waitSec == sec) "#60A5FA" else "#CBD5E1"))
@@ -256,7 +257,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             repeat(list.size) { rows.addView(inflater.inflate(R.layout.item_rally_team_row, rows, false)) }
         }
         // 머리글: 줄마다 풀어 쓸 자리가 없어 숫자의 뜻을 한 번만 적는다. 편집 모드에서는 체크박스의 뜻도 적는다.
-        rowsHeadLeft.text = if (editing) "☑ 참여 · 군단" else "군단"
+        rowsHeadLeft.text = if (editing) "☑ 참여" else "군단"
         rowsHead.visibility = if (list.isEmpty() || isMinimized) View.GONE else View.VISIBLE
         // 군단이 많으면 5줄 높이까지만 보이고 나머지는 스크롤한다(줄 높이는 첫 줄 기준).
         rows.post {
@@ -426,6 +427,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             root.findViewById<View>(R.id.devSection).visibility = View.GONE
             root.findViewById<View>(R.id.rallyAddTeam).visibility = View.GONE
             root.findViewById<View>(R.id.rallySettingsRow).visibility = View.GONE
+            root.findViewById<View>(R.id.setPrep).visibility = View.GONE
         }
         if (min) {
             adminBar.visibility = View.GONE

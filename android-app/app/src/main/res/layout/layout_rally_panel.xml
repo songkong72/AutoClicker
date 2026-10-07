@@ -171,20 +171,8 @@
         android:visibility="gone">
 
         <TextView
-            android:id="@+id/setPrep"
-            android:layout_width="wrap_content"
-            android:layout_height="30dp"
-            android:background="@drawable/bg_chip_normal"
-            android:gravity="center"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:textColor="#93C5FD"
-            android:textSize="12sp" />
-
-        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:text="집결 대기"
             android:textColor="#94A3B8"
             android:textSize="12sp" />
@@ -197,6 +185,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
+            android:maxLines="1"
             android:text="3분"
             android:textColor="#CBD5E1"
             android:textSize="12sp" />
@@ -209,6 +198,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
+            android:maxLines="1"
             android:text="5분"
             android:textColor="#CBD5E1"
             android:textSize="12sp" />
@@ -221,22 +211,48 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
+            android:maxLines="1"
             android:text="10분"
             android:textColor="#CBD5E1"
             android:textSize="12sp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/rallyAddTeam"
+    <!-- 이동 준비 칩과 군단 추가 버튼을 한 줄에: 집결 대기 칩(3분·5분·10분)이 좁아져 글자가 잘리지 않게 -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="32dp"
-        android:layout_marginTop="4dp"
-        android:background="@drawable/bg_chip_normal"
-        android:gravity="center"
-        android:text="+ 군단 추가"
-        android:textColor="#93C5FD"
-        android:textSize="13sp"
-        android:visibility="gone" />
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/setPrep"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:textColor="#93C5FD"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/rallyAddTeam"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginTop="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_normal"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="+ 군단 추가"
+            android:textColor="#93C5FD"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/devToggle"
