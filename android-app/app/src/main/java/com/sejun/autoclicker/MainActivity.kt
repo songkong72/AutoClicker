@@ -490,7 +490,6 @@ class MainActivity : AppCompatActivity() {
         binding.tvRoomStatus.text = status
         binding.tvRoomStatus.visibility = if (status.isEmpty()) View.GONE else View.VISIBLE
     }
-    }
 
     private fun setupRoomCard() {
         binding.btnPickRoom.setOnClickListener { showRoomChooser() }
