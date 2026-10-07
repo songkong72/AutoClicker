@@ -36,6 +36,13 @@ internal object HunterTroops {
      */
     fun topLeftFor(center: Int, size: Int, windowOffset: Int): Int = center - size / 2 - windowOffset
 
+    /** 발사 버튼의 평소 글자: 부대가 여럿이면 다음에 나갈 번호를 보여 준다. 하나뿐이면 번호가 의미 없어 "발사". */
+    fun fireLabel(nextIndex: Int, count: Int): String =
+        if (count <= 1) "🐻\n발사" else "🐻\n${current(nextIndex, count) + 1}번"
+
+    /** 누른 직후 잠깐 보이는 글자: 방금 나간 부대 번호. */
+    fun firedLabel(firedIndex: Int): String = "${firedIndex + 1}번\n출정"
+
     /** 이번에 쓸 부대 번호(0부터). 범위를 벗어나면 첫 부대. */
     fun current(index: Int, count: Int): Int = if (index in 0 until count) index else 0
 

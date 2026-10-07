@@ -79,17 +79,17 @@
             android:src="@drawable/ic_settings"
             android:tint="#CBD5E1" />
 
-        <!-- 실시간 투명도 레벨 창 (🌓) 버튼 -->
+        <!-- 초 단위 시계 켜기/끄기 버튼 (투명도는 ⚙ 설정 창에서 바꾼다) -->
         <ImageButton
-            android:id="@+id/btnOpacity"
+            android:id="@+id/btnClock"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="Adjust Transparency"
+            android:contentDescription="Toggle Clock"
             android:padding="7.5dp"
-            android:src="@drawable/ic_opacity"
-            android:tint="#38BDF8" />
+            android:src="@drawable/ic_clock"
+            android:tint="#CBD5E1" />
 
         <!-- 오토클리커 완전 종료 (✕) 버튼 -->
         <ImageButton

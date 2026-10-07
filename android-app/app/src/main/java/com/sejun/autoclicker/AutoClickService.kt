@@ -397,6 +397,7 @@ class AutoClickService : AccessibilityService() {
         HunterModeManager.stop()
         hideHunterFireButton()
         hideBearSetupUi()
+        hideClock()
         stopAutoClick()
         hideSettingsDialog()
         rallyPanelHost?.hide() // 새 집결 팝업도 함께 닫는다(방 연결은 유지)
@@ -574,7 +575,7 @@ class AutoClickService : AccessibilityService() {
             true
         }
         val btnSettings = control.findViewById<ImageButton>(R.id.btnSettings)
-        val btnOpacity = control.findViewById<ImageButton>(R.id.btnOpacity)
+        val btnClock = control.findViewById<ImageButton>(R.id.btnClock)
         val btnClose = control.findViewById<ImageButton>(R.id.btnClose)
         val btnFoldToggle = control.findViewById<ImageButton>(R.id.btnFoldToggle)
         val collapsibleContainer = control.findViewById<View>(R.id.collapsibleContainer)
@@ -613,10 +614,11 @@ class AutoClickService : AccessibilityService() {
             showSettingsDialog()
         }
 
-        // 5. 세로 5단계 투명도 레벨 창 토글 (🌓) 버튼
-        btnOpacity?.setOnClickListener {
+        // 5. 초 단위 시계 켜기/끄기 (투명도는 ⚙ 설정 창에서 바꾼다)
+        btnClock?.setColorFilter(Color.parseColor(if (clockView != null) "#38BDF8" else "#CBD5E1"))
+        btnClock?.setOnClickListener {
             vibrate(20)
-            toggleOpacityPanel()
+            toggleClock()
         }
 
         // 5. 플로팅 컨트롤러 및 타겟 완전 종료 (✕)
@@ -730,7 +732,7 @@ class AutoClickService : AccessibilityService() {
         btnToggleTarget.setOnTouchListener(dragTouchListener)
         btnRally?.setOnTouchListener(dragTouchListener)
         btnSettings?.setOnTouchListener(dragTouchListener)
-        btnOpacity?.setOnTouchListener(dragTouchListener)
+        btnClock?.setOnTouchListener(dragTouchListener)
         btnClose.setOnTouchListener(dragTouchListener)
         btnFoldToggle.setOnTouchListener(dragTouchListener)
 
@@ -1423,9 +1425,107 @@ class AutoClickService : AccessibilityService() {
 
     /** 곰 사냥 발사. 과녁이 출정 버튼 위에 떠 있어서, 투과시키지 않으면 클릭을 과녁이 받아 게임에 닿지 않는다. */
     private fun fireHunter(repeatCount: Int) {
-        HunterModeManager.fire(this, repeatCount,
+        val count = HunterModeManager.troops.size
+        val firedIdx = HunterTroops.current(HunterModeManager.nextTroop, count)
+        val fired = HunterModeManager.fire(this, repeatCount,
             beforeTap = { setTargetTouchable(false) },
             afterTap = { setTargetTouchable(true) })
+        if (fired && count > 1) showFiredOnButton(firedIdx)
+    }
+
+    private val hunterFireColor = "#E610B981"
+    private var hunterLabelReset: Runnable? = null
+
+    /** 발사 버튼의 글자를 지금 상태에 맞춘다: 부대가 여럿이면 다음에 나갈 번호. */
+    private fun updateHunterFireLabel() {
+        val v = hunterFireView as? android.widget.TextView ?: return
+        hunterLabelReset?.let { mainHandler.removeCallbacks(it) }
+        hunterLabelReset = null
+        v.text = HunterTroops.fireLabel(HunterModeManager.nextTroop, HunterModeManager.troops.size)
+        (v.background as? android.graphics.drawable.GradientDrawable)?.setColor(Color.parseColor(hunterFireColor))
+    }
+
+    /** 누른 직후 1초쯤: 방금 나간 부대 번호를 다른 색으로 보여 주고, 그 뒤 다음 번호로 돌아간다. */
+    private fun showFiredOnButton(firedIdx: Int) {
+        val v = hunterFireView as? android.widget.TextView ?: return
+        hunterLabelReset?.let { mainHandler.removeCallbacks(it) }
+        v.text = HunterTroops.firedLabel(firedIdx)
+        (v.background as? android.graphics.drawable.GradientDrawable)?.setColor(Color.parseColor("#E6F59E0B"))
+        val reset = Runnable { hunterLabelReset = null; updateHunterFireLabel() }
+        hunterLabelReset = reset
+        mainHandler.postDelayed(reset, 1000L)
+    }
+
+    // --- 초 단위 시계 (플로팅 바의 시계 버튼으로 켜고 끈다) ---
+    private var clockView: android.widget.TextView? = null
+    private var clockUtc = false
+    private val clockTick = object : Runnable {
+        override fun run() {
+            val v = clockView ?: return
+            val now = System.currentTimeMillis()
+            v.text = ClockText.format(now, java.util.TimeZone.getDefault(), clockUtc)
+            mainHandler.postDelayed(this, ClockText.delayToNextSecond(now))
+        }
+    }
+
+    private fun toggleClock() {
+        if (clockView != null) hideClock() else showClock()
+        controlView?.findViewById<ImageButton>(R.id.btnClock)
+            ?.setColorFilter(Color.parseColor(if (clockView != null) "#38BDF8" else "#CBD5E1"))
+    }
+
+    /** 시계 창: 끌어서 옮기고, 눌러서 내 폰 시각 ↔ UTC(게임 화면의 시각)를 바꾼다. */
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    private fun showClock() {
+        if (clockView != null) return
+        val wm = windowManager ?: return
+        val dp = resources.displayMetrics.density
+        val v = android.widget.TextView(this).apply {
+            textSize = 18f
+            typeface = android.graphics.Typeface.MONOSPACE
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            gravity = android.view.Gravity.CENTER
+            setPadding((12 * dp).toInt(), (6 * dp).toInt(), (12 * dp).toInt(), (6 * dp).toInt())
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.parseColor("#E60F172A")); cornerRadius = 12 * dp
+                setStroke((1 * dp).toInt(), Color.parseColor("#3338BDF8"))
+            }
+        }
+        val lp = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT
+        ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = (90 * dp).toInt(); y = (40 * dp).toInt() }
+        var sx = 0; var sy = 0; var tx = 0f; var ty = 0f; var moved = false
+        v.setOnTouchListener { _, e ->
+            when (e.action) {
+                android.view.MotionEvent.ACTION_DOWN -> { sx = lp.x; sy = lp.y; tx = e.rawX; ty = e.rawY; moved = false }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val dx = e.rawX - tx; val dy = e.rawY - ty
+                    if (moved || Math.abs(dx) > 12 * dp || Math.abs(dy) > 12 * dp) {
+                        moved = true
+                        lp.x = sx + dx.toInt(); lp.y = sy + dy.toInt()
+                        try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP -> if (!moved) {
+                    clockUtc = !clockUtc
+                    v.text = ClockText.format(System.currentTimeMillis(), java.util.TimeZone.getDefault(), clockUtc)
+                }
+            }
+            true
+        }
+        try {
+            wm.addView(v, lp); clockView = v
+            mainHandler.removeCallbacks(clockTick); clockTick.run()
+        } catch (e: Exception) { Log.w(TAG, "시계 추가 실패", e) }
+    }
+
+    private fun hideClock() {
+        mainHandler.removeCallbacks(clockTick)
+        clockView?.let { try { windowManager?.removeView(it) } catch (_: Exception) { } }
+        clockView = null
     }
 
     /** 곰 사냥 화면 발사 버튼(발사는 이 버튼으로만 한다). 눌러서 발사, 끌어서 이동한다. */
@@ -1435,7 +1535,7 @@ class AutoClickService : AccessibilityService() {
         val wm = windowManager ?: return
         val dp = resources.displayMetrics.density
         val v = android.widget.TextView(this).apply {
-            text = "🐻\n발사"
+            text = HunterTroops.fireLabel(HunterModeManager.nextTroop, HunterModeManager.troops.size)
             textSize = 11f
             gravity = android.view.Gravity.CENTER
             setTextColor(Color.WHITE)
@@ -1469,6 +1569,8 @@ class AutoClickService : AccessibilityService() {
     }
 
     private fun hideHunterFireButton() {
+        hunterLabelReset?.let { mainHandler.removeCallbacks(it) }
+        hunterLabelReset = null
         hunterFireView?.let { try { windowManager?.removeView(it) } catch (_: Exception) { } }
         hunterFireView = null
     }
@@ -1557,6 +1659,7 @@ class AutoClickService : AccessibilityService() {
                         HunterModeManager.dispatchY = dispatch.second
                         HunterModeManager.saveSettings(ctx)
                         hideBearSetupUi()
+                        updateHunterFireLabel() // 부대 수가 바뀌었을 수 있다
                     }
                 })
             }

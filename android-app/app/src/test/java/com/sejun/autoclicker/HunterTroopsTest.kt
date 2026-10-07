@@ -47,4 +47,17 @@ class HunterTroopsTest {
         assertEquals(470, HunterTroops.topLeftFor(500, 60, 0))
         assertEquals(422, HunterTroops.topLeftFor(500, 60, 48))
     }
+
+    @Test fun fireLabelShowsNextTroopWhenSeveral() {
+        assertEquals("🐻\n1번", HunterTroops.fireLabel(0, 3))
+        assertEquals("🐻\n3번", HunterTroops.fireLabel(2, 3))
+        assertEquals("🐻\n1번", HunterTroops.fireLabel(9, 3)) // 범위를 벗어나면 1번
+    }
+
+    @Test fun fireLabelIsPlainWithOneOrNoTroop() {
+        assertEquals("🐻\n발사", HunterTroops.fireLabel(0, 1))
+        assertEquals("🐻\n발사", HunterTroops.fireLabel(0, 0))
+    }
+
+    @Test fun firedLabelNamesTheTroopJustSent() = assertEquals("2번\n출정", HunterTroops.firedLabel(1))
 }
