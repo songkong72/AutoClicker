@@ -59,6 +59,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val heroProgress = root.findViewById<ProgressBar>(R.id.rallyHeroProgress)
     private val warning = root.findViewById<TextView>(R.id.rallyWarning)
     private val rows = root.findViewById<LinearLayout>(R.id.rallyRows)
+    private val rowsHead = root.findViewById<View>(R.id.rallyRowsHead)
+    private val rowsHeadLeft = root.findViewById<TextView>(R.id.rallyRowsHeadLeft)
     private val rowsScroll = root.findViewById<MaxHeightScrollView>(R.id.rallyRowsScroll)
     private val adminBar = root.findViewById<View>(R.id.rallyAdminBar)
     private val btnStart = root.findViewById<TextView>(R.id.rallyBtnStart)
@@ -231,7 +233,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<View>(R.id.rallyAddTeam).visibility = showSetup
         prepShown = model.prepSec
         root.findViewById<View>(R.id.rallySettingsRow).visibility = showSetup
-        root.findViewById<TextView>(R.id.setPrep).text = "준비 ${model.prepSec.toInt()}초"
+        root.findViewById<TextView>(R.id.setPrep).text = "이동 준비 ${model.prepSec.toInt()}초"
         listOf(R.id.setWait3 to 180.0, R.id.setWait5 to 300.0, R.id.setWait10 to 600.0).forEach { (id, sec) ->
             root.findViewById<TextView>(id).setTextColor(Color.parseColor(if (model.waitSec == sec) "#60A5FA" else "#CBD5E1"))
         }
@@ -253,6 +255,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val inflater = LayoutInflater.from(themed)
             repeat(list.size) { rows.addView(inflater.inflate(R.layout.item_rally_team_row, rows, false)) }
         }
+        // 머리글: 줄마다 풀어 쓸 자리가 없어 숫자의 뜻을 한 번만 적는다. 편집 모드에서는 체크박스의 뜻도 적는다.
+        rowsHeadLeft.text = if (editing) "☑ 참여 · 군단" else "군단"
+        rowsHead.visibility = if (list.isEmpty() || isMinimized) View.GONE else View.VISIBLE
         // 군단이 많으면 5줄 높이까지만 보이고 나머지는 스크롤한다(줄 높이는 첫 줄 기준).
         rows.post {
             val h = rows.getChildAt(0)?.height ?: 0
@@ -264,8 +269,15 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val v = rows.getChildAt(i)
             v.setBackgroundColor(if (r.isMine) Color.parseColor("#1F3B82F6") else Color.TRANSPARENT)
             v.findViewById<TextView>(R.id.rowDot).apply {
-                setTextColor(if (r.online) Color.parseColor("#22C55E") else Color.parseColor("#64748B"))
-                // 관리자는 ● 를 눌러 이 군단을 제외하거나 다시 포함한다(눌러도 되는 크기로 여백을 준다)
+                // 편집 모드에서는 ● 대신 체크박스를 보여 준다: ☑ 참여 / ☐ 제외. 눌러서 바꾸는 것이라는 게 보이게.
+                text = if (!editing) "●" else if (r.excluded) "☐" else "☑"
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (editing) 17f else 10f)
+                setTextColor(when {
+                    editing -> Color.parseColor(if (r.excluded) "#94A3B8" else "#60A5FA")
+                    r.online -> Color.parseColor("#22C55E")
+                    else -> Color.parseColor("#64748B")
+                })
+                // 눌러도 되는 크기로 여백을 준다
                 val pad = (10 * resources.displayMetrics.density).toInt()
                 setPadding(pad / 2, pad, pad, pad)
                 if (editing) setOnClickListener { callbacks.onToggleExclude(r.id) }
@@ -292,8 +304,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             v.findViewById<TextView>(R.id.rowMarch).apply {
                 // 행군시간 아래에, 가장 먼저 누르는 군단보다 몇 초 늦게 누르는지(관리자 보정 포함) 작게 보여 준다.
-                // 가장 먼저 누르는 군단 줄에는 "기준". 제외된 군단은 표시하지 않는다.
-                val main = RallyPanelFormat.sec(r.marchSec) + "s"
+                // 가장 먼저 누르는 군단 줄에는 "먼저". 제외된 군단은 표시하지 않는다.
+                val main = RallyPanelFormat.sec(r.marchSec) + "초"
                 val sub = lags[i]
                 gravity = android.view.Gravity.CENTER_HORIZONTAL
                 text = if (sub.isEmpty()) android.text.SpannableStringBuilder(main)
@@ -405,6 +417,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         heroSub.visibility = hide
         heroProgress.visibility = hide
         rowsScroll.visibility = hide
+        rowsHead.visibility = if (min || rows.childCount == 0) View.GONE else View.VISIBLE
         root.findViewById<View>(R.id.phaseRow).visibility = hide
         root.findViewById<View>(R.id.devToggle).visibility = hide
         if (min) {

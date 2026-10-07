@@ -120,7 +120,7 @@ class RallyPanelHost(
             }
             override fun onAddTeam() { stateSource.onAddTeam(); refresh() }
             override fun onEditPrep(currentSec: Double) {
-                input.show("준비 시간(초)", currentSec.toInt().toString()) { text ->
+                input.show("이동 준비 시간(초)", currentSec.toInt().toString()) { text ->
                     val sec = RallyInputParse.marchSeconds(text) ?: return@show false
                     stateSource.onSetPrep(sec); refresh(); true
                 }

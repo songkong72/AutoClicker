@@ -393,11 +393,13 @@ class MainActivity : AppCompatActivity() {
             binding.badgeAccessibility.setTextColor(ContextCompat.getColor(this, R.color.success))
             // 허용된 뒤에는 "허용됨" 배지만 남긴다(누를 수 없는 "완료" 버튼이 같은 뜻으로 한 번 더 나오던 것)
             binding.btnGrantAccessibility.visibility = View.GONE
+            binding.tvAccessibilityHint.visibility = View.GONE // 허용된 뒤에는 한 줄로 줄인다
         } else {
             binding.badgeAccessibility.text = getString(R.string.status_needed)
             binding.badgeAccessibility.setBackgroundResource(R.drawable.bg_badge_warning)
             binding.badgeAccessibility.setTextColor(ContextCompat.getColor(this, R.color.warning))
             binding.btnGrantAccessibility.visibility = View.VISIBLE
+            binding.tvAccessibilityHint.visibility = View.VISIBLE
         }
         updateServiceState()
     }
