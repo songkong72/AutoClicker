@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.sejun.autoclicker.RallyDragLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="312dp"
+    android:layout_width="332dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_rally_panel"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:paddingStart="16dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="14dp">
 
-    <!-- 상단: 연결 상태 + 최소화 -->
+    <!-- 상단: 연결 상태 점 + 이름 / 편집(완료) · 작게 · 닫기 (눌리는 칸은 모두 44dp 이상) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
+        android:minHeight="44dp"
         android:orientation="horizontal">
 
         <TextView
@@ -20,48 +24,62 @@
             android:layout_weight="1"
             android:text="집결"
             android:textColor="#F8FAFC"
-            android:textSize="14sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
+
+        <!-- 알약(접힌 상태)에서만 보이는 남은 시간 -->
+        <TextView
+            android:id="@+id/rallyMiniTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:textColor="#FBBF24"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/rallyEdit"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="6dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:minWidth="44dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
             android:text="✎"
-            android:textColor="#94A3B8"
-            android:textSize="16sp"
+            android:textColor="#A9B4C7"
+            android:textSize="20sp"
             android:visibility="gone" />
 
         <TextView
             android:id="@+id/rallyMinimize"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="6dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:gravity="center"
             android:text="—"
-            android:textColor="#94A3B8"
-            android:textSize="16sp" />
+            android:textColor="#A9B4C7"
+            android:textSize="20sp" />
 
         <TextView
             android:id="@+id/rallyClose"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="28dp"
-            android:padding="6dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:gravity="center"
             android:text="✕"
-            android:textColor="#94A3B8"
-            android:textSize="16sp" />
+            android:textColor="#A9B4C7"
+            android:textSize="20sp" />
     </LinearLayout>
 
-    <!-- 히어로: 큰 카운트다운 -->
+    <!-- 히어로: 단계 이름(알림 모양) · 큰 카운트다운 · 안내 -->
     <TextView
         android:id="@+id/rallyHeroLabel"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:layout_marginTop="2dp"
         android:gravity="center"
         android:textColor="#CBD5E1"
-        android:textSize="13sp" />
+        android:textSize="15sp" />
 
     <TextView
         android:id="@+id/rallyHeroTime"
@@ -70,7 +88,7 @@
         android:gravity="center"
         android:text="--:--"
         android:textColor="#FFFFFF"
-        android:textSize="40sp"
+        android:textSize="52sp"
         android:textStyle="bold" />
 
     <TextView
@@ -78,24 +96,24 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:textColor="#94A3B8"
-        android:textSize="11sp" />
+        android:textColor="#A9B4C7"
+        android:textSize="12sp" />
 
     <LinearLayout
         android:id="@+id/phaseRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <TextView android:id="@+id/phase1" android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:gravity="center" android:text="대기" android:textSize="12sp" />
+            android:layout_weight="1" android:gravity="center" android:text="대기" android:textSize="13sp" />
         <TextView android:id="@+id/phase2" android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:gravity="center" android:text="집결" android:textSize="12sp" />
+            android:layout_weight="1" android:gravity="center" android:text="집결" android:textSize="13sp" />
         <TextView android:id="@+id/phase3" android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:gravity="center" android:text="행군" android:textSize="12sp" />
+            android:layout_weight="1" android:gravity="center" android:text="행군" android:textSize="13sp" />
         <TextView android:id="@+id/phase4" android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:gravity="center" android:text="도착" android:textSize="12sp" />
+            android:layout_weight="1" android:gravity="center" android:text="도착" android:textSize="13sp" />
     </LinearLayout>
 
     <ProgressBar
@@ -114,17 +132,18 @@
         android:layout_marginTop="8dp"
         android:paddingVertical="4dp"
         android:textColor="#FBBF24"
-        android:textSize="12sp"
+        android:textSize="13sp"
         android:visibility="gone" />
 
-    <!-- 팀 줄 -->
     <!-- 군단 목록 머리글: 숫자의 뜻을 한 번만 적는다 -->
     <LinearLayout
         android:id="@+id/rallyRowsHead"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="10dp"
         android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
@@ -134,24 +153,27 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:text="군단"
-            android:textColor="#94A3B8"
-            android:textSize="11sp" />
+            android:textColor="#8190A8"
+            android:textSize="12sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:text="숫자 = 행군 · 아래 = 클릭 순서"
-            android:textColor="#94A3B8"
-            android:textSize="11sp" />
+            android:textColor="#8190A8"
+            android:textSize="12sp" />
     </LinearLayout>
 
+    <!-- 군단 목록: 화면에 남는 높이까지만 늘어나고 그보다 길면 이 안에서 스크롤된다(끝에 흐려지는 표시) -->
     <com.sejun.autoclicker.MaxHeightScrollView
         android:id="@+id/rallyRowsScroll"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="4dp"
+        android:fadingEdgeLength="28dp"
         android:overScrollMode="never"
+        android:requiresFadingEdge="vertical"
         android:scrollbars="none">
 
         <LinearLayout
@@ -165,60 +187,60 @@
         android:id="@+id/rallySettingsRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="10dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:visibility="gone">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="68dp"
             android:layout_height="wrap_content"
             android:text="집결 대기"
-            android:textColor="#94A3B8"
-            android:textSize="12sp" />
+            android:textColor="#A9B4C7"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/setWait3"
             android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_marginStart="4dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
+            android:background="@drawable/bg_chip_soft"
             android:gravity="center"
             android:maxLines="1"
             android:text="3분"
             android:textColor="#CBD5E1"
-            android:textSize="12sp" />
+            android:textSize="15sp" />
 
         <TextView
             android:id="@+id/setWait5"
             android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_marginStart="4dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
+            android:background="@drawable/bg_chip_soft"
             android:gravity="center"
             android:maxLines="1"
             android:text="5분"
             android:textColor="#CBD5E1"
-            android:textSize="12sp" />
+            android:textSize="15sp" />
 
         <TextView
             android:id="@+id/setWait10"
             android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_marginStart="4dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
+            android:background="@drawable/bg_chip_soft"
             android:gravity="center"
             android:maxLines="1"
             android:text="10분"
             android:textColor="#CBD5E1"
-            android:textSize="12sp" />
+            android:textSize="15sp" />
     </LinearLayout>
 
-    <!-- 이동 준비 칩과 군단 추가 버튼을 한 줄에: 집결 대기 칩(3분·5분·10분)이 좁아져 글자가 잘리지 않게 -->
+    <!-- 이동 준비 칩과 군단 추가 버튼을 한 줄에 -->
     <LinearLayout
+        android:id="@+id/rallySetupRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
@@ -227,30 +249,31 @@
         <TextView
             android:id="@+id/setPrep"
             android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="4dp"
-            android:background="@drawable/bg_chip_normal"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_chip_soft"
             android:gravity="center"
             android:maxLines="1"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
             android:textColor="#93C5FD"
-            android:textSize="12sp"
+            android:textSize="14sp"
             android:visibility="gone" />
 
         <TextView
             android:id="@+id/rallyAddTeam"
             android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_marginTop="4dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
+            android:background="@drawable/bg_chip_soft"
             android:gravity="center"
             android:maxLines="1"
             android:text="+ 군단 추가"
             android:textColor="#93C5FD"
-            android:textSize="13sp"
+            android:textSize="15sp"
+            android:textStyle="bold"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -258,13 +281,16 @@
         android:id="@+id/devToggle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:padding="4dp"
+        android:layout_marginTop="8dp"
         android:ellipsize="end"
         android:maxLines="2"
+        android:minHeight="40dp"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:text="내 기기 ▾"
-        android:textColor="#94A3B8"
-        android:textSize="12sp" />
+        android:textColor="#A9B4C7"
+        android:textSize="13sp" />
 
     <LinearLayout
         android:id="@+id/devSection"
@@ -273,33 +299,34 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-    <!-- 현재 방. 눌러서 다른 방 번호를 입력하면 앱을 열지 않고 바로 옮겨간다 -->
+    <!-- 현재 방. 눌러서 다른 방을 고르면 앱을 열지 않고 바로 옮겨간다 -->
     <TextView
         android:id="@+id/devRoom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:paddingVertical="6dp"
+        android:layout_marginTop="4dp"
+        android:minHeight="44dp"
+        android:gravity="center_vertical"
         android:textColor="#E2E8F0"
-        android:textSize="13sp" />
+        android:textSize="14sp" />
 
     <!-- 내 캐릭터명: 관리자가 군단을 배정할 때 명단에 이 이름으로 보인다 -->
     <TextView
         android:id="@+id/devCharName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:paddingVertical="6dp"
+        android:minHeight="44dp"
+        android:gravity="center_vertical"
         android:textColor="#E2E8F0"
-        android:textSize="13sp" />
+        android:textSize="14sp" />
 
     <!-- 내 기기: 클릭 위치와 ms 보정 -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:text="클릭 보정 (숫자를 눌러 입력)"
-        android:textColor="#94A3B8"
+        android:textColor="#8190A8"
         android:textSize="12sp" />
 
     <!-- 한 줄로: −0.5초 · 현재 값(눌러서 직접 입력) · +0.5초 · 위치 저장 -->
@@ -313,59 +340,59 @@
         <TextView
             android:id="@+id/devMinus500"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
+            android:background="@drawable/bg_chip_soft"
             android:gravity="center"
             android:text="−0.5초"
             android:textColor="#93C5FD"
-            android:textSize="12sp" />
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/devMs"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:minWidth="64dp"
+            android:layout_height="44dp"
             android:gravity="center"
+            android:minWidth="64dp"
             android:textColor="#F1F5F9"
-            android:textSize="13sp" />
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/devPlus500"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chip_normal"
+            android:background="@drawable/bg_chip_soft"
             android:gravity="center"
             android:text="+0.5초"
             android:textColor="#93C5FD"
-            android:textSize="12sp" />
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/devSavePos"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
+            android:layout_height="44dp"
             android:layout_marginStart="8dp"
-            android:background="@drawable/bg_chip_normal"
+            android:background="@drawable/bg_chip_soft"
             android:gravity="center"
-            android:paddingHorizontal="12dp"
             android:maxLines="1"
+            android:paddingHorizontal="14dp"
             android:text="위치 저장"
             android:textColor="#E2E8F0"
-            android:textSize="12sp" />
+            android:textSize="13sp" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/devPosStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textColor="#64748B"
-        android:textSize="11sp" />
+        android:layout_marginTop="4dp"
+        android:textColor="#8190A8"
+        android:textSize="12sp" />
 
     </LinearLayout>
 
-    <!-- 관리자 버튼 -->
+    <!-- 관리자 버튼: 지금 할 수 있는 하나만 넓게 -->
     <LinearLayout
         android:id="@+id/rallyAdminBar"
         android:layout_width="match_parent"
@@ -377,33 +404,35 @@
         <TextView
             android:id="@+id/rallyBtnStart"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="54dp"
             android:layout_weight="1"
             android:background="@drawable/bg_btn_primary"
             android:gravity="center"
             android:text="집결 시작"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/rallyBtnStop"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="54dp"
             android:layout_weight="1"
             android:background="@drawable/bg_btn_danger_outline"
             android:gravity="center"
             android:text="집결 취소"
             android:textColor="#F87171"
-            android:textSize="14sp" />
+            android:textSize="18sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/rallyBlockedReason"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
         android:gravity="center"
         android:textColor="#F87171"
-        android:textSize="12sp"
+        android:textSize="13sp"
         android:visibility="gone" />
 </com.sejun.autoclicker.RallyDragLayout>

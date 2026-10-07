@@ -3,100 +3,209 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingTop="3dp"
-    android:paddingBottom="3dp">
+    android:paddingEnd="6dp"
+    android:paddingBottom="4dp">
 
+  <!-- 머리 줄: 점(편집 중엔 체크박스) · 이름 · 행군시간(+몇 초 늦게) · 상태/펼침 · 남은 시간 -->
   <LinearLayout
+    android:id="@+id/rowHead"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
+    android:minHeight="48dp"
     android:orientation="horizontal">
 
     <TextView
         android:id="@+id/rowDot"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:gravity="center"
         android:text="●"
         android:textSize="10sp" />
 
     <TextView
         android:id="@+id/rowName"
         android:layout_width="0dp"
-        android:minWidth="40dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="2"
+        android:minHeight="40dp"
+        android:gravity="center_vertical"
         android:textColor="#F1F5F9"
-        android:textSize="13sp" />
-
-    <TextView
-        android:id="@+id/rowMinus"
-        android:layout_width="24dp"
-        android:layout_height="28dp"
-        android:layout_marginStart="4dp"
-        android:gravity="center"
-        android:text="−"
-        android:textColor="#93C5FD"
-        android:textSize="18sp"
-        android:visibility="gone" />
+        android:textSize="16sp" />
 
     <TextView
         android:id="@+id/rowMarch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="2dp"
+        android:layout_marginStart="4dp"
         android:layout_marginEnd="2dp"
-        android:textColor="#94A3B8"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/rowPlus"
-        android:layout_width="24dp"
-        android:layout_height="28dp"
-        android:gravity="center"
-        android:text="+"
-        android:textColor="#93C5FD"
-        android:textSize="18sp"
-        android:visibility="gone" />
+        android:textColor="#F1F5F9"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/rowStatus"
         android:layout_width="wrap_content"
-        android:minWidth="30dp"
         android:layout_height="wrap_content"
-        android:gravity="end"
-        android:paddingHorizontal="4dp"
-        android:paddingVertical="6dp"
+        android:gravity="end|center_vertical"
+        android:minWidth="28dp"
+        android:paddingStart="6dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="6dp"
+        android:paddingBottom="8dp"
         android:textColor="#CBD5E1"
         android:textSize="12sp" />
 
     <TextView
-        android:id="@+id/rowDel"
-        android:layout_width="wrap_content"
-        android:minWidth="24dp"
-        android:layout_height="32dp"
-        android:gravity="center"
-        android:text="✕"
-        android:textColor="#F87171"
-        android:textSize="13sp"
-        android:visibility="gone" />
-
-    <TextView
         android:id="@+id/rowRemain"
         android:layout_width="wrap_content"
-        android:layout_marginStart="4dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
         android:gravity="end"
         android:textColor="#FFFFFF"
-        android:textSize="12sp"
+        android:textSize="20sp"
         android:textStyle="bold" />
+  </LinearLayout>
+
+  <!-- 펼침: 행군 시간 · 보정 · 삭제. 편집 모드에서 줄을 펼쳤을 때, 집결장은 내 군단 줄에서 보인다 -->
+  <LinearLayout
+    android:id="@+id/rowExpand"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="44dp"
+    android:orientation="vertical"
+    android:visibility="gone">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="행군 시간"
+                android:textColor="#8190A8"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_stepper"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/rowMinus"
+                    android:layout_width="40dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="−"
+                    android:textColor="#93C5FD"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/rowMarchVal"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:textColor="#F1F5F9"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/rowPlus"
+                    android:layout_width="40dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="+"
+                    android:textColor="#93C5FD"
+                    android:textSize="22sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/rowAdjCol"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="보정"
+                android:textColor="#8190A8"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_stepper"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/rowAdjMinus"
+                    android:layout_width="40dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="−"
+                    android:textColor="#93C5FD"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/rowAdjVal"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:textColor="#F1F5F9"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/rowAdjPlus"
+                    android:layout_width="40dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="+"
+                    android:textColor="#93C5FD"
+                    android:textSize="22sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/rowDel"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_gravity="end"
+        android:gravity="center"
+        android:paddingStart="8dp"
+        android:paddingEnd="4dp"
+        android:text="✕ 이 군단 삭제"
+        android:textColor="#F87171"
+        android:textSize="13sp" />
   </LinearLayout>
 
   <com.sejun.autoclicker.RallyTimelineBar
     android:id="@+id/rowBar"
     android:layout_width="match_parent"
-    android:layout_height="6dp"
-    android:layout_marginTop="4dp" />
+    android:layout_height="8dp"
+    android:layout_marginStart="44dp"
+    android:layout_marginEnd="4dp"
+    android:layout_marginTop="2dp" />
 </LinearLayout>

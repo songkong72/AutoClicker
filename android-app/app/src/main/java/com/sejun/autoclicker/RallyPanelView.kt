@@ -16,7 +16,9 @@ import android.widget.TextView
 class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     private companion object {
-        const val MAX_VISIBLE_ROWS = 5
+        /** 목록이 화면에서 차지할 수 있는 높이: 화면 높이의 이 비율에서 목록 밖 영역(머리·버튼)을 뺀 만큼. */
+        const val PANEL_MAX_SCREEN_RATIO = 0.84f
+        const val ADJUST_STEP_MS = 500
         val PHASE_COLORS = listOf("#FBBF24", "#60A5FA", "#A78BFA", "#22C55E")
     }
 
@@ -41,6 +43,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onEditPrep(currentSec: Double)
         fun onSetWait(sec: Double)
         fun onEditAdminAdjust(teamId: String, teamName: String, currentMs: Int)
+        /** 보정 −/+ 버튼: 이 군단의 관리자 보정을 ms로 정한다(범위는 서버 쪽 편집 규칙이 맞춘다). */
+        fun onSetAdminAdjust(teamId: String, ms: Int)
         fun onRemoveTeam(teamId: String)
         fun onSavePosition()
     }
@@ -61,6 +65,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val rows = root.findViewById<LinearLayout>(R.id.rallyRows)
     private val rowsHead = root.findViewById<View>(R.id.rallyRowsHead)
     private val rowsHeadLeft = root.findViewById<TextView>(R.id.rallyRowsHeadLeft)
+    private val miniTime = root.findViewById<TextView>(R.id.rallyMiniTime)
+    /** 편집 모드에서 펼쳐 둔 군단 줄(한 번에 하나). */
+    private var expandedId: String? = null
     private val rowsScroll = root.findViewById<MaxHeightScrollView>(R.id.rallyRowsScroll)
     /** 패널을 끌어 옮기는 틀이 이 목록의 세로 스크롤은 건드리지 않게 알려 주기 위한 참조. */
     val rowsScrollView: View get() = rowsScroll
@@ -70,13 +77,15 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val blocked = root.findViewById<TextView>(R.id.rallyBlockedReason)
 
     init {
+        // 패널의 다른 부분 높이가 바뀌면(편집 모드, 안내 줄 등) 목록이 쓸 수 있는 높이도 다시 맞춘다.
+        root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> fitRowsHeight() }
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
         // ✎: 관리자 편집 모드. 평소엔 읽기 전용으로 깔끔하게, 켜면 −/+ · ✕ · 밑줄(눌러서 고치기)이 나타난다.
-        root.findViewById<View>(R.id.rallyEdit).setOnClickListener { editMode = !editMode; deleteGuard.reset(); lastRender?.invoke() }
+        root.findViewById<View>(R.id.rallyEdit).setOnClickListener { editMode = !editMode; expandedId = null; deleteGuard.reset(); lastRender?.invoke() }
         // 카운트다운 상자(단계명·시간·안내)를 탭하면 축소/확대된다. 작은 —/▢ 버튼 옆의 ✕를 잘못 누르지 않게 큰 영역으로도 누를 수 있다.
         // 알약(최소화 상태)에서는 단계명이나 시간을 탭하면 펼쳐진다. 창을 끄는 일은 ✕만 한다.
-        listOf<View>(heroLabel, heroTime, heroSub).forEach { v -> v.setOnClickListener { callbacks.onMinimize() } }
+        listOf<View>(heroLabel, heroTime, heroSub, miniTime).forEach { v -> v.setOnClickListener { callbacks.onMinimize() } }
         title.setOnClickListener { if (isMinimized) callbacks.onMinimize() else callbacks.onTitleTap() }
         btnStart.setOnClickListener { callbacks.onStart() }
         btnStop.setOnClickListener { callbacks.onStop() }
@@ -204,10 +213,29 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val editing = isAdmin && model.editable && editMode
         root.findViewById<TextView>(R.id.rallyEdit).apply {
             visibility = if (isAdmin && model.editable) View.VISIBLE else View.GONE
-            text = if (editMode) "✓" else "✎"
-            setTextColor(Color.parseColor(if (editMode) "#60A5FA" else "#94A3B8"))
+            // 편집 중에는 "완료" 버튼, 평소에는 ✎
+            text = if (editMode) "완료" else "✎"
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (editMode) 15f else 20f)
+            setTypeface(null, if (editMode) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+            setTextColor(Color.parseColor(if (editMode) "#FFFFFF" else "#A9B4C7"))
+            if (editMode) setBackgroundResource(R.drawable.bg_btn_primary) else background = null
         }
         heroLabel.text = if (hero.note == null) hero.label else "${hero.label} · ${hero.note}"
+        // 큰 시간이 없는 화면(대기·취소 등)에서는 단계 이름을 알림 모양으로 보여 준다.
+        val dpr = root.resources.displayMetrics.density
+        if (hero.remainingSec == null && !isMinimized) {
+            heroLabel.setBackgroundResource(R.drawable.bg_status_pill)
+            heroLabel.setPadding((16 * dpr).toInt(), (6 * dpr).toInt(), (16 * dpr).toInt(), (6 * dpr).toInt())
+            heroLabel.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 17f)
+            heroLabel.setTypeface(null, android.graphics.Typeface.BOLD)
+            heroLabel.setTextColor(Color.parseColor("#F1F5F9"))
+        } else {
+            heroLabel.background = null
+            heroLabel.setPadding(0, 0, 0, 0)
+            heroLabel.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
+            heroLabel.setTypeface(null, android.graphics.Typeface.NORMAL)
+            heroLabel.setTextColor(Color.parseColor("#CBD5E1"))
+        }
         // 대기 중에는 "전원 도착 예정" 총 소요 시간을 흐리게 보여준다
         val previewTotal = hero.kind == HeroKind.IDLE && hero.remainingSec == null && model.arriveAtSec > 0.0
         heroTime.text = when {
@@ -215,11 +243,16 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             previewTotal -> RallyScreenModel.formatMmSs(model.arriveAtSec)
             else -> ""
         }
-        heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
-        heroTime.setTextColor(if (previewTotal) Color.parseColor("#64748B") else if (urgent) Color.parseColor("#F87171") else heroColor(hero))
+        // 편집 모드에서는 시간·안내를 접어 목록과 설정에 높이를 준다(좁은 폰에서 창이 화면을 넘지 않게).
+        heroTime.visibility = if (heroTime.text.isEmpty() || editing || isMinimized) View.GONE else View.VISIBLE
+        val timeColor = if (previewTotal) Color.parseColor("#64748B") else if (urgent) Color.parseColor("#F87171") else heroColor(hero)
+        heroTime.setTextColor(timeColor)
+        miniTime.text = heroTime.text
+        miniTime.setTextColor(timeColor)
         val sub = if (previewTotal) RallyScreenModel.idleSub(hero.subLabel, model.rows.count { !it.excluded }) else hero.subLabel
         // 집결이 시작된 뒤에는 한 줄만: "도착 예정 15:53:24 · ✓ 클릭함 15:47:56.080" (단계 설명은 큰 숫자·단계 표시가 대신한다)
         heroSub.text = if (arrivalNote.isEmpty()) sub else arrivalNote
+        heroSub.visibility = if (editing || isMinimized) View.GONE else View.VISIBLE
         renderPhases(hero.kind, hero.phase)
         heroProgress.progress = (hero.progress * 1000).toInt()
 
@@ -255,37 +288,44 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     }
 
     private fun renderRows(list: List<TeamRowModel>, isAdmin: Boolean, editable: Boolean, editing: Boolean, showBars: Boolean, scale: RallyTimelineScale, nowSec: Double?) {
-        // 팀 수가 적고(≤ 몇 개) 1초 단위 갱신이라, 줄 수가 같으면 재사용한다.
+        // 팀 수가 적고(≤ 10개) 1초 단위 갱신이라, 줄 수가 같으면 재사용한다.
         if (rows.childCount != list.size) {
             rows.removeAllViews()
             val inflater = LayoutInflater.from(themed)
             repeat(list.size) { rows.addView(inflater.inflate(R.layout.item_rally_team_row, rows, false)) }
         }
+        if (expandedId != null && list.none { it.id == expandedId }) expandedId = null
         // 머리글: 줄마다 풀어 쓸 자리가 없어 숫자의 뜻을 한 번만 적는다. 편집 모드에서는 체크박스의 뜻도 적는다.
-        rowsHeadLeft.text = if (editing) "☑ 참여" else "군단"
+        rowsHeadLeft.text = if (editing) "☑ 참여 · 줄을 눌러 펼치기" else "군단"
         rowsHead.visibility = if (list.isEmpty() || isMinimized) View.GONE else View.VISIBLE
-        // 군단이 많으면 5줄 높이까지만 보이고 나머지는 스크롤한다(줄 높이는 첫 줄 기준).
-        rows.post {
-            val h = rows.getChildAt(0)?.height ?: 0
-            rowsScroll.maxHeightPx = if (list.size > MAX_VISIBLE_ROWS && h > 0) h * MAX_VISIBLE_ROWS else 0
-        }
+        // 목록은 화면에 남는 높이까지만 늘어나고, 더 길면 그 안에서 스크롤한다.
+        rows.post { fitRowsHeight() }
+        val dp = root.resources.displayMetrics.density
         // 내 줄에는 이 폰의 "내 보정"(내 기기)도 더한다. 다른 집결장 폰의 보정은 방 데이터에 없어 알 수 없다.
         val lags = RallyPanelFormat.lagLabels(list.map { LagInput(it.marchSec, it.adminAdjustMs + (if (it.isMine) correctionShownMs else 0), it.excluded) })
         list.forEachIndexed { i, r ->
             val v = rows.getChildAt(i)
-            v.setBackgroundColor(if (r.isMine) Color.parseColor("#1F3B82F6") else Color.TRANSPARENT)
+            // 행군시간 고치기: 관리자는 편집 모드에서 모든 군단, 집결장은 평소에도 내 군단만
+            val canMarch = editable && !r.excluded && (if (isAdmin) editing else r.isMine)
+            // 펼침: 관리자는 편집 모드에서 누른 줄 하나, 집결장은 내 군단 줄(행군시간만)
+            val leaderOwn = !isAdmin && canMarch
+            val open = (editing && !r.excluded && expandedId == r.id) || leaderOwn
+            val toggleOpen = { expandedId = if (expandedId == r.id) null else r.id; deleteGuard.reset(); lastRender?.invoke(); Unit }
+            when {
+                open && editing -> v.setBackgroundResource(R.drawable.bg_row_open)
+                r.isMine -> v.setBackgroundColor(Color.parseColor("#1F3B82F6"))
+                else -> v.setBackgroundColor(Color.TRANSPARENT)
+            }
+            v.findViewById<View>(R.id.rowExpand).visibility = if (open) View.VISIBLE else View.GONE
             v.findViewById<TextView>(R.id.rowDot).apply {
                 // 편집 모드에서는 ● 대신 체크박스를 보여 준다: ☑ 참여 / ☐ 제외. 눌러서 바꾸는 것이라는 게 보이게.
                 text = if (!editing) "●" else if (r.excluded) "☐" else "☑"
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (editing) 17f else 10f)
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (editing) 22f else 10f)
                 setTextColor(when {
-                    editing -> Color.parseColor(if (r.excluded) "#94A3B8" else "#60A5FA")
+                    editing -> Color.parseColor(if (r.excluded) "#8190A8" else "#3B82F6")
                     r.online -> Color.parseColor("#22C55E")
                     else -> Color.parseColor("#64748B")
                 })
-                // 눌러도 되는 크기로 여백을 준다
-                val pad = (10 * resources.displayMetrics.density).toInt()
-                setPadding(pad / 2, pad, pad, pad)
                 if (editing) setOnClickListener { callbacks.onToggleExclude(r.id) }
                 else { setOnClickListener(null); isClickable = false }
             }
@@ -313,57 +353,76 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 // 가장 먼저 누르는 군단 줄에는 "먼저". 제외된 군단은 표시하지 않는다.
                 val main = RallyPanelFormat.sec(r.marchSec) + "초"
                 val sub = lags[i]
-                gravity = android.view.Gravity.CENTER_HORIZONTAL
+                gravity = android.view.Gravity.END
                 text = if (sub.isEmpty()) android.text.SpannableStringBuilder(main)
                 else android.text.SpannableStringBuilder("$main\n$sub").apply {
-                    setSpan(android.text.style.RelativeSizeSpan(0.92f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    setSpan(android.text.style.RelativeSizeSpan(0.8f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#A9B4C7")), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    setSpan(android.text.style.StyleSpan(android.graphics.Typeface.NORMAL), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
+                alpha = if (r.excluded) 0.45f else 1f
+                setOnClickListener { if (editing && !r.excluded) toggleOpen() }
             }
             v.findViewById<TextView>(R.id.rowStatus).apply {
                 // 평소: 상태 글자. 관리자가 더해 준 보정이 있으면 아래 줄에 작게 보여 준다(줄이 늘어나도 폭은 그대로).
-                // 편집 모드: 상태 대신 "보정 / 0초"를 보여 준다. 상태 글자("취소됨" 등)에 밑줄이 붙어 버튼처럼 보이던 혼동을 없앤다.
+                // 편집 모드: 참여 군단은 펼침 표시(▾/▴), 제외된 군단은 "제외"(눌러서 다시 포함).
                 text = when {
-                    editing && !r.excluded -> "보정\n" + RallyInputParse.formatCorrection(r.adminAdjustMs)
-                    r.adminAdjustMs == 0 -> r.statusLabel
+                    editing && !r.excluded -> if (open) "▴" else "▾"
+                    r.adminAdjustMs == 0 || editing -> r.statusLabel
                     else -> listOf(r.statusLabel, RallyInputParse.formatCorrection(r.adminAdjustMs)).filter { it.isNotEmpty() }.joinToString("\n")
                 }
-                // 편집 모드에서 누르면: 제외된 군단의 "제외"는 다시 포함, 그 밖에는 보정 입력(진행 중에는 잠김)
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (editing && !r.excluded) 16f else 12f)
                 setOnClickListener {
-                    if (editing) {
-                        if (r.excluded) callbacks.onToggleExclude(r.id) else callbacks.onEditAdminAdjust(r.id, r.name, r.adminAdjustMs)
-                    }
+                    if (editing) { if (r.excluded) callbacks.onToggleExclude(r.id) else toggleOpen() }
                 }
-                // 눌러서 보정을 정할 수 있다는 표시: 편집 모드에서만 밑줄
-                paintFlags = if (editing) paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-                else paintFlags and android.graphics.Paint.UNDERLINE_TEXT_FLAG.inv()
+                paintFlags = paintFlags and android.graphics.Paint.UNDERLINE_TEXT_FLAG.inv()
             }
+            v.findViewById<View>(R.id.rowHead).setOnClickListener { if (editing && !r.excluded) toggleOpen() }
+            v.findViewById<View>(R.id.rowHead).isClickable = editing && !r.excluded
             v.findViewById<RallyTimelineBar>(R.id.rowBar).visibility = if (showBars) View.VISIBLE else View.GONE
             v.findViewById<RallyTimelineBar>(R.id.rowBar).set(scale, r.clickAtSec, r.departAtSec, r.arriveAtSec, nowSec, r.excluded)
-            val minus = v.findViewById<View>(R.id.rowMinus)
-            val plus = v.findViewById<View>(R.id.rowPlus)
-            val canEdit = editing
-            // 행군시간 고치기: 관리자는 편집 모드에서 모든 군단, 집결장은 평소에도 내 군단만
-            val canMarch = editable && !r.excluded && (if (isAdmin) editing else r.isMine)
-            minus.visibility = if (canMarch) View.VISIBLE else View.GONE
-            plus.visibility = minus.visibility
+
+            // 펼친 부분: 행군 시간(−/+, 숫자를 누르면 직접 입력) · 보정(−/+, 숫자를 누르면 직접 입력) · 삭제
+            v.findViewById<TextView>(R.id.rowMarchVal).apply {
+                text = RallyPanelFormat.sec(r.marchSec) + "초"
+                setOnClickListener { if (canMarch) callbacks.onEditMarch(r.id, r.marchSec) }
+            }
+            v.findViewById<View>(R.id.rowMinus).setOnClickListener { callbacks.onMarchDelta(r.id, -1.0) }
+            v.findViewById<View>(R.id.rowPlus).setOnClickListener { callbacks.onMarchDelta(r.id, 1.0) }
+            v.findViewById<View>(R.id.rowAdjCol).visibility = if (editing) View.VISIBLE else View.GONE
+            v.findViewById<TextView>(R.id.rowAdjVal).apply {
+                text = RallyInputParse.formatCorrection(r.adminAdjustMs)
+                setOnClickListener { callbacks.onEditAdminAdjust(r.id, r.name, r.adminAdjustMs) }
+            }
+            v.findViewById<View>(R.id.rowAdjMinus).setOnClickListener { callbacks.onSetAdminAdjust(r.id, r.adminAdjustMs - ADJUST_STEP_MS) }
+            v.findViewById<View>(R.id.rowAdjPlus).setOnClickListener { callbacks.onSetAdminAdjust(r.id, r.adminAdjustMs + ADJUST_STEP_MS) }
             v.findViewById<TextView>(R.id.rowDel).apply {
-                visibility = if (canEdit) View.VISIBLE else View.GONE
+                visibility = if (editing) View.VISIBLE else View.GONE
                 // 첫 탭은 "삭제?"로 바뀌기만 하고, 3초 안에 한 번 더 눌러야 지운다
-                text = if (deleteGuard.isArmed(r.id, android.os.SystemClock.elapsedRealtime())) "삭제?" else "✕"
+                text = if (deleteGuard.isArmed(r.id, android.os.SystemClock.elapsedRealtime())) "삭제할까요? 한 번 더 누르세요" else "✕ 이 군단 삭제"
                 setOnClickListener {
                     if (deleteGuard.onTap(r.id, android.os.SystemClock.elapsedRealtime())) callbacks.onRemoveTeam(r.id)
                     else lastRender?.invoke()
                 }
             }
-            v.findViewById<TextView>(R.id.rowMarch).setOnClickListener { if (canMarch) callbacks.onEditMarch(r.id, r.marchSec) }
-            minus.setOnClickListener { callbacks.onMarchDelta(r.id, -1.0) }
-            plus.setOnClickListener { callbacks.onMarchDelta(r.id, 1.0) }
-            v.setOnClickListener(null); v.isClickable = false // 줄 빈 곳을 눌러도 아무 일도 없게 한다(실수로 제외되던 문제)
             v.findViewById<TextView>(R.id.rowRemain).apply {
                 text = r.remainingSec?.let { RallyScreenModel.formatMmSs(it) } ?: ""
+                setTextColor(Color.parseColor("#FBBF24"))
                 visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
             }
         }
+    }
+
+    /**
+     * 목록이 쓸 수 있는 높이를 정한다: 화면 높이의 일정 비율에서, 패널의 나머지(머리·설정·버튼)가 쓰는 높이를 뺀 만큼.
+     * 군단이 몇 개든, 줄을 펼쳐도 패널이 화면을 넘지 않고, 넘치는 줄은 목록 안에서 스크롤된다.
+     */
+    private fun fitRowsHeight() {
+        if (root.height <= 0 || rowsScroll.visibility != View.VISIBLE) return
+        val dm = root.resources.displayMetrics
+        val others = root.height - rowsScroll.height
+        val limit = (dm.heightPixels * PANEL_MAX_SCREEN_RATIO).toInt() - others
+        rowsScroll.maxHeightPx = Math.max(limit, (96 * dm.density).toInt())
     }
 
     /** 대기 · 집결 · 행군 · 도착 중 지금 단계만 밝게 보여준다. */
@@ -421,7 +480,6 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<TextView>(R.id.rallyMinimize).text = if (min) "▢" else "—"
         val hide = if (min) View.GONE else View.VISIBLE
         heroSub.visibility = hide
-        heroProgress.visibility = hide
         rowsScroll.visibility = hide
         rowsHead.visibility = if (min || rows.childCount == 0) View.GONE else View.VISIBLE
         root.findViewById<View>(R.id.phaseRow).visibility = hide
@@ -433,45 +491,49 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             root.findViewById<View>(R.id.rallyAddTeam).visibility = View.GONE
             root.findViewById<View>(R.id.rallySettingsRow).visibility = View.GONE
             root.findViewById<View>(R.id.setPrep).visibility = View.GONE
-        }
-        if (min) {
+            root.findViewById<View>(R.id.rallyEdit).visibility = View.GONE
             adminBar.visibility = View.GONE
             warning.visibility = View.GONE
             blocked.visibility = View.GONE
         }
         val dp = root.resources.displayMetrics.density
+        val bar = heroProgress.layoutParams as LinearLayout.LayoutParams
         if (min) {
-            // 알약: 단계 색 점 + 짧은 단계명 한 줄, 아래에 큰 시간. 테두리도 단계 색으로 은은하게 칠한다.
+            // 알약: [● 단계명 ........ 큰 시간 ▢ ✕] 한 줄, 아래에 얇은 진행 막대. 테두리와 막대는 단계 색.
             val c = heroColor(hero)
             title.text = "● " + minLabel(hero)
             title.setTextColor(c)
-            title.textSize = 13f
+            title.textSize = 15f
             title.maxLines = 1
             title.ellipsize = android.text.TextUtils.TruncateAt.END
-            (title.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = LinearLayout.LayoutParams.WRAP_CONTENT; it.weight = 0f; it.marginEnd = (10 * dp).toInt(); title.layoutParams = it }
-            root.minimumWidth = (112 * dp).toInt()
+            (title.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = LinearLayout.LayoutParams.WRAP_CONTENT; it.weight = 0f; it.marginEnd = (12 * dp).toInt(); title.layoutParams = it }
+            root.minimumWidth = (236 * dp).toInt()
             heroLabel.visibility = View.GONE
-            heroTime.textSize = 28f
-            heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
+            heroTime.visibility = View.GONE
+            miniTime.visibility = if (miniTime.text.isEmpty()) View.GONE else View.VISIBLE
+            heroProgress.progressTintList = android.content.res.ColorStateList.valueOf(c)
+            bar.height = (4 * dp).toInt(); bar.topMargin = 0
             root.background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.parseColor("#F20F172A"))
-                cornerRadius = 22 * dp
-                setStroke((1.5f * dp).toInt(), (c and 0x00FFFFFF) or (0x99 shl 24))
+                setColor(Color.parseColor("#F2121A2C"))
+                cornerRadius = 32 * dp
+                setStroke((2 * dp).toInt(), c)
             }
-            root.setPadding((12 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt(), (8 * dp).toInt())
+            root.setPadding((18 * dp).toInt(), (6 * dp).toInt(), (8 * dp).toInt(), (10 * dp).toInt())
         } else {
             root.setBackgroundResource(R.drawable.bg_rally_panel)
-            root.setPadding((12 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt())
+            root.setPadding((16 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt(), (14 * dp).toInt())
             title.maxLines = Int.MAX_VALUE
             (title.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = 0; it.weight = 1f; it.marginEnd = 0; title.layoutParams = it }
             root.minimumWidth = 0
             title.setTextColor(Color.parseColor("#F8FAFC"))
-            title.textSize = 14f
+            title.textSize = 18f
             heroLabel.visibility = View.VISIBLE
             heroLabel.text = hero.label
-            heroTime.textSize = 40f
+            miniTime.visibility = View.GONE
             heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
+            heroProgress.progressTintList = null
+            bar.height = (6 * dp).toInt(); bar.topMargin = (6 * dp).toInt()
         }
+        heroProgress.layoutParams = bar
     }
 }
-

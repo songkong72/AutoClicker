@@ -136,6 +136,7 @@ class RallyPanelHost(
                     stateSource.onSetAdminAdjust(teamId, ms); refresh(); true
                 }
             }
+            override fun onSetAdminAdjust(teamId: String, ms: Int) { stateSource.onSetAdminAdjust(teamId, ms); refresh() }
             override fun onRemoveTeam(teamId: String) { stateSource.onRemoveTeam(teamId); refresh() }
             override fun onCorrectionDelta(deltaMs: Int) { stateSource.onCorrectionDelta(deltaMs); refresh() }
             override fun onSavePosition() { stateSource.onSavePosition(); refresh() }
@@ -267,8 +268,8 @@ class RallyPanelHost(
     private fun panelWidthPx(compact: Boolean): Int {
         val dm = context.resources.displayMetrics
         val dp = dm.density
-        val want = if (compact) 204 * dp else 276 * dp
-        return Math.min(want, dm.widthPixels * (if (compact) 0.62f else 0.72f)).toInt()
+        val want = if (compact) 204 * dp else 332 * dp
+        return Math.min(want, dm.widthPixels * (if (compact) 0.62f else 0.94f)).toInt()
     }
 
     private fun applyWidth() {
