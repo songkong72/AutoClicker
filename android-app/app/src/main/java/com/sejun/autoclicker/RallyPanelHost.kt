@@ -127,6 +127,7 @@ class RallyPanelHost(
                     stateSource.onSetPrep(sec); refresh(); true
                 }
             }
+            override fun onSetPrep(sec: Double) { stateSource.onSetPrep(sec); refresh() }
             override fun onSetWait(sec: Double) { stateSource.onSetWait(sec); refresh() }
             override fun onEditAdminAdjust(teamId: String, teamName: String, currentMs: Int) {
                 val shown = if (currentMs % 1000 == 0) (currentMs / 1000).toString() else (currentMs / 1000.0).toString()

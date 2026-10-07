@@ -42,6 +42,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onEditMarch(teamId: String, currentSec: Double)
         fun onAddTeam()
         fun onEditPrep(currentSec: Double)
+        /** 이동 준비 −/+ 버튼: 초를 바로 정한다. */
+        fun onSetPrep(sec: Double)
         fun onSetWait(sec: Double)
         fun onEditAdminAdjust(teamId: String, teamName: String, currentMs: Int)
         /** 보정 −/+ 버튼: 이 군단의 관리자 보정을 ms로 정한다(범위는 서버 쪽 편집 규칙이 맞춘다). */
@@ -116,6 +118,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
         root.findViewById<View>(R.id.rallyAddTeam).setOnClickListener { callbacks.onAddTeam() }
         root.findViewById<View>(R.id.setPrep).setOnClickListener { callbacks.onEditPrep(prepShown) }
+        // 이동 준비는 1초씩 줄이고 늘린다(0초 아래로는 내려가지 않는다)
+        root.findViewById<View>(R.id.setPrepMinus).setOnClickListener { if (prepShown >= 1.0) callbacks.onSetPrep(prepShown - 1.0) }
+        root.findViewById<View>(R.id.setPrepPlus).setOnClickListener { callbacks.onSetPrep(prepShown + 1.0) }
         root.findViewById<View>(R.id.setWait3).setOnClickListener { callbacks.onSetWait(180.0) }
         root.findViewById<View>(R.id.setWait5).setOnClickListener { callbacks.onSetWait(300.0) }
         root.findViewById<View>(R.id.setWait10).setOnClickListener { callbacks.onSetWait(600.0) }
