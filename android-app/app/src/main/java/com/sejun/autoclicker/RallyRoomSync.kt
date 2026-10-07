@@ -325,7 +325,7 @@ class RallyRoomSync(
         Thread {
             val r = AdminServer(dbUrl, a).loadRoomsOnly()
             val ok = r.error == null
-            val list = if (!ok) null else RoomList.summarize(r.value, null).map { it.code to RoomList.lineBrief(it) }
+            val list = if (!ok) null else RoomList.summarize(r.value, null).map { it.code to RoomList.linePick(it) }
             main.post { onLoaded(list, if (ok) "" else (r.error ?: "")) }
         }.start()
     }

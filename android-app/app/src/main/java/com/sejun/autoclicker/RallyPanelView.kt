@@ -176,12 +176,18 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
 
     private fun showDeviceToggle() {
         // [내 기기 ▾]  ✓ 위치 저장됨 ........ 방 1111 · 문 (보정은 0초가 아닐 때만)
-        root.findViewById<TextView>(R.id.devToggle).text = if (deviceOpen) "내 기기 ▴" else "내 기기 ▾"
+        root.findViewById<TextView>(R.id.devToggle).apply {
+            text = if (deviceOpen) "내 기기 ▴" else "내 기기 ▾"
+            setBackgroundResource(if (deviceOpen) R.drawable.bg_edit_done else R.drawable.bg_dev_chip)
+            setTypeface(null, if (deviceOpen) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+        }
         root.findViewById<TextView>(R.id.devPosBadge).apply {
             text = if (positionSavedShown) "✓ 위치 저장됨" else "⚠ 위치 없음"
             setTextColor(Color.parseColor(if (positionSavedShown) "#4ADE80" else "#FBBF24"))
         }
         val corr = RallyInputParse.formatCorrection(correctionShownMs)
+        // 펼쳤을 때는 아래 칸에 같은 내용이 있으니 요약을 숨긴다. "위치 저장됨"은 항상 보인다.
+        root.findViewById<View>(R.id.devSummary).visibility = if (deviceOpen) View.INVISIBLE else View.VISIBLE
         root.findViewById<TextView>(R.id.devSummary).text = listOfNotNull(
             if (roomShown.isBlank()) "방 없음" else "방 $roomShown",
             charNameShown.ifBlank { "캐릭터명 없음" },
@@ -193,34 +199,45 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     fun renderRoom(code: String) {
         roomShown = code
         showDeviceToggle()
-        root.findViewById<TextView>(R.id.devRoom).apply {
-            text = if (code.isEmpty()) "방 없음 (눌러서 입장)" else "방  $code  (눌러서 선택)"
-            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-        }
+        root.findViewById<TextView>(R.id.devRoom).text = boxLabel("방", if (code.isEmpty()) "없음" else code)
     }
+
+    /** 칸 안의 글: 작은 회색 이름표 + 굵은 값 ("방 1111", "캐릭터명 문"). */
+    private fun boxLabel(label: String, value: String): CharSequence =
+        android.text.SpannableStringBuilder("$label  $value").apply {
+            setSpan(android.text.style.RelativeSizeSpan(0.8f), 0, label.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#8190A8")), 0, label.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), label.length, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
 
     private var detailOpen = false
     private var lastPosText = ""
     private var lastDetailText = ""
 
+    /** ⋯(자세히)를 누르면 기기 ID · 저장 위치 · 진단이 아래에 펼쳐진다. */
     private fun showDeviceStatus() {
-        val hint = if (detailOpen) "▴ 자세히 접기" else "▾ 자세히 (기기 ID·저장 위치·진단)"
-        root.findViewById<TextView>(R.id.devPosStatus).text =
-            listOf(lastPosText, if (detailOpen) lastDetailText else "", hint).filter { it.isNotEmpty() }.joinToString("\n")
+        root.findViewById<TextView>(R.id.devPosStatus).apply {
+            text = listOf(lastPosText, lastDetailText).filter { it.isNotEmpty() }.joinToString("\n")
+            visibility = if (detailOpen && text.isNotEmpty()) View.VISIBLE else View.GONE
+        }
     }
 
     fun renderDevice(correctionMs: Int, posText: String, characterName: String, detailText: String = "", positionSaved: Boolean = true) {
         charNameShown = characterName
         positionSavedShown = positionSaved
-        root.findViewById<TextView>(R.id.devCharName).apply {
-            text = if (characterName.isBlank()) "캐릭터명 등록하기 (눌러서 입력)" else "캐릭터명  $characterName  (눌러서 변경)"
-            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-        }
+        root.findViewById<TextView>(R.id.devCharName).text = boxLabel("캐릭터명", characterName.ifBlank { "등록하기" })
         correctionShownMs = correctionMs
-        root.findViewById<TextView>(R.id.devMs).text = RallyInputParse.formatCorrection(correctionMs)
+        // "0초" 아래에 작은 글씨로 단위를 적는다(−/+ 한 번에 0.5초)
+        root.findViewById<TextView>(R.id.devMs).text = RallyInputParse.formatCorrection(correctionMs).let { main ->
+            android.text.SpannableStringBuilder("$main\n보정 · 0.5초씩").apply {
+                setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, main.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                setSpan(android.text.style.RelativeSizeSpan(0.66f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#8190A8")), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
         lastPosText = posText
         lastDetailText = detailText
-        root.findViewById<TextView>(R.id.devPosStatus).setOnClickListener { detailOpen = !detailOpen; showDeviceStatus() }
+        root.findViewById<View>(R.id.devMore).setOnClickListener { detailOpen = !detailOpen; showDeviceStatus() }
         showDeviceStatus()
         showDeviceToggle()
     }

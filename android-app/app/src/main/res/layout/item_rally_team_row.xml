@@ -218,7 +218,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="보정"
+                android:text="보정 · 0.5초씩"
                 android:textColor="#8190A8"
                 android:textSize="12sp" />
 

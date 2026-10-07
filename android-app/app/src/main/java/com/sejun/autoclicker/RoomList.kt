@@ -26,6 +26,11 @@ internal object RoomList {
     fun lineBrief(o: RoomOverview): String =
         "${o.code} · 군단 ${o.teamCount}개 (배정 ${o.assigned})"
 
+    /** 패널의 방 선택 창용 한 줄: "1111 · 군단 3 · 배정 0", 진행 중인 방에는 끝에 " · 집결 중"을 붙인다. */
+    const val PICK_RUNNING = " · 집결 중"
+    fun linePick(o: RoomOverview): String =
+        "${o.code} · 군단 ${o.teamCount} · 배정 ${o.assigned}" + (if (o.run == "RUNNING") PICK_RUNNING else "")
+
     fun line(o: RoomOverview): String =
         "${o.code} · 군단 ${o.teamCount}개 (배정 ${o.assigned}) · ${runLabel(o.run)} · 명단 ${o.members}명"
 

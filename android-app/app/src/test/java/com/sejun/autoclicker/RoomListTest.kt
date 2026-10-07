@@ -78,4 +78,9 @@ class RoomListTest {
         assertTrue(text, text.contains("명단 0명"))
         assertTrue(text, text.contains("상태 진행 중"))
     }
+
+    @Test fun 방_선택_창의_한_줄은_짧게_적고_진행_중이면_표시를_붙인다() {
+        assertEquals("1111 · 군단 3 · 배정 1", RoomList.linePick(RoomOverview("1111", 3, 1, "IDLE", 0)))
+        assertEquals("2222 · 군단 4 · 배정 4 · 집결 중", RoomList.linePick(RoomOverview("2222", 4, 4, "RUNNING", 0)))
+    }
 }
