@@ -41,4 +41,10 @@ class HunterTroopsTest {
         assertEquals(7, HunterTroops.clampCount(99))
         assertEquals(4, HunterTroops.clampCount(4))
     }
+
+    @Test fun topLeftPutsCentreOnSavedPoint() {
+        // 가운데 500, 크기 60 → 왼쪽 위 470. 창이 화면보다 48 아래에서 시작하면 그만큼 뺀다.
+        assertEquals(470, HunterTroops.topLeftFor(500, 60, 0))
+        assertEquals(422, HunterTroops.topLeftFor(500, 60, 48))
+    }
 }

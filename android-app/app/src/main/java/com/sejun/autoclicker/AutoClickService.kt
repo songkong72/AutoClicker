@@ -1580,6 +1580,31 @@ class AutoClickService : AccessibilityService() {
         if (!isTargetVisible) {
             toggleTargetVisibility()
         }
+        // 과녁도 저장해 둔 출정 위치에서 시작한다. 닫을 때 원래 자리로 되돌린다(과녁은 집결·연타와 같이 쓴다).
+        val tv = targetView
+        val tp = targetParams
+        if (tv != null && tp != null && bearTargetBackup == null && (HunterModeManager.dispatchX != 0 || HunterModeManager.dispatchY != 0)) {
+            bearTargetBackup = Pair(tp.x, tp.y)
+            placeCenterAt(tv, tp, HunterModeManager.dispatchX, HunterModeManager.dispatchY)
+        }
+    }
+
+    /** 위치 잡는 동안 옮겨 둔 과녁의 원래 자리. 위치 잡는 화면이 닫혀 있으면 null. */
+    private var bearTargetBackup: Pair<Int, Int>? = null
+
+    /** 떠 있는 표시의 가운데가 화면 좌표 ([cx], [cy])에 오도록 옮긴다. 아직 그려지지 않았으면 잠깐 뒤에 다시 해 본다. */
+    private fun placeCenterAt(view: View, params: WindowManager.LayoutParams, cx: Int, cy: Int, triesLeft: Int = 5) {
+        view.post {
+            if (view.width == 0 || view.height == 0) {
+                if (triesLeft > 0) mainHandler.postDelayed({ placeCenterAt(view, params, cx, cy, triesLeft - 1) }, 50L)
+                return@post
+            }
+            val loc = IntArray(2)
+            view.getLocationOnScreen(loc)
+            params.x = HunterTroops.topLeftFor(cx, view.width, loc[0] - params.x)
+            params.y = HunterTroops.topLeftFor(cy, view.height, loc[1] - params.y)
+            try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) {}
+        }
     }
 
     /** 부대 표시를 [troopCountSetting]개에 맞춘다. 이미 있는 표시는 위치를 그대로 둔다. */
@@ -1623,6 +1648,8 @@ class AutoClickService : AccessibilityService() {
             try { wm.addView(marker, lp) } catch (e: Exception) {}
             troopMarkers.add(marker)
             troopMarkerParams.add(lp)
+            // 저장해 둔 부대 위치가 있으면 그 자리에서 시작한다(다시 열 때마다 기본 자리로 돌아가 보이던 문제).
+            HunterModeManager.troops.getOrNull(i)?.let { saved -> placeCenterAt(marker, lp, saved.x, saved.y) }
         }
         troopCountLabel?.text = "부대 ${troopCountSetting}개"
     }
@@ -1632,6 +1659,16 @@ class AutoClickService : AccessibilityService() {
         troopMarkers.forEach { try { windowManager?.removeView(it) } catch (e: Exception) {} }
         troopMarkers.clear()
         troopMarkerParams.clear()
+        // 위치를 잡느라 옮겼던 과녁을 원래 자리로 되돌린다.
+        bearTargetBackup?.let { (x, y) ->
+            bearTargetBackup = null
+            val tv = targetView
+            val tp = targetParams
+            if (tv != null && tp != null) {
+                tp.x = x; tp.y = y
+                try { windowManager?.updateViewLayout(tv, tp) } catch (e: Exception) {}
+            }
+        }
     }
 
     private fun setupDrag(view: View, params: WindowManager.LayoutParams) {

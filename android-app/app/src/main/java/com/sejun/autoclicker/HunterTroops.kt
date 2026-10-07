@@ -30,6 +30,12 @@ internal object HunterTroops {
         return out
     }
 
+    /**
+     * 표시의 가운데가 화면의 [center]에 오게 하려면 창 좌표(왼쪽 위)를 얼마로 둬야 하는지.
+     * [windowOffset]은 창 좌표 0이 화면에서 놓이는 위치(상태바·컷아웃만큼 밀린 값)다.
+     */
+    fun topLeftFor(center: Int, size: Int, windowOffset: Int): Int = center - size / 2 - windowOffset
+
     /** 이번에 쓸 부대 번호(0부터). 범위를 벗어나면 첫 부대. */
     fun current(index: Int, count: Int): Int = if (index in 0 until count) index else 0
 
