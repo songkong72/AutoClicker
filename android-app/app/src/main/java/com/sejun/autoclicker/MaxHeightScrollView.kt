@@ -10,8 +10,14 @@ class MaxHeightScrollView @JvmOverloads constructor(c: Context, a: AttributeSet?
     var maxHeightPx: Int = 0
         set(v) { if (field != v) { field = v; requestLayout() } }
 
+    /** 측정 도중에 부모가 한도를 바꿀 때 쓴다(다시 배치를 요청하지 않는다). */
+    fun setMaxHeightDuringMeasure(px: Int) { quiet = px; hasQuiet = true }
+    private var quiet = 0
+    private var hasQuiet = false
+
     override fun onMeasure(widthSpec: Int, heightSpec: Int) {
-        val limited = if (maxHeightPx > 0) View.MeasureSpec.makeMeasureSpec(maxHeightPx, View.MeasureSpec.AT_MOST) else heightSpec
+        val max = if (hasQuiet) quiet else maxHeightPx
+        val limited = if (max > 0) View.MeasureSpec.makeMeasureSpec(max, View.MeasureSpec.AT_MOST) else heightSpec
         super.onMeasure(widthSpec, limited)
     }
 }

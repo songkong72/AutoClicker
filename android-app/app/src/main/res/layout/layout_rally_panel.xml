@@ -17,6 +17,14 @@
         android:minHeight="44dp"
         android:orientation="horizontal">
 
+        <View
+            android:id="@+id/rallyConnDot"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/bg_conn_dot" />
+
         <TextView
             android:id="@+id/rallyTitle"
             android:layout_width="0dp"
@@ -24,7 +32,7 @@
             android:layout_weight="1"
             android:text="집결"
             android:textColor="#F8FAFC"
-            android:textSize="18sp"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <!-- 알약(접힌 상태)에서만 보이는 남은 시간 -->
@@ -51,23 +59,21 @@
             android:textSize="20sp"
             android:visibility="gone" />
 
-        <TextView
+        <ImageView
             android:id="@+id/rallyMinimize"
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:gravity="center"
-            android:text="—"
-            android:textColor="#A9B4C7"
-            android:textSize="20sp" />
+            android:contentDescription="작게"
+            android:scaleType="center"
+            android:src="@drawable/ic_rp_min" />
 
-        <TextView
+        <ImageView
             android:id="@+id/rallyClose"
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:gravity="center"
-            android:text="✕"
-            android:textColor="#A9B4C7"
-            android:textSize="20sp" />
+            android:contentDescription="닫기"
+            android:scaleType="center"
+            android:src="@drawable/ic_rp_close" />
     </LinearLayout>
 
     <!-- 히어로: 단계 이름(알림 모양) · 큰 카운트다운 · 안내 -->
@@ -122,7 +128,8 @@
         android:layout_width="match_parent"
         android:layout_height="6dp"
         android:layout_marginTop="6dp"
-        android:max="1000" />
+        android:max="1000"
+        android:progressDrawable="@drawable/progress_rally" />
 
     <!-- 경고 -->
     <TextView
@@ -157,10 +164,11 @@
             android:textSize="12sp" />
 
         <TextView
+            android:id="@+id/rallyRowsHeadRight"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:maxLines="1"
-            android:text="숫자 = 행군 · 아래 = 클릭 순서"
+            android:text="행군 시간 · 위에서부터 차례로 클릭"
             android:textColor="#8190A8"
             android:textSize="12sp" />
     </LinearLayout>
@@ -177,10 +185,30 @@
         android:scrollbars="none">
 
         <LinearLayout
-            android:id="@+id/rallyRows"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/rallyRows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/rallyAddTeam"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_add_dashed"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="+ 군단 추가"
+                android:textColor="#93C5FD"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
     </com.sejun.autoclicker.MaxHeightScrollView>
 
     <LinearLayout
@@ -193,7 +221,7 @@
         android:visibility="gone">
 
         <TextView
-            android:layout_width="68dp"
+            android:layout_width="74dp"
             android:layout_height="wrap_content"
             android:text="집결 대기"
             android:textColor="#A9B4C7"
@@ -238,59 +266,78 @@
             android:textSize="15sp" />
     </LinearLayout>
 
-    <!-- 이동 준비 칩과 군단 추가 버튼을 한 줄에 -->
+    <!-- 이동 준비 시간: 눌러서 초를 입력 -->
     <LinearLayout
-        android:id="@+id/rallySetupRow"
+        android:id="@+id/rallyPrepRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="74dp"
+            android:layout_height="wrap_content"
+            android:text="이동 준비"
+            android:textColor="#A9B4C7"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/setPrep"
-            android:layout_width="wrap_content"
-            android:layout_height="44dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_chip_soft"
-            android:gravity="center"
-            android:maxLines="1"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:textColor="#93C5FD"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/rallyAddTeam"
             android:layout_width="0dp"
             android:layout_height="44dp"
-            android:layout_marginTop="8dp"
             android:layout_weight="1"
             android:background="@drawable/bg_chip_soft"
             android:gravity="center"
             android:maxLines="1"
-            android:text="+ 군단 추가"
-            android:textColor="#93C5FD"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
+            android:textColor="#F1F5F9"
+            android:textSize="15sp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/devToggle"
+    <!-- 내 기기 한 줄: [내 기기 ▾] ✓ 위치 저장됨 ...... 방 1111 · 문 -->
+    <LinearLayout
+        android:id="@+id/devToggleRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:minHeight="40dp"
+        android:layout_marginTop="10dp"
         android:gravity="center_vertical"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp"
-        android:text="내 기기 ▾"
-        android:textColor="#A9B4C7"
-        android:textSize="13sp" />
+        android:minHeight="36dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/devToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_dev_chip"
+            android:gravity="center"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:text="내 기기 ▾"
+            android:textColor="#F1F5F9"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/devPosBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:maxLines="1"
+            android:textColor="#4ADE80"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/devSummary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="end"
+            android:maxLines="1"
+            android:textColor="#A9B4C7"
+            android:textSize="13sp" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/devSection"

@@ -165,6 +165,15 @@ class RallyPanelHost(
                 try { wm.updateViewLayout(view.root, lp) } catch (_: Exception) { }
             }
         }
+        // 패널이 길어져 아래로 넘치면 위로 올려 화면 안에 둔다(아래 버튼이 화면 밖으로 나가지 않게).
+        view.root.addOnLayoutChangeListener { v, _, top, _, bottom, _, _, _, _ ->
+            val screenH = context.resources.displayMetrics.heightPixels
+            val h = bottom - top
+            if (h > 0 && lp.y + h > screenH) {
+                lp.y = Math.max(0, screenH - h)
+                try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
+            }
+        }
         wm.addView(view.root, lp)
         panel = view
         view.root.alpha = PreferencesHelper.getOverlayAlpha(context)

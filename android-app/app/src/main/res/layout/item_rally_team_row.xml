@@ -3,8 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingEnd="6dp"
-    android:paddingBottom="4dp">
+    android:paddingEnd="8dp"
+    android:paddingBottom="6dp">
 
   <!-- 머리 줄: 점(편집 중엔 체크박스) · 이름 · 행군시간(+몇 초 늦게) · 상태/펼침 · 남은 시간 -->
   <LinearLayout
@@ -15,57 +15,129 @@
     android:minHeight="48dp"
     android:orientation="horizontal">
 
-    <TextView
+    <!-- 평소엔 접속 점, 편집 중엔 체크박스(참여/제외) -->
+    <ImageView
         android:id="@+id/rowDot"
         android:layout_width="44dp"
         android:layout_height="44dp"
-        android:gravity="center"
-        android:text="●"
-        android:textSize="10sp" />
+        android:scaleType="center"
+        android:src="@drawable/ic_rp_dot" />
 
-    <TextView
-        android:id="@+id/rowName"
+    <LinearLayout
+        android:id="@+id/rowNameWrap"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:minHeight="40dp"
         android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/rowName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:maxLines="2"
+            android:minHeight="40dp"
+            android:textColor="#F1F5F9"
+            android:textSize="17sp" />
+
+        <TextView
+            android:id="@+id/rowMe"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_badge_me"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:text="나"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- 펼친 줄에서만: 군단 이름 칸 · 맡은 사람 칸(눌러서 배정) -->
+    <TextView
+        android:id="@+id/rowTeamBox"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_stepper"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:minWidth="52dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
         android:textColor="#F1F5F9"
-        android:textSize="16sp" />
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/rowLeaderBox"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:background="@drawable/bg_stepper"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:textColor="#F1F5F9"
+        android:textSize="15sp"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/rowMarch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:layout_marginEnd="2dp"
+        android:layout_marginStart="6dp"
+        android:gravity="end"
         android:textColor="#F1F5F9"
-        android:textSize="14sp"
+        android:textSize="15sp"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/rowStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="end|center_vertical"
-        android:minWidth="28dp"
-        android:paddingStart="6dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="6dp"
-        android:paddingBottom="8dp"
+        android:layout_marginStart="8dp"
+        android:gravity="center"
+        android:minHeight="24dp"
         android:textColor="#CBD5E1"
         android:textSize="12sp" />
+
+    <ImageView
+        android:id="@+id/rowChevron"
+        android:layout_width="32dp"
+        android:layout_height="44dp"
+        android:scaleType="center"
+        android:src="@drawable/ic_rp_chevron"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/rowDel"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:gravity="center"
+        android:minWidth="44dp"
+        android:textColor="#F87171"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/rowRemain"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
+        android:layout_marginStart="8dp"
         android:gravity="end"
-        android:textColor="#FFFFFF"
-        android:textSize="20sp"
+        android:minWidth="56dp"
+        android:textColor="#FBBF24"
+        android:textSize="22sp"
         android:textStyle="bold" />
   </LinearLayout>
 
@@ -76,6 +148,7 @@
     android:layout_height="wrap_content"
     android:layout_marginStart="44dp"
     android:orientation="vertical"
+    android:paddingBottom="8dp"
     android:visibility="gone">
 
     <LinearLayout
@@ -110,7 +183,7 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="−"
-                    android:textColor="#93C5FD"
+                    android:textColor="#A9B4C7"
                     android:textSize="22sp" />
 
                 <TextView
@@ -129,7 +202,7 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="+"
-                    android:textColor="#93C5FD"
+                    android:textColor="#A9B4C7"
                     android:textSize="22sp" />
             </LinearLayout>
         </LinearLayout>
@@ -163,7 +236,7 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="−"
-                    android:textColor="#93C5FD"
+                    android:textColor="#A9B4C7"
                     android:textSize="22sp" />
 
                 <TextView
@@ -182,23 +255,11 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="+"
-                    android:textColor="#93C5FD"
+                    android:textColor="#A9B4C7"
                     android:textSize="22sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/rowDel"
-        android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:layout_gravity="end"
-        android:gravity="center"
-        android:paddingStart="8dp"
-        android:paddingEnd="4dp"
-        android:text="✕ 이 군단 삭제"
-        android:textColor="#F87171"
-        android:textSize="13sp" />
   </LinearLayout>
 
   <com.sejun.autoclicker.RallyTimelineBar
