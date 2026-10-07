@@ -5,17 +5,24 @@
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <androidx.core.widget.NestedScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="24dp"
-            android:paddingVertical="28dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="16dp">
 
             <!-- Minimal Modern App Header -->
             <LinearLayout
@@ -23,7 +30,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="10dp">
 
                 <ImageView
                     android:layout_width="48dp"
@@ -73,40 +80,47 @@
                     app:tint="#64748B" />
             </LinearLayout>
 
-            <!-- 화면 전환 버튼 줄: 제목 옆에 두면 좁은 화면에서 제목이 세로로 눌려서 아래 줄로 내렸다 -->
+            <!-- 화면 전환 막대: 역할이 여럿인 기기(관리자 명단·개발자)에만 보인다. 지금 화면이 밝게 표시된다 -->
             <LinearLayout
+                android:id="@+id/roleSegments"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="end|center_vertical"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="14dp"
+                android:background="@drawable/bg_segment_track"
                 android:orientation="horizontal"
-                android:layout_marginBottom="20dp">
+                android:padding="4dp"
+                android:visibility="gone">
 
-                <!-- 개발자에게만 보인다: 일반 사용자 화면으로 바꿔 본다 -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnUserView"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:layout_marginEnd="6dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:paddingHorizontal="12dp"
+                <TextView
+                    android:id="@+id/segUser"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
                     android:text="일반 화면"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp" />
 
-                <!-- 관리자로 등록된 기기에서만 보인다: 한 번 눌러 관리자 ↔ 집결장 화면을 오간다 -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnRoleSwitch"
-                    style="@style/Widget.Material3.Button.TonalButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:paddingHorizontal="12dp"
-                    android:text="관리자로 전환"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/segLeader"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="집결장"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/segAdmin"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="관리자"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp" />
             </LinearLayout>
 
             <!-- Card 0: Membership Verification Status Card -->
@@ -119,7 +133,7 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:padding="16dp"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="14dp">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -157,8 +171,25 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Card 1: Simple 1-Switch Permission -->
+            <!-- 화면 터치가 허용돼 있으면 카드 대신 이 한 줄만 보인다 -->
+            <TextView
+                android:id="@+id/rowAccessibilityOk"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:drawablePadding="8dp"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="6dp"
+                android:text="화면 터치 허용됨"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone"
+                app:drawableStartCompat="@drawable/ic_check"
+                app:drawableTint="#1B7A3E" />
+
+            <!-- Card 1: Simple 1-Switch Permission (허용 전에만 보인다) -->
             <LinearLayout
+                android:id="@+id/cardAccessibility"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_card"
@@ -166,7 +197,7 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:padding="18dp"
-                android:layout_marginBottom="20dp">
+                android:layout_marginBottom="14dp">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -223,64 +254,140 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_card"
-                android:elevation="1dp"
                 android:orientation="vertical"
                 android:padding="18dp"
-                android:layout_marginBottom="24dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="집결 방"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="같은 방에 들어온 팀들이 동시에 성에 도착하도록 집결 클릭 시각이 자동 계산돼요."
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                android:layout_marginBottom="14dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
                     <TextView
-                        android:id="@+id/tvRoomStatus"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="@color/primary"
-                        android:textSize="12.5sp" />
+                        android:text="집결 방"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
 
-                    <!-- 관리자: 방 번호를 집결장에게 보낸다. 상태 줄 옆의 작은 버튼 -->
+                    <ImageView
+                        android:id="@+id/btnRoomHelp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="-12dp"
+                        android:layout_marginEnd="-12dp"
+                        android:layout_marginBottom="-12dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="집결 방 도움말"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_help" />
+                </LinearLayout>
+
+                <!-- 방 번호를 크게, 옆에 내 역할과 군단·배정 수 -->
+                <LinearLayout
+                    android:id="@+id/rowRoomNumber"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
                     <TextView
-                        android:id="@+id/btnShareRoom"
+                        android:id="@+id/tvRoomNumber"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
-                        android:padding="8dp"
-                        android:text="번호 공유"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="0.04"
+                        android:textColor="@color/text_primary"
+                        android:textSize="34sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvRoleChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="26dp"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/bg_role_chip"
+                        android:gravity="center"
+                        android:paddingHorizontal="10dp"
                         android:textColor="@color/primary"
-                        android:textSize="12.5sp"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvRoomSummary"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:maxLines="2"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- 방이 없을 때의 안내와 명단 등록 결과 -->
+                <TextView
+                    android:id="@+id/tvRoomStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <!-- 번호 공유(관리자) · 방 바꾸기 · 관리(관리자): 보이는 것끼리 폭을 나눠 가진다 -->
+                <LinearLayout
+                    android:id="@+id/rowRoomActions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:divider="@drawable/space_8dp"
+                    android:orientation="horizontal"
+                    android:showDividers="middle">
+
+                    <TextView
+                        android:id="@+id/btnShareRoom"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_btn_outline"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:text="번호 공유"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
                         android:textStyle="bold"
                         android:visibility="gone" />
 
                     <TextView
                         android:id="@+id/btnChangeRoom"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
-                        android:padding="8dp"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_btn_outline"
+                        android:gravity="center"
+                        android:maxLines="1"
                         android:text="방 바꾸기"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12.5sp"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/btnManage"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_btn_outline"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:text="관리"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
                         android:textStyle="bold"
                         android:visibility="gone" />
                 </LinearLayout>
@@ -290,24 +397,13 @@
                     android:id="@+id/btnPickRoom"
                     style="@style/Widget.Material3.Button.TonalButton"
                     android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="8dp"
-                    android:text="방 선택"
-                    android:textSize="13.5sp"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnOpenRallySettings"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="52dp"
                     android:layout_marginTop="12dp"
-                    android:backgroundTint="@color/primary"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
-                    android:text="⚔️ 집결 화면 열기"
-                    android:textColor="@color/text_on_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
+                    android:text="방 선택"
+                    android:textSize="15sp"
+                    android:visibility="gone"
                     app:cornerRadius="14dp" />
             </LinearLayout>
 
@@ -315,13 +411,14 @@
             <TextView
                 android:id="@+id/tvGeneralModeToggle"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="60dp"
                 android:layout_marginBottom="12dp"
                 android:background="@drawable/bg_card"
-                android:padding="16dp"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="18dp"
                 android:text="일반 연타 모드  ▾"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <LinearLayout
@@ -685,5 +782,42 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- 집결 화면 열기: 화면 맨 아래에 늘 보인다(인증한 회원·관리자에게만) -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/background"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E4E6EB" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenRallySettings"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="20dp"
+            android:backgroundTint="@color/primary"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="집결 화면 열기"
+            android:textColor="@color/text_on_primary"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/ic_rally"
+            app:iconGravity="textStart"
+            app:iconPadding="10dp"
+            app:iconTint="@color/text_on_primary" />
+    </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

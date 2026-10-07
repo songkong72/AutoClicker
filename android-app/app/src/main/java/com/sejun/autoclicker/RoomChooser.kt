@@ -30,6 +30,16 @@ internal object RoomChooser {
     /** 방 줄 오른쪽의 한마디: "배정 2/3"(집결장이 배정된 군단 수 / 군단 수). */
     fun badge(assigned: Int, teamCount: Int): String = "배정 $assigned/$teamCount"
 
+    /**
+     * 저장해 둔 방 목록의 한 줄("1111 · 군단 3개 (배정 2)")에서 첫 화면에 보일 요약("군단 3개 · 배정 2/3")을 만든다.
+     * 모양이 다르면 null(요약을 보이지 않는다).
+     */
+    fun summaryFromLine(line: String?): String? {
+        val m = Regex("군단 (\\d+)개 \\(배정 (\\d+)\\)").find(line ?: return null) ?: return null
+        val (teams, assigned) = m.destructured
+        return "군단 ${teams}개 · 배정 $assigned/$teams"
+    }
+
     /** 편집에서 휴지통을 보일 방인지: 지울 수 있는 목록이고, 지금 들어와 있는 방이 아니어야 한다(사용 중인 방은 잠근다). */
     fun canDelete(deletable: Boolean, code: String, current: String): Boolean = deletable && code != current
 

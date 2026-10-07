@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand Primary -->
-    <color name="primary">#2563EB</color>
+    <color name="primary">#1F3FA6</color>
     <color name="primary_dark">#1D4ED8</color>
     <color name="primary_light">#DBEAFE</color>
     <color name="primary_container">#EFF6FF</color>
@@ -14,14 +14,14 @@
     <color name="warning">#D97706</color>
 
     <!-- Neutral & Backgrounds -->
-    <color name="background">#F8FAFC</color>
+    <color name="background">#F2F3F5</color>
     <color name="surface">#FFFFFF</color>
     <color name="surface_variant">#F1F5F9</color>
     <color name="divider">#E2E8F0</color>
 
     <!-- Typography -->
-    <color name="text_primary">#0F172A</color>
-    <color name="text_secondary">#475569</color>
+    <color name="text_primary">#16181D</color>
+    <color name="text_secondary">#5B6270</color>
     <color name="text_tertiary">#94A3B8</color>
     <color name="text_on_primary">#FFFFFF</color>
 

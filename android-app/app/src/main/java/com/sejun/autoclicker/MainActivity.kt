@@ -144,9 +144,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         // 관리자로 등록된 기기: 한 번 눌러 관리자 ↔ 집결장 화면을 오간다(코드를 다시 받지 않는다)
-        binding.btnUserView.setOnClickListener { enterUserView() }
-        binding.btnRoleSwitch.setOnClickListener {
-            if (PreferencesHelper.isAdminMode(this)) switchToLeader() else enterFromRoster(askCodeIfNot = true)
+        // 화면 전환 막대: 지금 화면이 아닌 칸을 누르면 그 화면으로 간다(관리자는 누를 때마다 서버에 다시 확인한다)
+        binding.segUser.setOnClickListener { if (!PreferencesHelper.isUserView(this)) enterUserView() }
+        binding.segLeader.setOnClickListener {
+            if (PreferencesHelper.isUserView(this)) setUserView(false)
+            if (PreferencesHelper.isAdminMode(this)) switchToLeader()
+        }
+        binding.segAdmin.setOnClickListener {
+            if (PreferencesHelper.isUserView(this)) setUserView(false)
+            if (!PreferencesHelper.isAdminMode(this)) enterFromRoster(askCodeIfNot = true)
         }
 
         // 상단 타이틀 5회 연속 탭 시 관리자 진입 (히든 제스처)
@@ -393,8 +399,13 @@ class MainActivity : AppCompatActivity() {
             binding.badgeAccessibility.setTextColor(ContextCompat.getColor(this, R.color.success))
             // 허용된 뒤에는 "허용됨" 배지만 남긴다(누를 수 없는 "완료" 버튼이 같은 뜻으로 한 번 더 나오던 것)
             binding.btnGrantAccessibility.visibility = View.GONE
-            binding.tvAccessibilityHint.visibility = View.GONE // 허용된 뒤에는 한 줄로 줄인다
+            binding.tvAccessibilityHint.visibility = View.GONE
+            // 허용된 뒤에는 카드 대신 "화면 터치 허용됨" 한 줄만 보인다
+            binding.cardAccessibility.visibility = View.GONE
+            binding.rowAccessibilityOk.visibility = View.VISIBLE
         } else {
+            binding.cardAccessibility.visibility = View.VISIBLE
+            binding.rowAccessibilityOk.visibility = View.GONE
             binding.badgeAccessibility.text = getString(R.string.status_needed)
             binding.badgeAccessibility.setBackgroundResource(R.drawable.bg_badge_warning)
             binding.badgeAccessibility.setTextColor(ContextCompat.getColor(this, R.color.warning))
@@ -454,23 +465,43 @@ class MainActivity : AppCompatActivity() {
     private fun updateRallyInfoCard() {
         val room = roomPrefs().getString("cloud_room_number", "") ?: ""
         val admin = PreferencesHelper.isAdminMode(this)
-        // 방 번호를 치지 않고 서버의 방 목록에서 고른다. 방이 없으면 큰 "방 선택", 있으면 상태 줄 옆의 "방 바꾸기".
-        binding.btnPickRoom.visibility = if (room.isEmpty()) View.VISIBLE else View.GONE
-        binding.btnChangeRoom.visibility = if (room.isNotEmpty()) View.VISIBLE else View.GONE
-        binding.btnShareRoom.visibility = if (admin && room.isNotEmpty()) View.VISIBLE else View.GONE
+        val hasRoom = room.isNotEmpty()
+        // 방 번호를 치지 않고 서버의 방 목록에서 고른다. 방이 없으면 큰 "방 선택", 있으면 "방 바꾸기".
+        binding.btnPickRoom.visibility = if (hasRoom) View.GONE else View.VISIBLE
+        binding.btnChangeRoom.visibility = if (hasRoom) View.VISIBLE else View.GONE
+        binding.btnShareRoom.visibility = if (admin && hasRoom) View.VISIBLE else View.GONE
+        binding.btnManage.visibility = if (admin) View.VISIBLE else View.GONE
+        binding.rowRoomActions.visibility = if (hasRoom || admin) View.VISIBLE else View.GONE
         // 방이 이미 있는 관리자에게는 "방을 만들고 공유하세요" 안내를 되풀이하지 않는다
-        binding.tvAuthStatusSubtitle.visibility = if (admin && room.isNotEmpty()) View.GONE else View.VISIBLE
-        val note = if (rosterStatus.isNotEmpty()) "\n$rosterStatus" else ""
-        binding.tvRoomStatus.text = when {
-            room.isEmpty() && admin -> "방을 고르거나 만들어 주세요.$note"
-            room.isEmpty() -> "방을 선택해 주세요.$note"
-            admin -> "방 $room · 관리자$note"
-            else -> "방 $room · 집결장$note"
-        }
+        binding.tvAuthStatusSubtitle.visibility = if (admin && hasRoom) View.GONE else View.VISIBLE
+        // 방 번호는 크게, 옆에 내 역할과 군단·배정 수(마지막으로 받은 방 목록 기준이라 없으면 비운다)
+        binding.rowRoomNumber.visibility = if (hasRoom) View.VISIBLE else View.GONE
+        binding.tvRoomNumber.text = room
+        binding.tvRoleChip.text = if (admin) "관리자" else "집결장"
+        binding.tvRoomSummary.text = RoomChooser.summaryFromLine(RoomListCache.load(roomPrefs()).firstOrNull { it.first == room }?.second).orEmpty()
+        val status = listOf(
+            when {
+                hasRoom -> ""
+                admin -> "방을 고르거나 만들어 주세요."
+                else -> "방을 선택해 주세요."
+            },
+            rosterStatus
+        ).filter { it.isNotEmpty() }.joinToString("\n")
+        binding.tvRoomStatus.text = status
+        binding.tvRoomStatus.visibility = if (status.isEmpty()) View.GONE else View.VISIBLE
+    }
     }
 
     private fun setupRoomCard() {
         binding.btnPickRoom.setOnClickListener { showRoomChooser() }
+        binding.btnManage.setOnClickListener { showAdminMenu() }
+        binding.btnRoomHelp.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("집결 방")
+                .setMessage("같은 방에 들어온 팀들이 동시에 성에 도착하도록 집결 클릭 시각이 자동 계산돼요.")
+                .setPositiveButton("확인", null)
+                .show()
+        }
         binding.btnChangeRoom.setOnClickListener { showRoomChooser() }
         binding.btnShareRoom.setOnClickListener {
             val code = roomPrefs().getString("cloud_room_number", "") ?: ""
@@ -768,17 +799,26 @@ class MainActivity : AppCompatActivity() {
         // 전환 버튼은 서버 명단에 있다고 확인된 기기에만 보이고, 그때는 열쇠(코드 입력) 아이콘이 필요 없다
         val userView = PreferencesHelper.isUserView(this)
         val roster = PreferencesHelper.isRosterAdmin(this) && !userView
-        // 개발자로 확인된 기기에만 "일반 화면" 버튼을 보여 준다(누를 때 서버에 다시 확인한다)
-        binding.btnUserView.visibility =
-            if (!userView && roomPrefs().getBoolean("is_owner_cached", false)) View.VISIBLE else View.GONE
-        binding.btnRoleSwitch.visibility = if (roster) View.VISIBLE else View.GONE
-        binding.btnRoleSwitch.text = if (PreferencesHelper.isAdminMode(this)) "집결장으로 전환" else "관리자로 전환"
+        // 화면 전환 막대: 역할이 여럿인 기기에만 보이고, 지금 화면인 칸이 밝게 표시된다("일반 화면" 칸은 개발자에게만)
+        val adminMode = PreferencesHelper.isAdminMode(this)
+        val seg = RoleSwitch.model(roomPrefs().getBoolean("is_owner_cached", false), PreferencesHelper.isRosterAdmin(this), userView, adminMode)
+        binding.roleSegments.visibility = if (seg.visible) View.VISIBLE else View.GONE
+        binding.segUser.visibility = if (seg.showUser) View.VISIBLE else View.GONE
+        listOf(binding.segUser to RoleSwitch.Seg.USER, binding.segLeader to RoleSwitch.Seg.LEADER, binding.segAdmin to RoleSwitch.Seg.ADMIN).forEach { (v, s) ->
+            val on = s == seg.selected
+            if (on) v.setBackgroundResource(R.drawable.bg_segment_on) else v.background = null
+            v.setTextColor(ContextCompat.getColor(this, if (on) R.color.text_primary else R.color.text_secondary))
+            v.setTypeface(null, if (on) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+        }
+        // 관리자 화면과 (명단에 있는) 집결장 화면에서는 상태 카드를 두지 않는다: 전환은 위 막대, 관리는 집결 방 카드의 "관리"
+        binding.cardAuthStatus.visibility = if (!userView && (adminMode || roster)) View.GONE else View.VISIBLE
         binding.btnAdminIcon.visibility = if (roster || userView) View.GONE else View.VISIBLE
         // 집결장 화면에서는 위쪽 전환 버튼 하나만 둔다: 카드 안에 같은 "관리자로 전환"을 또 두지 않는다
         binding.btnAuthAction.visibility =
             if (roster && !PreferencesHelper.isAdminMode(this)) View.GONE else View.VISIBLE
         // 집결 방 카드는 인증한 회원·관리자에게만 보인다
         binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
+        binding.bottomBar.visibility = binding.cardRallyRoom.visibility // "집결 화면 열기"는 화면 맨 아래에 고정
         updateStartButtonVisibility()
         // 조작판이 떠 있는 채로 인증 상태가 바뀌어도 집결·헌터 아이콘이 바로 맞춰지게 한다
         AutoClickService.instance?.refreshMemberIcons()

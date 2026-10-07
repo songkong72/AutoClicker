@@ -79,4 +79,10 @@ class RoomChooserTest {
         assertEquals(null, RoomChooser.note(emptyList(), null))
         assertEquals(true, RoomChooser.note(null, "HTTP 401")!!.contains("HTTP 401"))
     }
+
+    @Test fun summaryIsBuiltFromCachedLine() {
+        assertEquals("군단 3개 · 배정 2/3", RoomChooser.summaryFromLine("1111 · 군단 3개 (배정 2)"))
+        assertEquals(null, RoomChooser.summaryFromLine("1111"))
+        assertEquals(null, RoomChooser.summaryFromLine(null))
+    }
 }
