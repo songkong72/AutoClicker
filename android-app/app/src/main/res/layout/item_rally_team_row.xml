@@ -112,7 +112,7 @@
 
     <ImageView
         android:id="@+id/rowChevron"
-        android:layout_width="32dp"
+        android:layout_width="40dp"
         android:layout_height="44dp"
         android:scaleType="center"
         android:src="@drawable/ic_rp_chevron"
@@ -179,7 +179,7 @@
 
                 <TextView
                     android:id="@+id/rowMinus"
-                    android:layout_width="40dp"
+                    android:layout_width="34dp"
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="−"
@@ -198,7 +198,7 @@
 
                 <TextView
                     android:id="@+id/rowPlus"
-                    android:layout_width="40dp"
+                    android:layout_width="34dp"
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="+"
@@ -211,7 +211,7 @@
             android:id="@+id/rowAdjCol"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -232,7 +232,7 @@
 
                 <TextView
                     android:id="@+id/rowAdjMinus"
-                    android:layout_width="40dp"
+                    android:layout_width="34dp"
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="−"
@@ -251,7 +251,7 @@
 
                 <TextView
                     android:id="@+id/rowAdjPlus"
-                    android:layout_width="40dp"
+                    android:layout_width="34dp"
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="+"

@@ -266,7 +266,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         heroSub.text = if (arrivalNote.isEmpty()) sub else arrivalNote
         heroSub.visibility = if (editing || isMinimized) View.GONE else View.VISIBLE
         renderPhases(hero.kind, hero.phase)
-        heroProgress.progress = (hero.progress * 1000).toInt()
+        // 취소·대기처럼 진행 중이 아닐 때는 막대를 비워 둔다(꽉 찬 빨간 줄이 경고처럼 보이지 않게).
+        val idleBar = hero.kind == HeroKind.CANCELLED || hero.kind == HeroKind.IDLE || hero.kind == HeroKind.EXCLUDED
+        heroProgress.progress = if (idleBar) 0 else (hero.progress * 1000).toInt()
         heroProgress.progressTintList = android.content.res.ColorStateList.valueOf(heroColor(hero))
 
         warningsShown = model.warnings
@@ -406,7 +408,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 isClickable = editing && r.excluded
             }
             v.findViewById<android.widget.ImageView>(R.id.rowChevron).apply {
-                visibility = if (editing && !r.excluded && !editOpen) View.VISIBLE else View.GONE
+                // 접힌 줄은 › (펼치기), 펼친 줄은 ▴ (접기)
+                visibility = if (editing && !r.excluded) View.VISIBLE else View.GONE
+                setImageResource(if (editOpen) R.drawable.ic_rp_chevron_up else R.drawable.ic_rp_chevron)
+                contentDescription = if (editOpen) "접기" else "펼치기"
                 setOnClickListener { toggleOpen() }
             }
             v.findViewById<View>(R.id.rowHead).apply {
