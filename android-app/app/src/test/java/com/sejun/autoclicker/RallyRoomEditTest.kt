@@ -203,4 +203,11 @@ class RallyRoomEditTest {
         assertEquals(listOf("1군"), d.teams.map { it.name })
         assertEquals(30.0, d.teams[0].marchSec, 0.0)
     }
+
+    @Test fun 군단은_최대_10개까지만_추가된다() {
+        val full = gapRoom(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        assertEquals(10, RallyRoomEdit.MAX_TEAMS)
+        assertSame(full, RallyRoomEdit.addNextTeam(full, 30.0))
+        assertEquals(10, RallyRoomEdit.addNextTeam(gapRoom(1, 2, 3, 4, 5, 6, 7, 8, 9), 30.0).teams.size)
+    }
 }

@@ -85,6 +85,9 @@ object RallyClickTiming {
 
 /** 관리자 편집. 진행 중(RUNNING)에는 잠기고, 잠긴 상태의 요청은 문서를 그대로 돌려준다. */
 object RallyRoomEdit {
+    /** 한 방에 만들 수 있는 군단 수. */
+    const val MAX_TEAMS = 10
+
     private fun locked(d: RallyRoomDoc) = d.run == "RUNNING"
 
     /**
@@ -164,7 +167,7 @@ object RallyRoomEdit {
      * 이름이 겹치지 않고, 다른 군단이 쓰는 id도 가져가지 않는다. 진행 중이면 그대로.
      */
     fun addNextTeam(doc: RallyRoomDoc, marchSec: Double): RallyRoomDoc {
-        if (locked(doc)) return doc
+        if (locked(doc) || doc.teams.size >= MAX_TEAMS) return doc
         var n = 1
         while (doc.teams.any { it.name == "${n}군" }) n++
         var idNo = n

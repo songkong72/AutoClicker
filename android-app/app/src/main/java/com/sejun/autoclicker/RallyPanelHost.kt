@@ -157,6 +157,7 @@ class RallyPanelHost(
         ).apply { gravity = Gravity.TOP or Gravity.START; x = 24; y = 120 }
         (view.root as RallyDragLayout).let { drag ->
             var sx = 0; var sy = 0
+            drag.scrollArea = view.rowsScrollView
             drag.onDragStart = { sx = lp.x; sy = lp.y }
             drag.onDragMove = { dx, dy ->
                 lp.x = sx + dx.toInt(); lp.y = sy + dy.toInt()

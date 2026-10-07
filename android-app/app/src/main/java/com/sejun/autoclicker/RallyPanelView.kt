@@ -62,6 +62,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private val rowsHead = root.findViewById<View>(R.id.rallyRowsHead)
     private val rowsHeadLeft = root.findViewById<TextView>(R.id.rallyRowsHeadLeft)
     private val rowsScroll = root.findViewById<MaxHeightScrollView>(R.id.rallyRowsScroll)
+    /** 패널을 끌어 옮기는 틀이 이 목록의 세로 스크롤은 건드리지 않게 알려 주기 위한 참조. */
+    val rowsScrollView: View get() = rowsScroll
     private val adminBar = root.findViewById<View>(R.id.rallyAdminBar)
     private val btnStart = root.findViewById<TextView>(R.id.rallyBtnStart)
     private val btnStop = root.findViewById<TextView>(R.id.rallyBtnStop)
@@ -230,7 +232,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         adminBar.visibility = if (isAdmin) View.VISIBLE else View.GONE
         // 준비·집결 시간과 팀 추가는 가끔만 고치므로 편집 모드(✎)에서만 보인다. 팀이 하나도 없을 때는 바로 추가할 수 있게 보여 준다.
         val showSetup = if (editing || (isAdmin && model.editable && model.rows.isEmpty())) View.VISIBLE else View.GONE
-        root.findViewById<View>(R.id.rallyAddTeam).visibility = showSetup
+        // 군단이 최대(10개)면 더 만들 수 없으니 버튼을 숨긴다.
+        root.findViewById<View>(R.id.rallyAddTeam).visibility =
+            if (model.rows.size >= RallyRoomEdit.MAX_TEAMS) View.GONE else showSetup
         prepShown = model.prepSec
         root.findViewById<View>(R.id.rallySettingsRow).visibility = showSetup
         root.findViewById<View>(R.id.setPrep).visibility = showSetup
