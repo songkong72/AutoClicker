@@ -583,7 +583,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             title.ellipsize = android.text.TextUtils.TruncateAt.END
             miniSub.text = listOf(myTeamShown, if (roomShown.isBlank()) "" else "방 $roomShown").filter { it.isNotEmpty() }.joinToString(" · ")
             miniSub.visibility = if (miniSub.text.isEmpty()) View.GONE else View.VISIBLE
-            (titleCol.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = LinearLayout.LayoutParams.WRAP_CONTENT; it.weight = 0f; it.marginEnd = (16 * dp).toInt(); titleCol.layoutParams = it }
+            // 이름 칸이 남는 폭을 가져가서, 시간과 펼치기 아이콘은 어느 단계에서든 오른쪽 끝 같은 자리에 온다.
+            (titleCol.layoutParams as? LinearLayout.LayoutParams)?.let { it.width = 0; it.weight = 1f; it.marginEnd = (16 * dp).toInt(); titleCol.layoutParams = it }
             root.minimumWidth = (236 * dp).toInt()
             heroLabel.visibility = View.GONE
             heroTime.visibility = View.GONE
