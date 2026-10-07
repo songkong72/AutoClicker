@@ -653,20 +653,15 @@ class MainActivity : AppCompatActivity() {
      */
     private fun askNewRoom() {
         val current = roomPrefs().getString("cloud_room_number", "") ?: ""
-        val input = EditText(this).apply {
-            hint = "방 번호 (비워 두면 자동)"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            filters = arrayOf(android.text.InputFilter.LengthFilter(8))
-            setPadding(50, 40, 50, 40)
-        }
         val moving = if (current.isEmpty()) "" else "\n\n지금 방 $current 에서 나가게 돼요. 집결장들은 이전 방에 남으니 새 번호를 다시 공유해야 해요."
-        AlertDialog.Builder(this)
-            .setTitle("새 방 만들기")
-            .setMessage("원하는 방 번호를 4자리 이상 적어 주세요. 비워 두면 번호를 자동으로 정해요.$moving")
-            .setView(input)
-            .setPositiveButton("만들기") { _, _ -> createNewRoom(input.text.toString()) }
-            .setNegativeButton("취소", null)
-            .show()
+        InputSheet(
+            this,
+            title = "새 방 만들기",
+            message = "원하는 방 번호를 4자리 이상 적어 주세요. 비워 두면 번호를 자동으로 정해요.$moving",
+            hint = "방 번호 (비워 두면 자동)",
+            maxLength = 8,
+            submitLabel = "만들기"
+        ) { typed -> createNewRoom(typed) }.show()
     }
 
     private fun createNewRoom(typed: String) {
