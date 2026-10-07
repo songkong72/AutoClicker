@@ -65,4 +65,18 @@ class RoomChooserTest {
         assertEquals("방 선택 · 서버 방 목록을 불러오지 못했어요 (권한 없음)", RoomChooser.title(null, "권한 없음"))
         assertEquals("방 선택 · 서버 방 목록을 불러오지 못했어요", RoomChooser.title(null, ""))
     }
+
+    @Test fun badgeShowsAssignedOverTeams() = assertEquals("배정 2/3", RoomChooser.badge(2, 3))
+
+    @Test fun currentRoomCannotBeDeleted() {
+        assertEquals(false, RoomChooser.canDelete(true, "1111", "1111"))
+        assertEquals(true, RoomChooser.canDelete(true, "2222", "1111"))
+        assertEquals(false, RoomChooser.canDelete(false, "2222", "1111"))
+    }
+
+    @Test fun noteOnlyWhenListCouldNotLoad() {
+        assertEquals(null, RoomChooser.note(listOf("1111" to "x"), null))
+        assertEquals(null, RoomChooser.note(emptyList(), null))
+        assertEquals(true, RoomChooser.note(null, "HTTP 401")!!.contains("HTTP 401"))
+    }
 }

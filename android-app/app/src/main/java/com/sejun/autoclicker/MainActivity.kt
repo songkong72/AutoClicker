@@ -496,102 +496,51 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "방 목록을 불러오는 중…", Toast.LENGTH_SHORT).show()
         Thread {
             val r = AdminServer(RallyRoomSync.DB_URL, roomAuth()).loadRoomsOnly()
-            val server = if (r.error != null) null else RoomList.summarize(r.value, null).map { it.code to RoomList.lineBrief(it) }
+            val overviews = if (r.error != null) null else RoomList.summarize(r.value, null)
+            val server = overviews?.map { it.code to RoomList.lineBrief(it) }
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 if (!server.isNullOrEmpty()) RoomListCache.save(roomPrefs(), server) // 집결 화면의 방 선택도 같은 목록으로 바로 뜬다
                 val entries = RoomChooser.entries(server, RallyRoomHistory.load(roomPrefs()), current, admin)
-                showRoomChooserDialog(RoomChooser.title(server, r.error), entries, current)
+                val badges = overviews.orEmpty().associate { it.code to RoomChooser.badge(it.assigned, it.teamCount) }
+                RoomSheet(
+                    this,
+                    rows = entries.filter { it.kind == RoomChooser.Kind.ROOM }.map { RoomSheet.Row(it.code, badges[it.code], it.deletable) },
+                    current = current,
+                    note = RoomChooser.note(server, r.error),
+                    showNew = entries.any { it.kind == RoomChooser.Kind.NEW },
+                    showType = entries.any { it.kind == RoomChooser.Kind.TYPE },
+                    onPick = { code ->
+                        if (code == current) Toast.makeText(this, "지금 들어와 있는 방이에요.", Toast.LENGTH_SHORT).show()
+                        else joinRoom(code)
+                    },
+                    onNew = { askNewRoom() },
+                    onType = { askRoomNumber() },
+                    onDelete = { code, done -> deleteRoom(code, done) }
+                ).show()
             }
         }.start()
     }
 
-    /**
-     * 방 선택 창. 방 줄을 누르면 그 방에 들어가고, 관리자에게는 줄 오른쪽에 휴지통이 보여 그 방을 바로 지울 수 있다
-     * (지울 방을 고르는 창을 따로 띄우지 않는다). 휴지통은 한 번 더 확인한 뒤에 지운다.
-     */
-    private fun showRoomChooserDialog(title: String, entries: List<RoomChooser.Entry>, current: String) {
-        val builder = AlertDialog.Builder(this).setTitle(title).setNegativeButton("닫기", null)
-        val ctx = builder.context
-        val dp = resources.displayMetrics.density
-        fun px(v: Int) = (v * dp).toInt()
-        val ripple = android.util.TypedValue().also { ctx.theme.resolveAttribute(android.R.attr.selectableItemBackground, it, true) }.resourceId
-        val list = android.widget.LinearLayout(ctx).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(0, px(8), 0, 0)
-        }
-        // 창 테마(밝은/어두운)의 기본 글자색. 못 얻으면 TextView 기본색을 그대로 쓴다
-        val primaryText = ctx.obtainStyledAttributes(intArrayOf(android.R.attr.textColorPrimary)).let { a -> a.getColorStateList(0).also { a.recycle() } }
-        var dialog: AlertDialog? = null
-        if (entries.isEmpty()) {
-            list.addView(TextView(ctx).apply {
-                text = "들어갈 수 있는 방이 없어요. 관리자가 방을 만들면 여기에 보여요."
-                textSize = 15f
-                setPadding(px(24), px(12), px(24), px(12))
-            })
-        }
-        for (e in entries) {
-            val row = android.widget.LinearLayout(ctx).apply {
-                orientation = android.widget.LinearLayout.HORIZONTAL
-                gravity = android.view.Gravity.CENTER_VERTICAL
-            }
-            row.addView(TextView(ctx).apply {
-                text = e.label
-                textSize = 16f
-                primaryText?.let { setTextColor(it) }
-                setPadding(px(24), px(14), px(8), px(14))
-                setBackgroundResource(ripple)
-                setOnClickListener {
-                    dialog?.dismiss()
-                    when (e.kind) {
-                        RoomChooser.Kind.ROOM ->
-                            if (e.code == current) Toast.makeText(this@MainActivity, "지금 들어와 있는 방이에요.", Toast.LENGTH_SHORT).show()
-                            else joinRoom(e.code)
-                        RoomChooser.Kind.NEW -> askNewRoom()
-                        RoomChooser.Kind.TYPE -> askRoomNumber()
-                    }
+    /** 방과 방 명단을 서버에서 지운다. 방 선택 창의 편집에서 확인을 받은 뒤에 부른다. 끝나면 성공 여부를 알린다. */
+    private fun deleteRoom(code: String, done: (Boolean) -> Unit) {
+        Thread {
+            val err = adminServer().deleteRoom(code)
+            runOnUiThread {
+                if (err != null) { Toast.makeText(this, "방을 지우지 못했어요: $err", Toast.LENGTH_LONG).show(); done(false); return@runOnUiThread }
+                RallyRoomHistory.forget(roomPrefs(), code)
+                RoomListCache.save(roomPrefs(), RoomListCache.load(roomPrefs()).filter { it.first != code })
+                // 지운 방에 들어와 있었다면 방에서 나온다. 번호를 남겨 두면 집결 화면이 그 방을 다시 만들어 버린다.
+                if (code == (roomPrefs().getString("cloud_room_number", "") ?: "")) {
+                    roomPrefs().edit().remove("cloud_room_number").remove("cloud_room_creatable").apply()
+                    AutoClickService.instance?.leaveRallyRoom()
+                    rosterStatus = ""
                 }
-            }, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            if (e.deletable) {
-                row.addView(TextView(ctx).apply {
-                    text = "🗑"
-                    textSize = 18f
-                    contentDescription = "방 ${e.code} 삭제"
-                    gravity = android.view.Gravity.CENTER
-                    setBackgroundResource(ripple)
-                    setOnClickListener { dialog?.dismiss(); confirmDeleteRoom(e.code, current) }
-                }, android.widget.LinearLayout.LayoutParams(px(56), px(48)))
+                Toast.makeText(this, "방 $code 을(를) 지웠어요.", Toast.LENGTH_SHORT).show()
+                updateRallyInfoCard()
+                done(true)
             }
-            list.addView(row)
-        }
-        dialog = builder.setView(android.widget.ScrollView(ctx).apply { addView(list) }).show()
-    }
-
-    private fun confirmDeleteRoom(code: String, current: String) {
-        val mine = if (code == current) "\n\n지금 들어와 있는 방이에요. 지우면 이 기기도 방에서 나옵니다." else ""
-        AlertDialog.Builder(this)
-            .setTitle("방 $code 삭제")
-            .setMessage("이 방과 방 명단을 서버에서 지워요. 되돌릴 수 없고, 그 방에 들어가 있던 사람들은 다시 입장해야 합니다. 정말 지울까요?$mine")
-            .setPositiveButton("삭제") { _, _ ->
-                Thread {
-                    val err = adminServer().deleteRoom(code)
-                    runOnUiThread {
-                        if (err != null) { Toast.makeText(this, "방을 지우지 못했어요: $err", Toast.LENGTH_LONG).show(); return@runOnUiThread }
-                        RallyRoomHistory.forget(roomPrefs(), code)
-                        RoomListCache.save(roomPrefs(), RoomListCache.load(roomPrefs()).filter { it.first != code })
-                        // 지운 방에 들어와 있었다면 방에서 나온다. 번호를 남겨 두면 집결 화면이 그 방을 다시 만들어 버린다.
-                        if (code == (roomPrefs().getString("cloud_room_number", "") ?: "")) {
-                            roomPrefs().edit().remove("cloud_room_number").remove("cloud_room_creatable").apply()
-                            AutoClickService.instance?.leaveRallyRoom()
-                            rosterStatus = ""
-                        }
-                        Toast.makeText(this, "방 $code 을(를) 지웠어요.", Toast.LENGTH_SHORT).show()
-                        updateRallyInfoCard()
-                    }
-                }.start()
-            }
-            .setNegativeButton("취소", null)
-            .show()
+        }.start()
     }
 
     /** 서버 방 목록을 받지 못했을 때만 쓰는 비상구: 받은 방 번호를 직접 넣어 들어간다. */
