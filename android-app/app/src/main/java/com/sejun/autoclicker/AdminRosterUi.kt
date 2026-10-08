@@ -23,7 +23,26 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
     private fun copy(label: String, text: String) {
         val cm = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(ClipData.newPlainText(label, text))
-        toast("📋 복사했어요")
+        TextShare.copiedNotice(activity)
+    }
+
+    /**
+     * 관리자 목록 보내기: 보낼 내용을 미리 보여 주고, 카카오톡으로 바로 보내기를 크게,
+     * 복사·다른 앱은 그 아래 작게 둔다. 대기 중인 코드가 들어 있으면 한 줄로 알린다.
+     */
+    private fun shareList(text: String, pendingCodes: Int) {
+        val title = "관리자 목록"
+        val sheet = SheetDialog(activity, "관리자 목록 보내기")
+        val lines = text.lines()
+        val shown = lines.take(6).joinToString("\n") + if (lines.size > 6) "\n… 외 ${lines.size - 6}줄" else ""
+        sheet.line(sheet.card(top = 4), shown, small = true)
+        if (pendingCodes > 0) sheet.line(sheet.content, "대기 중인 관리자 코드 ${pendingCodes}개가 함께 보내져요. 받을 사람이 맞는 대화방인지 확인해 주세요.", small = true, top = 8)
+        sheet.wideButton("카카오톡으로 보내기", top = 14) { sheet.dismiss(); TextShare.toKakao(activity, title, text) }
+        sheet.equalRow(
+            sheet.pill("복사") { sheet.dismiss(); TextShare.copy(activity, title, text) },
+            sheet.pill("다른 앱으로 보내기") { sheet.dismiss(); TextShare.chooser(activity, title, text) }
+        )
+        sheet.actions(act("닫기")).show()
     }
 
     /** 이 기기의 서버 ID를 보여 준다. 개발자로 등록할 때 Firebase 콘솔에 적는 값이다. */
@@ -83,7 +102,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         sheet.wideButton("+ 관리자 코드 만들기", top = 12) { askNames() }
         sheet.equalRow(
             sheet.pill("방 전체 목록") { showRooms() },
-            sheet.pill("목록 복사") { copy("관리자 목록", AdminRoster.exportText(admins, codes, now)) },
+            sheet.pill("목록 보내기") { shareList(AdminRoster.exportText(admins, codes, now), codes.count { !it.used && now < it.expiresAt }) },
             sheet.pill("코드 정리") { confirmPurge() },
             top = 10
         )

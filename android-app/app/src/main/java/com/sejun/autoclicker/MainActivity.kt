@@ -1051,7 +1051,7 @@ class MainActivity : AppCompatActivity() {
             val shareMsg = "[AutoClicker Pro 정회원 초대]\n회원 ID: $currentMemberId\n초대코드: $currentGeneratedCode\n앱 실행 후 인증창에 입력하시면 정회원으로 등록됩니다.$roomLine"
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText("AutoClickerInvite", shareMsg))
-            Toast.makeText(this, "📋 카카오톡 전달 메시지가 복사되었습니다!", Toast.LENGTH_SHORT).show()
+            TextShare.copiedNotice(this)
         }, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, (44 * resources.displayMetrics.density).toInt()).apply {
             topMargin = (10 * resources.displayMetrics.density).toInt()
         })
