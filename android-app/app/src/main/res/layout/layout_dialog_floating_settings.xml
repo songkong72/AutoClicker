@@ -463,18 +463,18 @@
         android:textColor="#94A3B8"
         android:textSize="10.5sp" />
 
-    <!-- 5. 확인 및 적용 버튼 -->
+    <!-- 5. 적용 버튼: 누르기 쉽게 48dp -->
     <Button
         android:id="@+id/btnDialogSave"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="48dp"
         android:layout_marginTop="12dp"
         android:backgroundTint="#2563EB"
         android:insetTop="0dp"
         android:insetBottom="0dp"
-        android:text="확인 및 적용"
+        android:text="적용"
         android:textColor="#FFFFFF"
-        android:textSize="13.5sp"
+        android:textSize="15sp"
         android:textStyle="bold" />
 
 </com.sejun.autoclicker.RallyDragLayout>
