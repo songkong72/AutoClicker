@@ -21,7 +21,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         const val START_GUARD_MS = 1500L
         /** 군단 목록이 한 번에 보여 주는 줄 수. 그보다 많으면 목록 안에서 스크롤한다. */
         const val VISIBLE_ROWS = 5
-        val PHASE_COLORS = listOf("#FBBF24", "#3B82F6", "#A78BFA", "#4ADE80")
+        val PHASE_COLORS = listOf("#FBBF24", "#3B82F6", "#A78BFA", "#2DD4BF")
         val PHASE_NAMES = listOf("대기", "집결", "행군", "도착")
     }
 
@@ -194,8 +194,11 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             setTypeface(null, if (deviceOpen) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
         }
         root.findViewById<TextView>(R.id.devPosBadge).apply {
-            text = if (positionSavedShown) "✓ 위치 저장됨" else "⚠ 위치 없음"
-            setTextColor(Color.parseColor(if (positionSavedShown) "#4ADE80" else "#FBBF24"))
+            // 저장됨: 체크만 초록, 글씨는 밝은 회색. 없음: 노랑으로 눈에 띄게.
+            text = if (!positionSavedShown) "⚠ 위치 없음" else android.text.SpannableString("✓ 위치 저장됨").apply {
+                setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#22C55E")), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+            setTextColor(Color.parseColor(if (positionSavedShown) "#CBD5E1" else "#FBBF24"))
         }
         val corr = RallyInputParse.formatCorrection(correctionShownMs)
         // 펼쳤을 때는 아래 칸에 같은 내용이 있으니 요약을 숨긴다. "위치 저장됨"은 항상 보인다.
@@ -421,8 +424,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                     clearColorFilter()
                     setOnClickListener { callbacks.onToggleExclude(r.id) }
                 } else {
-                    setImageResource(R.drawable.ic_rp_dot)
-                    setColorFilter(Color.parseColor(if (r.online) "#22C55E" else "#64748B"))
+                    // 접속 표시는 단계 색(초록·청록)과 겹치지 않게 회색으로: 접속 = 채운 점, 끊김 = 빈 고리
+                    if (r.online) { setImageResource(R.drawable.ic_rp_dot); setColorFilter(Color.parseColor("#7C8AA5")) }
+                    else { setImageResource(R.drawable.ic_rp_dot_off); clearColorFilter() }
                     setOnClickListener(null); isClickable = false
                 }
             }
@@ -457,7 +461,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             v.findViewById<TextView>(R.id.rowMarch).apply {
                 // 행군시간 아래에, 가장 먼저 누르는 군단보다 몇 초 늦게 누르는지(관리자 보정 포함) 작게 보여 준다.
-                visibility = if (editOpen || (editing && r.excluded)) View.GONE else View.VISIBLE
+                // 제외된 군단은 계산에서 빠져 있으니 행군 시간을 보이지 않는다
+                visibility = if (editOpen || r.excluded) View.GONE else View.VISIBLE
                 text = twoLine(RallyPanelFormat.sec(r.marchSec) + "초", lags[i])
                 setOnClickListener { if (editing && !r.excluded) toggleOpen() }
                 isClickable = editing && !r.excluded
@@ -559,7 +564,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             HeroKind.MOVE, HeroKind.WAIT_CLICK -> "#FBBF24"
             HeroKind.GATHERING -> "#60A5FA"
             HeroKind.MARCHING -> "#A78BFA"
-            HeroKind.ARRIVED -> "#22C55E"
+            HeroKind.ARRIVED -> "#2DD4BF"
             HeroKind.CANCELLED -> "#F87171"
             HeroKind.EXCLUDED -> "#64748B"
             else -> "#FFFFFF"
@@ -633,7 +638,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             bar.height = (4 * dp).toInt(); bar.topMargin = 0
             bar.leftMargin = (12 * dp).toInt(); bar.rightMargin = (24 * dp).toInt()
             root.background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.parseColor("#F2121A2C"))
+                setColor(Color.parseColor("#121A2C"))
                 cornerRadius = 32 * dp
                 setStroke((2 * dp).toInt(), if (quiet) Color.parseColor("#3A4560") else c)
             }

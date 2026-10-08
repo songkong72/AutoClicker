@@ -31,7 +31,7 @@ class RallyInputPopup(private val context: Context, private val wm: WindowManage
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(16), dp(18), dp(16))
             background = GradientDrawable().apply {
-                setColor(Color.parseColor("#F20F172A")); cornerRadius = dp(18).toFloat()
+                setColor(Color.parseColor("#121A2C")); cornerRadius = dp(18).toFloat()
                 setStroke(dp(1), Color.parseColor("#33CBD5E1"))
             }
         }

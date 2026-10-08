@@ -45,7 +45,7 @@ class RallyTimelineBar @JvmOverloads constructor(
         val gx1 = x(click + sc.gatherVisual)
 
         paint.alpha = if (dim) 80 else 255
-        paint.color = 0xFF334155.toInt() // 대기
+        paint.color = 0xFFC48B1A.toInt() // 대기 (범례의 노랑을 어둡게)
         rect.set(0f, 0f, w, h); canvas.drawRoundRect(rect, r, r, paint)
         paint.color = 0xFF3B82F6.toInt() // 집결 (압축)
         rect.set(gx0, 0f, gx1, h); canvas.drawRect(rect, paint)
