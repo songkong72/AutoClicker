@@ -215,10 +215,15 @@ class RallyRoomSync(
      * 먼저 이 기기에 적용하면 서버 쓰기가 실패했을 때 관리자만 혼자 출발한다.
      * 쓰는 동안 실시간 수신으로 같은 시작이 먼저 도착하면 그때 시작되고, 아래 적용은 같은 번호라 다시 시작하지 않는다.
      */
-    override fun onStart() {
+    override fun onStart() = startWith { RallyRoomEdit.startOrRegroup(it) }
+
+    /** 미배정 군단을 제외하고 시작(제외와 시작을 한 번에 서버에 쓴다). */
+    override fun onStartExcludingUnassigned() = startWith { RallyRoomEdit.startExcludingUnassigned(it) }
+
+    private fun startWith(op: (RallyRoomDoc) -> RallyRoomDoc) {
         if (!isAdmin || starting) return
         val cur = effectiveDoc()
-        val changed = RallyRoomEdit.startOrRegroup(cur)
+        val changed = op(cur)
         if (changed === cur) return
         val next = RallyChangeNote.stamp(changed, myLabel, System.currentTimeMillis())
         starting = true

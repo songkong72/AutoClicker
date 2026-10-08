@@ -210,4 +210,27 @@ class RallyRoomEditTest {
         assertSame(full, RallyRoomEdit.addNextTeam(full, 30.0))
         assertEquals(10, RallyRoomEdit.addNextTeam(gapRoom(1, 2, 3, 4, 5, 6, 7, 8, 9), 30.0).teams.size)
     }
+
+    private fun assignRoom() = RallyRoomDoc(listOf(
+        RallyTeamDoc("t1", "1군", "달구지", 10.0, leaderId = "m1"),
+        RallyTeamDoc("t2", "2군", "", 30.0, excluded = true),
+        RallyTeamDoc("t3", "3군", "", 50.0),
+        RallyTeamDoc("t4", "4군", "", 30.0)
+    ), 15.0, 300.0, "IDLE", 0)
+
+    @Test fun 참여_중인데_배정이_없는_군단만_미배정으로_센다() {
+        assertEquals(listOf("3군", "4군"), RallyRoomEdit.unassignedActive(assignRoom()).map { it.name })
+    }
+
+    @Test fun 미배정_제외하고_시작하면_그_군단만_제외되고_시작된다() {
+        val d = RallyRoomEdit.startExcludingUnassigned(assignRoom())
+        assertEquals("RUNNING", d.run)
+        assertEquals(1L, d.startSeq)
+        assertEquals(listOf(false, true, true, true), d.teams.map { it.excluded })
+    }
+
+    @Test fun 모두_미배정이면_제외하고_시작은_하지_않는다() {
+        val r = RallyRoomDoc(listOf(RallyTeamDoc("t1", "1군", "", 30.0)), 15.0, 300.0, "IDLE", 0)
+        assertSame(r, RallyRoomEdit.startExcludingUnassigned(r))
+    }
 }

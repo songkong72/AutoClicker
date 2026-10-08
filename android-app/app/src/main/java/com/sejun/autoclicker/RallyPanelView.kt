@@ -367,8 +367,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val running = !model.editable
         btnStart.visibility = if (running) View.GONE else View.VISIBLE
         btnStop.visibility = if (running) View.VISIBLE else View.GONE
-        blocked.visibility = if (isAdmin && model.startBlockedReason != null) View.VISIBLE else View.GONE
-        blocked.text = model.startBlockedReason ?: ""
+        // 시작을 막는 이유(빨강)가 없을 때, 참여 군단 중 미배정이 있으면 노랑으로 알린다(시작은 막지 않음)
+        val unassigned = if (isAdmin && model.editable) model.rows.filter { !it.excluded && it.leaderName.isBlank() }.map { it.name } else emptyList()
+        val note = model.startBlockedReason ?: if (unassigned.isEmpty()) null else "${unassigned.joinToString("·")} 미배정 · 맡은 사람이 없으면 클릭하지 않아요"
+        blocked.visibility = if (isAdmin && note != null) View.VISIBLE else View.GONE
+        blocked.text = note ?: ""
+        blocked.setTextColor(Color.parseColor(if (model.startBlockedReason != null) "#F87171" else "#FBBF24"))
     }
 
     private fun renderRows(list: List<TeamRowModel>, isAdmin: Boolean, editable: Boolean, editing: Boolean, showBars: Boolean, scale: RallyTimelineScale, nowSec: Double?) {
@@ -439,7 +443,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 } else android.text.SpannableStringBuilder("${r.name}  $who").apply {
                     setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, r.name.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                     setSpan(android.text.style.RelativeSizeSpan(0.82f), r.name.length, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    setSpan(android.text.style.ForegroundColorSpan(Color.parseColor(if (r.leaderName.isNotBlank()) "#CBD5E1" else "#8190A8")), r.name.length, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    // 참여 중인데 맡은 사람이 없으면 노랑으로 눈에 띄게(클릭할 폰이 없어 출발하지 않는다)
+                    setSpan(android.text.style.ForegroundColorSpan(Color.parseColor(when {
+                        r.leaderName.isNotBlank() -> "#CBD5E1"
+                        !r.excluded -> "#FBBF24"
+                        else -> "#8190A8"
+                    })), r.name.length, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (thin) 14f else 17f)
                 minHeight = if (thin) 0 else (40 * d).toInt()
@@ -456,7 +465,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             v.findViewById<TextView>(R.id.rowLeaderBox).apply {
                 visibility = if (editOpen) View.VISIBLE else View.GONE
                 text = if (r.leaderName.isNotBlank()) r.leaderName else "미배정 · 눌러서 배정"
-                setTextColor(Color.parseColor(if (r.leaderName.isNotBlank()) "#F1F5F9" else "#8190A8"))
+                setTextColor(Color.parseColor(if (r.leaderName.isNotBlank()) "#F1F5F9" else "#FBBF24"))
                 setOnClickListener { callbacks.onAssignLeader(r.id, r.name) }
             }
             v.findViewById<TextView>(R.id.rowMarch).apply {

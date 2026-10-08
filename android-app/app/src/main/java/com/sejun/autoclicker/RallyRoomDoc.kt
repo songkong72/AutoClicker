@@ -182,6 +182,18 @@ object RallyRoomEdit {
     fun startOrRegroup(doc: RallyRoomDoc): RallyRoomDoc =
         if (doc.teams.none { !it.excluded }) doc else doc.copy(run = "RUNNING", startSeq = doc.startSeq + 1)
 
+    /** 참여로 체크돼 있지만 맡은 사람이 없는 군단(클릭할 폰이 없어 실제로는 출발하지 않는다). */
+    fun unassignedActive(doc: RallyRoomDoc): List<RallyTeamDoc> =
+        doc.teams.filter { !it.excluded && it.leaderId.isBlank() }
+
+    /** 미배정 군단을 제외한 뒤 시작한다. 남는 참여 군단이 없으면 그대로 둔다. */
+    fun startExcludingUnassigned(doc: RallyRoomDoc): RallyRoomDoc {
+        if (locked(doc)) return doc
+        val trimmed = doc.copy(teams = doc.teams.map { if (!it.excluded && it.leaderId.isBlank()) it.copy(excluded = true) else it })
+        val started = startOrRegroup(trimmed)
+        return if (started === trimmed) doc else started
+    }
+
     fun cancel(doc: RallyRoomDoc): RallyRoomDoc =
         if (doc.run != "RUNNING") doc else doc.copy(run = "CANCELLED")
 

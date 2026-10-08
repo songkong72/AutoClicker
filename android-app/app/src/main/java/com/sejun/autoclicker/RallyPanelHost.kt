@@ -32,6 +32,8 @@ class RallyPanelHost(
         fun current(): RallyRoomState
         val isAdmin: Boolean
         fun onStart()
+        /** 미배정 군단을 제외하고 시작한다. */
+        fun onStartExcludingUnassigned() { onStart() }
         /** 시작을 서버에 쓰는 중이면 true: 버튼을 "시작하는 중…"으로 보인다. */
         fun isStarting(): Boolean = false
         fun onStop()
@@ -98,7 +100,18 @@ class RallyPanelHost(
     fun show() {
         if (panel != null) return
         val view = RallyPanelView(context, object : RallyPanelView.Callbacks {
-            override fun onStart() { stateSource.onStart(); refresh() }
+            override fun onStart() {
+                // 참여 군단 중 맡은 사람이 없는 군단이 있으면 한 번 물어본다(그 군단은 클릭할 폰이 없다)
+                val missing = stateSource.current().teams.filter { !it.excluded && it.leaderId.isBlank() }
+                if (missing.isEmpty() || !stateSource.isAdmin) { stateSource.onStart(); refresh(); return }
+                pick.show("${missing.joinToString("·") { it.name }}이(가) 미배정이에요", emptyList(),
+                    "맡은 사람이 없어 이 군단은 클릭하지 않아요. 어떻게 할까요?",
+                    listOf(
+                        RallyPickPopup.Item("미배정 제외하고 시작", "#93C5FD") { stateSource.onStartExcludingUnassigned(); refresh() },
+                        RallyPickPopup.Item("그대로 시작") { stateSource.onStart(); refresh() },
+                        RallyPickPopup.Item("취소", "#94A3B8") { }
+                    ))
+            }
             override fun onStop() { stateSource.onStop(); refresh() }
             override fun onMinimize() { toggleMinimize() }
             override fun onClose() {
