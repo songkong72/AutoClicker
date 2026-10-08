@@ -243,7 +243,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         root.findViewById<TextView>(R.id.devMs).text = RallyInputParse.formatCorrection(correctionMs).let { main ->
             android.text.SpannableStringBuilder("$main\n보정 · 0.5초씩").apply {
                 setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, main.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                setSpan(android.text.style.RelativeSizeSpan(0.66f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                setSpan(android.text.style.RelativeSizeSpan(0.62f), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#8190A8")), main.length + 1, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
