@@ -21,6 +21,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         const val START_GUARD_MS = 1500L
         /** 군단 목록이 한 번에 보여 주는 줄 수. 그보다 많으면 목록 안에서 스크롤한다. */
         const val VISIBLE_ROWS = 5
+        private const val SAVED_FLASH = "✓ 저장됨"
         val PHASE_COLORS = listOf("#FBBF24", "#3B82F6", "#A78BFA", "#2DD4BF")
         val PHASE_NAMES = listOf("대기", "집결", "행군", "도착")
     }
@@ -139,14 +140,13 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             root.findViewById<View>(id).setOnClickListener { callbacks.onCorrectionDelta(ms) }
         }
         root.findViewById<TextView>(R.id.devSavePos).let { b ->
-            val label = b.text
             val color = b.currentTextColor
-            val restore = Runnable { b.text = label; b.setTextColor(color) }
+            val restore = Runnable { b.text = savePosLabel(); b.setTextColor(color) }
             b.setOnClickListener {
                 callbacks.onSavePosition()
                 // 저장됐다는 걸 눈과 손으로 바로 알 수 있게: 진동 + 버튼이 잠깐 초록 "✓ 저장됨"으로 바뀐다
                 b.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK)
-                b.text = "✓ 저장됨"
+                b.text = SAVED_FLASH
                 b.setTextColor(Color.parseColor("#22C55E"))
                 b.removeCallbacks(restore)
                 b.postDelayed(restore, 1500L)
@@ -177,6 +177,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private var lastRender: (() -> Unit)? = null
     private var deviceOpen = false
     private var positionSavedShown = true
+    /** 위치가 이미 있으면 "다시 저장"으로 바꿔, 옆의 "✓ 위치 저장됨"과 같은 말이 겹쳐 눌러야 하는지 헷갈리지 않게 한다. */
+    private fun savePosLabel() = if (positionSavedShown) "다시 저장" else "위치 저장"
     private var warningsShown: List<String> = emptyList()
 
     /** "내 기기"를 펼치거나 접는다. 접혀 있을 때는 제목 줄에 한 줄 요약을 보여 준다. */
@@ -240,6 +242,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     fun renderDevice(correctionMs: Int, posText: String, characterName: String, detailText: String = "", positionSaved: Boolean = true) {
         charNameShown = characterName
         positionSavedShown = positionSaved
+        // 저장 직후 잠깐 보이는 "✓ 저장됨"은 덮어쓰지 않는다
+        root.findViewById<TextView>(R.id.devSavePos).let { b -> if (b.text.toString() != SAVED_FLASH) b.text = savePosLabel() }
         root.findViewById<TextView>(R.id.devCharName).text = boxLabel("캐릭터명", characterName.ifBlank { "등록하기" })
         correctionShownMs = correctionMs
         // "0초" 아래에 작은 글씨로 단위를 적는다(−/+ 한 번에 0.5초)
@@ -583,14 +587,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     /** 알약에서는 한 줄에 들어가도록 단계명을 짧게 줄인다. */
     private fun minLabel(h: HeroModel): String = when (h.kind) {
         HeroKind.MOVE -> "이동 준비"
-        HeroKind.WAIT_CLICK -> "집결 대기"
+        HeroKind.WAIT_CLICK -> "클릭 대기"
         HeroKind.GATHERING -> "집결 중"
         HeroKind.MARCHING -> "행군 중"
         HeroKind.ARRIVED -> "전원 도착"
         HeroKind.CANCELLED -> "작전 취소"
         HeroKind.EXCLUDED -> "참여 안 함"
         HeroKind.OVERVIEW -> h.label
-        HeroKind.IDLE -> if (h.label.contains("배정")) "군단 배정 대기" else if (h.label.contains("참여하지")) "참여 안 함" else if (h.label.contains("구성")) "팀 구성 중" else "시작 대기"
+        HeroKind.IDLE -> if (h.label.contains("배정")) "군단 배정 대기" else if (h.label.contains("참여하지")) "참여 안 함" else if (h.label.contains("구성")) "군단 구성 중" else "시작 대기"
     }
 
     /** 최소화: 카운트다운 한 줄만 남기고 나머지는 숨긴다. */

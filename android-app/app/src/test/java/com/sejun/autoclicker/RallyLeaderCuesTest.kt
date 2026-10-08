@@ -57,7 +57,7 @@ class RallyLeaderCuesTest {
 
     // ---- 5. 대기 중 한 줄 ----
     @Test fun idleSubLabelShowsClickTimeAndTeamCount() {
-        assertEquals("시작 후 15초에 내 집결 클릭 · 참여 2팀",
+        assertEquals("시작 후 15초에 내 집결 클릭 · 참여 군단 2개",
             RallyScreenModel.idleSub("시작 후 15초에 내 집결 클릭", 2))
     }
 }

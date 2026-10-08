@@ -106,7 +106,7 @@ class AutoClickService : AccessibilityService() {
     fun performRallyClickNow() {
         val saved = PreferencesHelper.getSavedRallyTargetPosition(this) ?: run {
             rallyRoomSync?.clickResult = "⚠️ 클릭 안 함: 저장된 위치 없음"
-            vibrate(80); showToast("⚠️ 저장된 타겟 위치가 없어 클릭하지 못했어요"); return
+            vibrate(80); showToast("⚠ 저장된 클릭 위치가 없어 클릭하지 못했어요"); return
         }
         val target = targetView
         val loc = IntArray(2)
@@ -139,7 +139,7 @@ class AutoClickService : AccessibilityService() {
             val ok = dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), callback, null)
             Log.d(TAG, "rally click at ($cx, $cy) dispatched=$ok")
             if (!ok) rallyRoomSync?.clickResult = "✗ 탭 전송 거부됨 · $where"
-            showToast(if (ok) "🎯 집결 클릭! (${cx.toInt()}, ${cy.toInt()})" else "⚠️ 클릭 전송 실패")
+            showToast(if (ok) "집결 클릭! (${cx.toInt()}, ${cy.toInt()})" else "⚠ 클릭을 보내지 못했어요")
             mainHandler.postDelayed({ rallyClickArmed = false; setTargetTouchable(true) }, 500L)
         }, if (armed) 0L else 40L)
     }
@@ -187,16 +187,16 @@ class AutoClickService : AccessibilityService() {
         if (!prefs.getBoolean("bear_mode_unlocked", false)) {
             prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
             controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
-            showToast("🐻 비밀 헌터 모드가 개방되었습니다!")
+            showToast("🐻 비밀 헌터 모드가 열렸어요!")
         } else {
-            showToast("🐻 이미 헌터 모드가 열려있습니다!")
+            showToast("🐻 헌터 모드는 이미 열려 있어요.")
         }
     }
 
     fun toggleRallyPanel() {
         val isAdmin = PreferencesHelper.isAdminMode(this)
         if (!PreferencesHelper.hasAccess(this)) {
-            Toast.makeText(this, "🔒 초대코드 인증이 필요합니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "집결장 코드 인증이 필요해요.", Toast.LENGTH_SHORT).show()
             return
         }
         val wm = windowManager ?: return
@@ -272,11 +272,11 @@ class AutoClickService : AccessibilityService() {
             when (intent?.action) {
                 ACTION_STOP_CLICK -> {
                     stopAutoClick()
-                    showToast("⏹ 알림창에서 연타를 정지했습니다.")
+                    showToast("알림창에서 연타를 멈췄어요.")
                 }
                 ACTION_CLOSE_ALL -> {
                     hideOverlays()
-                    showToast("✕ 오토클리커를 완전히 종료했습니다.")
+                    showToast("오토클리커를 완전히 껐어요.")
                 }
                 Intent.ACTION_SCREEN_OFF -> {
                     stopAutoClick()
@@ -310,7 +310,7 @@ class AutoClickService : AccessibilityService() {
             registerReceiver(actionReceiver, filter)
         }
 
-        showToast("⚡ 오토클리커 엔진 준비 완료! 앱에서 [띄우기]를 눌러주세요.")
+        showToast("오토클리커 준비가 끝났어요. 앱에서 [띄우기]를 눌러 주세요.")
     }
 
     /**
@@ -324,7 +324,7 @@ class AutoClickService : AccessibilityService() {
                 if (isClicking) {
                     stopAutoClick()
                     vibrate(60)
-                    showToast("🛑 볼륨 키로 연타를 즉시 정지했습니다!")
+                    showToast("볼륨 키로 연타를 바로 멈췄어요.")
                     return true
                 }
             }
@@ -440,7 +440,7 @@ class AutoClickService : AccessibilityService() {
             val btnToggle = controlView?.findViewById<ImageButton>(R.id.btnToggleTarget)
             btnToggle?.setImageResource(R.drawable.ic_visibility_off)
             btnToggle?.setColorFilter(Color.parseColor("#94A3B8"))
-            showToast("🎯 조준점을 화면 중앙에 배치했습니다.")
+            showToast("과녁을 화면 가운데에 놓았어요.")
         } catch (e: Exception) {
             Log.e(TAG, "Error recentering target", e)
         }
@@ -626,7 +626,7 @@ class AutoClickService : AccessibilityService() {
             vibrate(20)
             hideOverlays()
             // 방에 들어가 있으면 화면만 닫히고 방 연결은 남는다: 완전히 꺼진 것으로 오해하지 않게 알린다.
-            showToast(if (rallyRoomSync != null) "화면만 닫았어요. 집결이 시작되면 자동으로 클릭해요." else "✕ 오토클리커가 종료되었습니다.")
+            showToast(if (rallyRoomSync != null) "화면만 닫았어요. 집결이 시작되면 자동으로 클릭해요." else "오토클리커를 껐어요.")
         }
 
         // 6. 접기 / 펼치기 토글 버튼 (^ / v)
@@ -753,11 +753,11 @@ class AutoClickService : AccessibilityService() {
         if (isTargetVisible) {
             btnToggle.setImageResource(R.drawable.ic_visibility_off)
             btnToggle.setColorFilter(Color.parseColor("#94A3B8"))
-            showToast("👁 조준점을 표시했습니다.")
+            showToast("과녁을 보이게 했어요.")
         } else {
             btnToggle.setImageResource(R.drawable.ic_visibility)
             btnToggle.setColorFilter(Color.parseColor("#38BDF8"))
-            showToast("👁 조준점을 숨겼습니다. (연타는 계속 작동)")
+            showToast("과녁을 숨겼어요. (연타는 계속돼요)")
         }
     }
 
@@ -962,7 +962,7 @@ class AutoClickService : AccessibilityService() {
                 applyOverlayAlpha(a)
                 PreferencesHelper.setOverlayAlpha(this, a)
                 updateLevelHighlight(a)
-                showToast("🌓 투명도 ${(a * 100).toInt()}% 적용")
+                showToast("투명도 ${(a * 100).toInt()}%")
             }
         }
 
@@ -1193,7 +1193,7 @@ class AutoClickService : AccessibilityService() {
         if (isClicking) {
             stopAutoClick()
             vibrate(30)
-            showToast("⏹ 치료 연타 정지됨")
+            showToast("치료 연타를 멈췄어요.")
             return
         }
 
@@ -1206,7 +1206,7 @@ class AutoClickService : AccessibilityService() {
 
         val target = targetView
         if (target == null) {
-            showToast("🎯 조준점이 준비되지 않았습니다.")
+            showToast("과녁이 아직 준비되지 않았어요.")
             return
         }
 
@@ -1278,7 +1278,7 @@ class AutoClickService : AccessibilityService() {
             RepeatMode.COUNT -> "${targetCount}회 반복"
             RepeatMode.TIMER -> "${targetDurationSec / 60}분 ${targetDurationSec % 60}초 타이머"
         }
-        showToast("▶ 연타 시작! ($modeDesc)")
+        showToast("연타 시작 ($modeDesc)")
         Log.d(TAG, "Starting robust infinite auto click at ($x, $y) with $intervalMs ms and $modeDesc")
 
         clickJob = serviceScope.launch {
@@ -1315,7 +1315,7 @@ class AutoClickService : AccessibilityService() {
                 if (repeatMode == RepeatMode.COUNT && clickCount >= targetCount) {
                     mainHandler.post {
                         stopAutoClick()
-                        showToast("✅ 설정한 ${targetCount}회 클릭 완료 후 자동 정지되었습니다.")
+                        showToast("✓ ${targetCount}회를 다 눌러서 자동으로 멈췄어요.")
                     }
                     break
                 }
@@ -1328,7 +1328,7 @@ class AutoClickService : AccessibilityService() {
                             stopAutoClick()
                             val m = targetDurationSec / 60
                             val s = targetDurationSec % 60
-                            showToast("⏰ 설정한 타이머(${m}분 ${s}초) 완료 후 자동 정지되었습니다.")
+                            showToast("✓ 타이머(${m}분 ${s}초)가 끝나서 자동으로 멈췄어요.")
                         }
                         break
                     }
@@ -1661,7 +1661,7 @@ class AutoClickService : AccessibilityService() {
                         val points = troopMarkers.map { centerOnScreen(it) }
                         val dispatch = centerOnScreen(targetView)
                         if (points.isEmpty() || points.any { it == null } || dispatch == null) {
-                            showToast("⚠️ 위치를 읽지 못했어요. 과녁과 부대 표시가 보이는지 확인하세요")
+                            showToast("⚠ 위치를 읽지 못했어요. 과녁과 부대 표시가 보이는지 확인하세요")
                             return@setOnClickListener
                         }
                         HunterModeManager.troops = points.map { TroopPoint(it!!.first, it.second) }

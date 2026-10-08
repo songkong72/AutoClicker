@@ -95,7 +95,7 @@ internal object AdminRoster {
 
     /** 카카오톡으로 보낼 안내 문구 한 사람 몫. */
     fun shareMessage(code: String, ttl: CodeTtl): String =
-        "[AutoClicker Pro 관리자 초대]\n관리자 코드: $code\n앱의 인증 화면 → 관리자 로그인에서 이 코드를 입력하세요. 만든 지 ${ttl.label} 안에 한 번만 쓸 수 있어요."
+        "[오토클리커 Pro 관리자 초대]\n관리자 코드: $code\n앱의 인증 화면 → 관리자 로그인에서 이 코드를 입력하세요. 만든 지 ${ttl.label} 안에 한 번만 쓸 수 있어요."
 
     /** (이름, 코드) 여러 쌍을 사람별 안내 문구로 이어 붙인다. */
     fun batchShare(items: List<Pair<String, String>>, ttl: CodeTtl): String =

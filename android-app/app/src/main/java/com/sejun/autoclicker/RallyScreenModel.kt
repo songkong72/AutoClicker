@@ -101,7 +101,7 @@ object RallyScreenModel {
             maxMarchSec = plan.maxMarchSec,
             editable = editable,
             warnings = nameWarnings(state) + positionWarnings(state) + (if (editable) offlineWarnings(state) else emptyList()),
-            startBlockedReason = if (plan.teams.isEmpty()) "참여 팀이 없어요" else null,
+            startBlockedReason = if (plan.teams.isEmpty()) "참여 군단이 없어요" else null,
             arriveAtSec = plan.arriveAtSec,
             nowSec = if (state.runState == RallyRunState.RUNNING) state.elapsedSec else null,
             prepSec = state.prepSec,
@@ -115,9 +115,9 @@ object RallyScreenModel {
         run == RallyRunState.ARRIVED ->
             HeroModel(HeroKind.ARRIVED, "전원 도착", null, "실패했다면 바로 재집결하세요", 1.0)
         state.teams.isEmpty() && state.isAdmin ->
-            HeroModel(HeroKind.IDLE, "이 방에는 팀이 없어요", null, "방 번호가 맞는지 확인하세요 · 새 방은 앱 첫 화면에서 만들어요", 0.0)
+            HeroModel(HeroKind.IDLE, "이 방에는 군단이 없어요", null, "방 번호가 맞는지 확인하세요 · 새 방은 앱 첫 화면에서 만들어요", 0.0)
         state.teams.isEmpty() ->
-            HeroModel(HeroKind.IDLE, "관리자가 팀을 구성하는 중이에요", null, "방에 팀이 생기면 여기에 표시돼요", 0.0)
+            HeroModel(HeroKind.IDLE, "관리자가 군단을 구성하는 중이에요", null, "방에 군단이 생기면 여기에 표시돼요", 0.0)
         // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
         // 집결장이 군단을 못 찾았을 때는 전체 보기가 아니라 아래의 "배정되지 않았어요" 안내를 보여 준다.
         (state.isAdmin && (state.teams.none { it.id == state.myTeamId } || my == null)) && run == RallyRunState.RUNNING ->
@@ -129,7 +129,7 @@ object RallyScreenModel {
         my == null ->
             HeroModel(HeroKind.EXCLUDED, "이번 작전에서 제외됐어요", null, "관리자가 다시 포함하면 참여할 수 있어요", 0.0)
         run == RallyRunState.IDLE ->
-            HeroModel(HeroKind.IDLE, "관리자 시작 대기중", null, "시작 후 ${Math.ceil(my.clickAtSec).toInt()}초에 내 집결 클릭", 0.0)
+            HeroModel(HeroKind.IDLE, "관리자 시작 대기 중", null, "시작 후 ${Math.ceil(my.clickAtSec).toInt()}초에 내 집결 클릭", 0.0)
         else -> runningHero(state, my)
     }
 
@@ -144,7 +144,7 @@ object RallyScreenModel {
         return when {
             e < firstClick -> {
                 val remaining = firstClick - e
-                HeroModel(HeroKind.OVERVIEW, if (remaining <= prepSec) "이동 준비" else "집결 대기", remaining, "첫 집결 클릭까지", frac(0.0, firstClick), 0)
+                HeroModel(HeroKind.OVERVIEW, if (remaining <= prepSec) "이동 준비" else "클릭 대기", remaining, "첫 집결 클릭까지", frac(0.0, firstClick), 0)
             }
             e < lastDepart -> HeroModel(HeroKind.OVERVIEW, "집결 중", lastDepart - e, "전원 출발까지", frac(firstClick, lastDepart), 1)
             else -> HeroModel(HeroKind.OVERVIEW, "행군 중", Math.max(0.0, plan.arriveAtSec - e), "전원 도착까지", frac(lastDepart, plan.arriveAtSec), 2)
@@ -158,7 +158,7 @@ object RallyScreenModel {
                 val remaining = my.clickAtSec - e
                 val progress = if (my.clickAtSec <= 0.0) 1.0 else (e / my.clickAtSec).coerceIn(0.0, 1.0)
                 if (remaining <= state.prepSec) HeroModel(HeroKind.MOVE, "집결 화면으로 이동하세요", remaining, "집결 클릭까지", progress)
-                else HeroModel(HeroKind.WAIT_CLICK, "집결 대기중", remaining, "집결 클릭까지", progress)
+                else HeroModel(HeroKind.WAIT_CLICK, "클릭 대기 중", remaining, "집결 클릭까지", progress)
             }
             RallyPhase.GATHERING -> HeroModel(
                 HeroKind.GATHERING, "집결 중", my.departAtSec - e,
@@ -227,8 +227,8 @@ object RallyScreenModel {
         return if (!state.positionSaved && !me.excluded) listOf(WARN_POSITION) else emptyList()
     }
 
-    /** 대기 중 큰 숫자 아래 한 줄. 큰 숫자가 전체 소요라는 건 자명하니 반복하지 않고, 참여 팀 수를 붙인다. */
-    fun idleSub(subLabel: String, activeTeams: Int): String = "$subLabel · 참여 ${activeTeams}팀"
+    /** 대기 중 큰 숫자 아래 한 줄. 큰 숫자가 전체 소요라는 건 자명하니 반복하지 않고, 참여 군단 수를 붙인다. */
+    fun idleSub(subLabel: String, activeTeams: Int): String = "$subLabel · 참여 군단 ${activeTeams}개"
 
     private fun offlineWarnings(state: RallyRoomState): List<String> =
         state.teams.filter { !it.excluded && !it.online }

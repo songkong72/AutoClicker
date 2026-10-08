@@ -145,7 +145,7 @@
                         android:id="@+id/tvAuthStatusTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🔒 회원 전용 인증 필요"
+                        android:text="🔒 집결장 인증 필요"
                         android:textColor="#F59E0B"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -155,7 +155,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="초대코드를 입력하여 정회원 인증을 완료해 주세요."
+                        android:text="집결장 코드를 입력해 인증해 주세요."
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>

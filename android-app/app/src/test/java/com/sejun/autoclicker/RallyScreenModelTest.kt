@@ -26,7 +26,7 @@ class RallyScreenModelTest {
     fun `시작 전에는 관리자 시작 대기 문구와 내 클릭 시각을 보여준다`() {
         val m = build(room())
         assertEquals(HeroKind.IDLE, m.hero.kind)
-        assertEquals("관리자 시작 대기중", m.hero.label)
+        assertEquals("관리자 시작 대기 중", m.hero.label)
         assertNull(m.hero.remainingSec)
         assertEquals("시작 후 15초에 내 집결 클릭", m.hero.subLabel)
         assertTrue(m.editable)
@@ -58,7 +58,7 @@ class RallyScreenModelTest {
     fun `클릭까지 준비시간보다 많이 남으면 대기 문구를 보여준다`() {
         val m = build(room(RallyRunState.RUNNING, 0.0, mine = "1군"))
         assertEquals(HeroKind.WAIT_CLICK, m.hero.kind)
-        assertEquals("집결 대기중", m.hero.label)
+        assertEquals("클릭 대기 중", m.hero.label)
         assertEquals(55.0, m.hero.remainingSec!!, d)
     }
 
@@ -153,7 +153,7 @@ class RallyScreenModelTest {
     fun `참여 팀이 없으면 시작할 수 없다`() {
         assertNull(build(room()).startBlockedReason)
         val none = build(room(teams = listOf(t3.copy(excluded = true))))
-        assertEquals("참여 팀이 없어요", none.startBlockedReason)
+        assertEquals("참여 군단이 없어요", none.startBlockedReason)
         assertEquals(0.0, none.maxMarchSec, d)
     }
 
@@ -171,7 +171,7 @@ class RallyScreenModelTest {
     fun `방에 팀이 하나도 없으면 제외가 아니라 관리자 구성 대기 안내를 보여준다`() {
         val m = build(room(teams = emptyList()))
         assertEquals(HeroKind.IDLE, m.hero.kind)
-        assertEquals("관리자가 팀을 구성하는 중이에요", m.hero.label)
+        assertEquals("관리자가 군단을 구성하는 중이에요", m.hero.label)
         assertNull(m.hero.remainingSec)
     }
 
@@ -179,7 +179,7 @@ class RallyScreenModelTest {
     fun `팀이 하나도 없는 방에서 관리자에게는 방 번호 확인과 새 방 만드는 곳을 안내한다`() {
         val m = build(room(teams = emptyList()).copy(isAdmin = true))
         assertEquals(HeroKind.IDLE, m.hero.kind)
-        assertEquals("이 방에는 팀이 없어요", m.hero.label)
+        assertEquals("이 방에는 군단이 없어요", m.hero.label)
         assertEquals("방 번호가 맞는지 확인하세요 · 새 방은 앱 첫 화면에서 만들어요", m.hero.subLabel)
     }
 

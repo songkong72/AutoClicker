@@ -21,7 +21,7 @@ internal object RallyPanelFormat {
 
     /**
      * 군단별 "가장 먼저 누르는 군단보다 몇 초 늦게 누르는지". 관리자 보정까지 포함해 계산한다.
-     * 누르는 시각 = (가장 긴 행군 − 내 행군) + 관리자 보정. 가장 먼저 누르는 군단은 "먼저", 제외된 군단은 "".
+     * 누르는 시각 = (가장 긴 행군 − 내 행군) + 관리자 보정. 가장 먼저 누르는 군단은 "먼저 클릭", 나머지는 "20초 뒤", 제외된 군단은 "".
      * (집결장 기기마다 다른 내 보정은 방 데이터에 없어 포함하지 않는다.)
      */
     fun lagLabels(items: List<LagInput>): List<String> {
@@ -34,7 +34,7 @@ internal object RallyPanelFormat {
             if (i.excluded) ""
             else {
                 val d = Math.round((click(i) - first) * 10) / 10.0
-                if (d <= 0.0) "먼저" else "+" + sec(d) + "초"
+                if (d <= 0.0) "먼저 클릭" else sec(d) + "초 뒤"
             }
         }
     }

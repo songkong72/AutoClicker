@@ -115,7 +115,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             sheet.line(card, "$label · ID …${a.uid.takeLast(6)}", bold = true)
             sheet.line(card, "${AdminRoster.activityText(a.lastSeen, a.appVersion, now)} · 등록 ${day.format(Date(a.registeredAt))}", small = true, top = 2)
             sheet.pillRow(card,
-                sheet.pill("이름 수정") { askRename(a, label) },
+                sheet.pill("이름표 수정") { askRename(a, label) },
                 sheet.pill("삭제", Kind.DANGER) { confirmRemove(a, label) }
             )
         }
