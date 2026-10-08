@@ -26,17 +26,6 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         toast("📋 복사했어요")
     }
 
-    /** 관리자 목록을 복사하거나 카카오톡(또는 다른 앱)으로 보낸다. */
-    private fun shareList(text: String) {
-        val title = "관리자 목록"
-        SheetDialog(activity, "관리자 목록 보내기", "복사해서 붙여 넣거나, 카카오톡 대화방으로 바로 보낼 수 있어요.")
-            .actions(
-                act("복사") { TextShare.copy(activity, title, text) },
-                act("다른 앱") { TextShare.chooser(activity, title, text) },
-                act("카카오톡", Kind.PRIMARY) { TextShare.toKakao(activity, title, text) }
-            ).show()
-    }
-
     /** 이 기기의 서버 ID를 보여 준다. 개발자로 등록할 때 Firebase 콘솔에 적는 값이다. */
     fun showMyId() {
         Thread {
@@ -94,7 +83,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         sheet.wideButton("+ 관리자 코드 만들기", top = 12) { askNames() }
         sheet.equalRow(
             sheet.pill("방 전체 목록") { showRooms() },
-            sheet.pill("목록 보내기") { shareList(AdminRoster.exportText(admins, codes, now)) },
+            sheet.pill("목록 복사") { copy("관리자 목록", AdminRoster.exportText(admins, codes, now)) },
             sheet.pill("코드 정리") { confirmPurge() },
             top = 10
         )
