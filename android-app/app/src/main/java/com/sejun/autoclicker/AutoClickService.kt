@@ -1004,6 +1004,18 @@ class AutoClickService : AccessibilityService() {
         }
         this.settingsDialogParams = params
 
+        // 창을 끌어서 옮긴다. 가운데 기준 위치라 화면 밖으로 나가지 않게 양쪽 한도를 둔다.
+        (view as? RallyDragLayout)?.let { drag ->
+            var sx = 0; var sy = 0
+            drag.onDragStart = { sx = params.x; sy = params.y }
+            drag.onDragMove = { dx, dy ->
+                val dm = resources.displayMetrics
+                val (x, y) = OverlayDragBounds.centered(sx + dx.toInt(), sy + dy.toInt(), dm.widthPixels, dm.heightPixels, view.width, view.height)
+                params.x = x; params.y = y
+                try { wm.updateViewLayout(view, params) } catch (_: Exception) { }
+            }
+        }
+
         val btnClose = view.findViewById<ImageButton>(R.id.btnDialogClose)
         val btnSave = view.findViewById<Button>(R.id.btnDialogSave)
         val etInterval = view.findViewById<EditText>(R.id.dialogEtInterval)

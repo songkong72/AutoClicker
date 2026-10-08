@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 바깥 틀이 RallyDragLayout 이라 창 어디를 잡고 끌어도 옮겨진다(짧게 누르면 안쪽 버튼이 그대로 눌린다). -->
+<com.sejun.autoclicker.RallyDragLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="320dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog_card"
@@ -27,7 +28,7 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="Close"
+            android:contentDescription="닫기"
             android:padding="6dp"
             android:src="@drawable/ic_close"
             android:tint="#94A3B8" />
@@ -476,4 +477,4 @@
         android:textSize="13.5sp"
         android:textStyle="bold" />
 
-</LinearLayout>
+</com.sejun.autoclicker.RallyDragLayout>
