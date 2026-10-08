@@ -1,8 +1,15 @@
 name: Android unit tests
 
+# 문서만 바뀐 커밋은 앱이 달라지지 않으므로 돌지 않는다.
 on:
   push:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
 jobs:
   unit-test:
