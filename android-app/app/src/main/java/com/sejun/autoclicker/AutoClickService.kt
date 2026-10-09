@@ -178,10 +178,13 @@ class AutoClickService : AccessibilityService() {
         val member = PreferencesHelper.hasAccess(this)
         val bearUnlocked = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("bear_mode_unlocked", false)
         control.findViewById<ImageButton>(R.id.btnRally)?.visibility = if (member) View.VISIBLE else View.GONE
-        // 모드 버튼(순서 클릭)은 인증한 사람에게 보인다. 목록 안의 헌터 줄은 헌터를 개방한 사람에게만 나온다.
-        control.findViewById<ImageButton>(R.id.btnBearMode)?.visibility = if (member) View.VISIBLE else View.GONE
-        if (!(member && bearUnlocked) && HunterModeManager.isHunterModeEnabled) toggleBearMode()
-        if (!member) sequenceUi.hideAll()
+        // 모드 버튼(헌터·순서 클릭)은 숨은 기능이다: 인증하고, 집결 패널 제목을 5번 연달아 눌러 개방한 폰에서만 보인다.
+        val modeAllowed = member && bearUnlocked
+        control.findViewById<ImageButton>(R.id.btnBearMode)?.visibility = if (modeAllowed) View.VISIBLE else View.GONE
+        if (!modeAllowed) {
+            if (HunterModeManager.isHunterModeEnabled) toggleBearMode()
+            sequenceUi.hideAll()
+        }
     }
 
     private fun hunterAllowed(): Boolean =
@@ -223,9 +226,9 @@ class AutoClickService : AccessibilityService() {
         if (!prefs.getBoolean("bear_mode_unlocked", false)) {
             prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
             controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
-            showToast("🐻 비밀 헌터 모드가 열렸어요! 막대의 모드 버튼 목록에서 켜세요")
+            showToast("🐻 숨은 모드가 열렸어요! 막대의 모드 버튼에서 헌터·순서 클릭을 고르세요")
         } else {
-            showToast("🐻 헌터 모드는 이미 열려 있어요.")
+            showToast("🐻 숨은 모드는 이미 열려 있어요.")
         }
     }
 
