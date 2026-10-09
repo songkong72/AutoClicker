@@ -39,4 +39,10 @@ class RallyPanelFormatTest {
     fun `내 기기 요약은 빠진 항목을 없음으로 드러낸다`() {
         assertEquals("위치 없음 · 방 없음 · 캐릭터명 없음 · 보정 +0.5초", RallyPanelFormat.deviceSummary(" ", "", "+0.5초", false))
     }
+
+    @Test
+    fun `시작이 막힌 이유 뒤에 푸는 방법을 붙인다`() {
+        assertEquals("참여 군단이 없어요 · 위의 연필을 눌러 군단을 체크하세요", RallyPanelFormat.blockedNote("참여 군단이 없어요", editing = false))
+        assertEquals("참여 군단이 없어요 · 참여할 군단을 체크하세요", RallyPanelFormat.blockedNote("참여 군단이 없어요", editing = true))
+    }
 }

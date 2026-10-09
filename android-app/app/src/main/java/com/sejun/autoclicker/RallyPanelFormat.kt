@@ -8,6 +8,13 @@ internal object RallyPanelFormat {
     fun sec(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
 
     /**
+     * 시작이 막힌 이유(지금은 "참여 군단이 없어요" 하나) 뒤에 어떻게 푸는지를 붙인다.
+     * 편집 중이면 체크박스가 보이니 체크하라고, 아니면 연필부터 누르라고 알린다.
+     */
+    fun blockedNote(reason: String, editing: Boolean): String =
+        reason + " · " + (if (editing) "참여할 군단을 체크하세요" else "위의 연필을 눌러 군단을 체크하세요")
+
+    /**
      * 접힌 "내 기기" 한 줄 요약: "위치 저장됨 · 방 0001 · 문".
      * 줄이 좁아 뒤쪽이 잘리므로 가장 중요한 클릭 위치를 맨 앞에 둔다. 보정은 0초가 아닐 때만 맨 뒤에 붙인다.
      * 빠진 것(클릭 위치·방·캐릭터명)은 "없음"으로 드러내 무엇을 해야 하는지 알 수 있게 한다.

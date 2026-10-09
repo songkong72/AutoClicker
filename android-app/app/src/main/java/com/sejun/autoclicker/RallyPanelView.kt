@@ -111,7 +111,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         // "집결 취소"와 "다시 집결"은 같은 자리에 번갈아 나온다. 취소 직후 같은 자리를 또 누른 것(연속 탭·자동 탭)이
         // 곧바로 다시 집결이 되지 않게, 취소 뒤 잠깐은 시작을 받지 않는다.
         btnStart.setOnClickListener {
-            if (android.os.SystemClock.elapsedRealtime() - stoppedAtMs >= START_GUARD_MS) callbacks.onStart()
+            // 시작이 막혀 있으면(참여 군단 없음) 아무 반응이 없어 고장처럼 보였다: 이유 글씨를 흔들고 진동으로 알린다.
+            if (startBlocked) nudgeBlockedReason()
+            else if (android.os.SystemClock.elapsedRealtime() - stoppedAtMs >= START_GUARD_MS) callbacks.onStart()
         }
         btnStop.setOnClickListener { stoppedAtMs = android.os.SystemClock.elapsedRealtime(); callbacks.onStop() }
         listOf<View>(btnStart, btnStop).forEach { pressFeel(it) }
@@ -154,17 +156,31 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
     }
 
+    /** 시작이 막혀 있는지(참여 군단 없음). 막힌 "집결 시작"은 흐리게 보이고, 누르면 이유를 흔들어 알린다. */
+    private var startBlocked = false
+    /** 버튼이 가만히 있을 때의 진하기: 막힌 시작 버튼만 흐리다. */
+    private fun restAlpha(v: View) = if (v === btnStart && startBlocked) 0.45f else 1f
+
+    private fun nudgeBlockedReason() {
+        val d = root.resources.displayMetrics.density
+        blocked.animate().cancel()
+        android.animation.ObjectAnimator.ofFloat(blocked, View.TRANSLATION_X, 0f, 10 * d, -10 * d, 6 * d, -6 * d, 0f).setDuration(320).start()
+        blocked.performHapticFeedback(
+            if (android.os.Build.VERSION.SDK_INT >= 30) android.view.HapticFeedbackConstants.REJECT else android.view.HapticFeedbackConstants.LONG_PRESS
+        )
+    }
+
     /** 눌린 느낌: 누르는 동안 살짝 작아지고 어두워지며, 뗄 때 짧게 진동한다. 비활성 버튼은 반응하지 않는다. */
     @android.annotation.SuppressLint("ClickableViewAccessibility")
     private fun pressFeel(v: View) {
         v.setOnTouchListener { view, e ->
             if (view.isEnabled) when (e.actionMasked) {
                 android.view.MotionEvent.ACTION_DOWN -> {
-                    view.animate().scaleX(0.94f).scaleY(0.94f).alpha(0.75f).setDuration(60).start()
+                    view.animate().scaleX(0.94f).scaleY(0.94f).alpha(restAlpha(view) * 0.75f).setDuration(60).start()
                     view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                 }
                 android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
-                    view.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start()
+                    view.animate().scaleX(1f).scaleY(1f).alpha(restAlpha(view)).setDuration(120).start()
             }
             false // 클릭 이벤트는 그대로 전달
         }
@@ -366,14 +382,17 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val canRegroup = model.hero.kind == HeroKind.ARRIVED || model.hero.kind == HeroKind.CANCELLED
         // 서버에 시작을 쓰는 동안은 "시작하는 중…"으로 바꾸고 다시 눌리지 않게 한다.
         btnStart.text = if (starting) "시작하는 중…" else if (canRegroup || hasStarted) "다시 집결" else "집결 시작"
-        btnStart.isEnabled = model.startBlockedReason == null && !starting
+        // 막혀 있어도 누를 수는 있게 둔다(누르면 이유를 흔들어 알린다). 대신 흐리게 보여 지금은 시작할 수 없음을 드러낸다.
+        btnStart.isEnabled = !starting
+        val nowBlocked = model.startBlockedReason != null
+        if (nowBlocked != startBlocked) { startBlocked = nowBlocked; btnStart.alpha = restAlpha(btnStart) }
         // 지금 할 수 있는 버튼 하나만 넓게: 진행 중에는 "집결 취소", 그 밖에는 "집결 시작"/"다시 집결"
         val running = !model.editable
         btnStart.visibility = if (running) View.GONE else View.VISIBLE
         btnStop.visibility = if (running) View.VISIBLE else View.GONE
         // 시작을 막는 이유(빨강)가 없을 때, 참여 군단 중 미배정이 있으면 노랑으로 알린다(시작은 막지 않음)
         val unassigned = if (isAdmin && model.editable) model.rows.filter { !it.excluded && it.leaderName.isBlank() }.map { it.name } else emptyList()
-        val note = model.startBlockedReason ?: if (unassigned.isEmpty()) null else "${unassigned.joinToString("·")} 미배정 · 맡은 사람이 없으면 클릭하지 않아요"
+        val note = model.startBlockedReason?.let { RallyPanelFormat.blockedNote(it, editMode) } ?: if (unassigned.isEmpty()) null else "${unassigned.joinToString("·")} 미배정 · 맡은 사람이 없으면 클릭하지 않아요"
         blocked.visibility = if (isAdmin && note != null) View.VISIBLE else View.GONE
         blocked.text = note ?: ""
         blocked.setTextColor(Color.parseColor(if (model.startBlockedReason != null) "#F87171" else "#FBBF24"))
