@@ -27,7 +27,7 @@ internal class SheetDialog(
     /** false면 바깥을 눌러도, 뒤로 가기나 아래로 밀어도 닫히지 않는다. 버튼으로만 닫는다. */
     private val cancelable: Boolean = true
 ) {
-    enum class Kind { PRIMARY, NORMAL, DANGER, DANGER_FILL }
+    enum class Kind { PRIMARY, NORMAL, DANGER, DANGER_FILL, OUTLINE }
 
     /** 버튼 줄의 버튼 하나. [onClick]이 true를 돌려주면 창을 닫고, false면 열어 둔다. */
     class Action(val label: String, val kind: Kind, val onClick: () -> Boolean)
@@ -110,17 +110,15 @@ internal class SheetDialog(
     }
 
     /** 같은 너비로 나란히 놓는 버튼 줄(내용 영역 안). */
-    fun equalRow(vararg pills: TextView, top: Int = 10) {
-        content.addView(LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            pills.forEachIndexed { i, p -> addView(p, LinearLayout.LayoutParams(0, px(44), 1f).apply { if (i > 0) leftMargin = px(8) }) }
-        }, lp(top = top))
-    }
+    fun equalRow(vararg pills: TextView, top: Int = 10): View = LinearLayout(activity).apply {
+        orientation = LinearLayout.HORIZONTAL
+        pills.forEachIndexed { i, p -> addView(p, LinearLayout.LayoutParams(0, px(44), 1f).apply { if (i > 0) leftMargin = px(8) }) }
+    }.also { content.addView(it, lp(top = top)) }
 
     /** 내용 영역 전체 너비의 큰 버튼. */
     fun wideButton(label: String, kind: Kind = Kind.PRIMARY, top: Int = 14, onClick: () -> Unit): TextView = pill(label, kind) { onClick() }.apply {
         textSize = 16f
-        background = box(colors(kind).first, 16)
+        background = box(colors(kind).first, 16, if (kind == Kind.OUTLINE) BLUE else null)
     }.also { content.addView(it, lp(h = px(52), top = top)) }
 
     /** 입력 칸. 눌렀을 때 남색 테두리가 생긴다. */
@@ -147,6 +145,7 @@ internal class SheetDialog(
         Kind.NORMAL -> FIELD to INK
         Kind.DANGER -> Color.parseColor("#FDECEC") to RED
         Kind.DANGER_FILL -> Color.parseColor("#D93025") to Color.WHITE
+        Kind.OUTLINE -> Color.WHITE to BLUE
     }
 
     fun show() {

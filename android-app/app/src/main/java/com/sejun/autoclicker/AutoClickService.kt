@@ -1195,6 +1195,7 @@ class AutoClickService : AccessibilityService() {
                 RepeatMode.TIMER -> "${m}분${s}초"
             }} / 투명도 ${(selectedAlpha * 100).toInt()}%)")
             hideSettingsDialog()
+            onStatusChanged?.invoke(isClicking) // 앱 첫 화면의 설정 요약 한 줄을 새 값으로
         }
 
         wm.addView(view, params)

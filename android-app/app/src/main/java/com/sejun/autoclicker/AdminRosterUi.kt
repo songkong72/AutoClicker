@@ -26,24 +26,11 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         TextShare.copiedNotice(activity)
     }
 
-    /**
-     * 관리자 목록 보내기: 보낼 내용을 미리 보여 주고, 카카오톡으로 바로 보내기를 크게,
-     * 복사·다른 앱은 그 아래 작게 둔다. 대기 중인 코드가 들어 있으면 한 줄로 알린다.
-     */
-    private fun shareList(text: String, pendingCodes: Int) {
-        val title = "관리자 목록"
-        val sheet = SheetDialog(activity, "관리자 목록 보내기")
-        val lines = text.lines()
-        val shown = lines.take(6).joinToString("\n") + if (lines.size > 6) "\n… 외 ${lines.size - 6}줄" else ""
-        sheet.line(sheet.card(top = 4), shown, small = true)
-        if (pendingCodes > 0) sheet.line(sheet.content, "대기 중인 관리자 코드 ${pendingCodes}개가 함께 보내져요. 받을 사람이 맞는 대화방인지 확인해 주세요.", small = true, top = 8)
-        sheet.wideButton("카카오톡으로 보내기", top = 14) { sheet.dismiss(); TextShare.toKakao(activity, title, text) }
-        sheet.equalRow(
-            sheet.pill("복사") { sheet.dismiss(); TextShare.copy(activity, title, text) },
-            sheet.pill("다른 앱으로 보내기") { sheet.dismiss(); TextShare.chooser(activity, title, text) }
-        )
-        sheet.actions(act("닫기")).show()
-    }
+    /** 관리자 목록 보내기. 대기 중인 코드가 들어 있으면 한 줄로 알린다. */
+    private fun shareList(text: String, pendingCodes: Int) = TextShare.sheet(
+        activity, "관리자 목록 보내기", "관리자 목록", text,
+        if (pendingCodes > 0) "대기 중인 관리자 코드 ${pendingCodes}개가 함께 보내져요. 받을 사람이 맞는 대화방인지 확인해 주세요." else null
+    )
 
     /** 이 기기의 서버 ID를 보여 준다. 개발자로 등록할 때 Firebase 콘솔에 적는 값이다. */
     fun showMyId() {
@@ -127,7 +114,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             sheet.line(card, "${p.code} · ${p.name}", bold = true)
             sheet.line(card, "${remainText(p.expiresAt - now)} 남음", small = true, top = 2)
             sheet.pillRow(card,
-                sheet.pill("코드 복사") { copy("관리자 코드", AdminRoster.shareMessage(p.code, ttlOf(p))) },
+                sheet.pill("보내기") { TextShare.sheet(activity, "관리자 코드 보내기", "관리자 코드", AdminRoster.shareMessage(p.code, ttlOf(p))) },
                 sheet.pill("취소", Kind.DANGER) { cancelCode(p) }
             )
         }

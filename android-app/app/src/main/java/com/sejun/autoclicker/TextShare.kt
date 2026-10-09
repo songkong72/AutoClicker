@@ -23,6 +23,24 @@ object TextShare {
         if (android.os.Build.VERSION.SDK_INT < 33) Toast.makeText(context, "📋 복사했어요", Toast.LENGTH_SHORT).show()
     }
 
+    /**
+     * 보내기 창: 보낼 내용을 미리 보여 주고, 카카오톡으로 바로 보내기를 크게, 복사·다른 앱은 그 아래 작게 둔다.
+     * 방 번호·집결장 코드·관리자 코드·관리자 목록이 모두 이 창 하나로 보낸다. [note]는 미리보기 아래의 한 줄 안내.
+     */
+    fun sheet(activity: Activity, sheetTitle: String, shareTitle: String, text: String, note: String? = null) {
+        val sheet = SheetDialog(activity, sheetTitle)
+        val lines = text.lines()
+        val shown = lines.take(6).joinToString("\n") + if (lines.size > 6) "\n… 외 ${lines.size - 6}줄" else ""
+        sheet.line(sheet.card(top = 4), shown, small = true)
+        if (note != null) sheet.line(sheet.content, note, small = true, top = 8)
+        sheet.wideButton("카카오톡으로 보내기", top = 14) { sheet.dismiss(); toKakao(activity, shareTitle, text) }
+        sheet.equalRow(
+            sheet.pill("복사") { sheet.dismiss(); copy(activity, shareTitle, text) },
+            sheet.pill("다른 앱으로 보내기") { sheet.dismiss(); chooser(activity, shareTitle, text) }
+        )
+        sheet.actions(SheetDialog.act("닫기")).show()
+    }
+
     private fun sendIntent(text: String) = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, text)

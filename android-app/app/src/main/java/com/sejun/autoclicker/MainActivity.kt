@@ -1,8 +1,6 @@
 package com.sejun.autoclicker
 
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -77,8 +75,6 @@ class MainActivity : AppCompatActivity() {
         )
 
         setupListeners()
-        setupPresets()
-        setupRepeatConditionListeners()
 
     }
 
@@ -87,7 +83,6 @@ class MainActivity : AppCompatActivity() {
         checkAppVersion()
         verifyServerAdmin()
         updateAuthUI()
-        loadSettings()
         updateRallyInfoCard()
         updatePermissionStates()
         updateServiceState()
@@ -96,7 +91,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        saveSettings()
         AutoClickService.instance?.onStatusChanged = null
         AutoClickService.instance?.onOverlaysVisibilityChanged = null
     }
@@ -128,11 +122,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 일반 연타 모드 접기/펼치기
-        binding.tvGeneralModeToggle.setOnClickListener {
-            val open = binding.layoutGeneralModes.visibility != View.VISIBLE
-            binding.layoutGeneralModes.visibility = if (open) View.VISIBLE else View.GONE
-            updateServiceState()
+        // 연타 설정 바꾸기: 게임 위에서 쓰는 설정 창을 그대로 연다(설정 화면은 한 곳뿐)
+        binding.btnChangeClickSettings.setOnClickListener {
+            if (!hasAccessibilityPermission()) {
+                Toast.makeText(this, "스위치를 먼저 켜야 설정 창을 열 수 있어요.", Toast.LENGTH_LONG).show()
+                openAccessibilitySettings()
+                return@setOnClickListener
+            }
+            val service = AutoClickService.instance
+            if (service == null) {
+                Toast.makeText(this, "아직 준비 중이에요. 잠시 후 다시 눌러 주세요.\n(계속 안 되면 접근성을 껐다가 다시 켜 주세요)", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            bindServiceCallbacks()
+            service.showSettingsDialog()
         }
 
         // 상단 관리자 설정 아이콘
@@ -212,7 +215,6 @@ class MainActivity : AppCompatActivity() {
             bindServiceCallbacks()
 
             if (!service.isOverlaysShowing()) {
-                saveSettings()
                 service.showOverlays()
             }
             service.toggleRallyPanel()
@@ -241,108 +243,13 @@ class MainActivity : AppCompatActivity() {
                 service.hideOverlays()
                 Toast.makeText(this, "오토클리커를 숨겼어요.", Toast.LENGTH_SHORT).show()
             } else {
-                // 화면에 없으면 띄우기 (설정값 저장 후 띄움)
-                saveSettings()
+                // 화면에 없으면 띄우기
                 service.showOverlays()
                 Toast.makeText(this, "오토클리커를 띄웠어요. 게임으로 이동할게요.", Toast.LENGTH_SHORT).show()
                 moveTaskToBack(true) // Switch to game immediately
             }
             updateServiceState()
         }
-    }
-
-    private fun setupRepeatConditionListeners() {
-        binding.rgRepeatMode.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
-                R.id.rbInfinite -> {
-                    binding.layoutCountInput.visibility = View.GONE
-                    binding.layoutTimerInput.visibility = View.GONE
-                }
-                R.id.rbCount -> {
-                    binding.layoutCountInput.visibility = View.VISIBLE
-                    binding.layoutTimerInput.visibility = View.GONE
-                }
-                R.id.rbTimer -> {
-                    binding.layoutCountInput.visibility = View.GONE
-                    binding.layoutTimerInput.visibility = View.VISIBLE
-                }
-            }
-            saveSettings()
-        }
-
-        // 횟수 프리셋
-        binding.chipCount50.setOnClickListener {
-            binding.etRepeatCount.setText("50")
-            saveSettings()
-        }
-        binding.chipCount100.setOnClickListener {
-            binding.etRepeatCount.setText("100")
-            saveSettings()
-        }
-        binding.chipCount300.setOnClickListener {
-            binding.etRepeatCount.setText("300")
-            saveSettings()
-        }
-
-        // 시간 프리셋
-        binding.chipTimer1m.setOnClickListener {
-            binding.etTimerMin.setText("1")
-            binding.etTimerSec.setText("0")
-            saveSettings()
-        }
-        binding.chipTimer3m.setOnClickListener {
-            binding.etTimerMin.setText("3")
-            binding.etTimerSec.setText("0")
-            saveSettings()
-        }
-    }
-
-    private fun loadSettings() {
-        val interval = PreferencesHelper.getIntervalMs(this)
-        binding.etInterval.setText(interval.toString())
-        highlightPreset(interval.toInt())
-
-        when (PreferencesHelper.getRepeatMode(this)) {
-            RepeatMode.INFINITE -> {
-                binding.rbInfinite.isChecked = true
-                binding.layoutCountInput.visibility = View.GONE
-                binding.layoutTimerInput.visibility = View.GONE
-            }
-            RepeatMode.COUNT -> {
-                binding.rbCount.isChecked = true
-                binding.layoutCountInput.visibility = View.VISIBLE
-                binding.layoutTimerInput.visibility = View.GONE
-            }
-            RepeatMode.TIMER -> {
-                binding.rbTimer.isChecked = true
-                binding.layoutCountInput.visibility = View.GONE
-                binding.layoutTimerInput.visibility = View.VISIBLE
-            }
-        }
-
-        binding.etRepeatCount.setText(PreferencesHelper.getRepeatCount(this).toString())
-        val totalSec = PreferencesHelper.getRepeatDurationSec(this)
-        binding.etTimerMin.setText((totalSec / 60).toString())
-        binding.etTimerSec.setText((totalSec % 60).toString())
-    }
-
-    private fun saveSettings() {
-        val interval = binding.etInterval.text.toString().toLongOrNull() ?: 500L
-        PreferencesHelper.setIntervalMs(this, interval)
-
-        val mode = when (binding.rgRepeatMode.checkedRadioButtonId) {
-            R.id.rbCount -> RepeatMode.COUNT
-            R.id.rbTimer -> RepeatMode.TIMER
-            else -> RepeatMode.INFINITE
-        }
-        PreferencesHelper.setRepeatMode(this, mode)
-
-        val count = binding.etRepeatCount.text.toString().toIntOrNull() ?: 100
-        PreferencesHelper.setRepeatCount(this, count)
-
-        val min = binding.etTimerMin.text.toString().toIntOrNull() ?: 1
-        val sec = binding.etTimerSec.text.toString().toIntOrNull() ?: 0
-        PreferencesHelper.setRepeatDurationSec(this, (min * 60) + sec)
     }
 
     private fun openAccessibilitySettings() {
@@ -353,41 +260,6 @@ class MainActivity : AppCompatActivity() {
             "목록에서 [오토클리커 Pro]를 찾아 켜주세요.",
             Toast.LENGTH_LONG
         ).show()
-    }
-
-    private fun setupPresets() {
-        val presetButtons = listOf(
-            Pair(binding.chip100, 100),
-            Pair(binding.chip200, 200),
-            Pair(binding.chip500, 500),
-            Pair(binding.chip1000, 1000)
-        )
-
-        presetButtons.forEach { (button, interval) ->
-            button.setOnClickListener {
-                binding.etInterval.setText(interval.toString())
-                highlightPreset(interval)
-            }
-        }
-    }
-
-    private fun highlightPreset(selectedInterval: Int) {
-        val map = mapOf(
-            100 to binding.chip100,
-            200 to binding.chip200,
-            500 to binding.chip500,
-            1000 to binding.chip1000
-        )
-
-        map.forEach { (interval, button) ->
-            if (interval == selectedInterval) {
-                button.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
-                button.setTextColor(ContextCompat.getColor(this, R.color.text_on_primary))
-            } else {
-                button.setBackgroundColor(ContextCompat.getColor(this, R.color.surface_variant))
-                button.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            }
-        }
     }
 
     private fun updatePermissionStates() {
@@ -437,19 +309,20 @@ class MainActivity : AppCompatActivity() {
         }
         updateStartButtonVisibility()
         // 회원 화면에는 띄우기 버튼이 없으므로, 조작판이 떠 있는지는 제목에서 알 수 있게 한다
-        val open = binding.layoutGeneralModes.visibility == View.VISIBLE
-        binding.tvGeneralModeToggle.text = "일반 연타 모드" + (if (isShowing) " · 떠 있음" else "") + (if (open) "  ▴" else "  ▾")
+        binding.tvGeneralModeTitle.text = "일반 연타 모드" + (if (isShowing) " · 떠 있음" else "")
+        binding.tvClickSummary.text = ClickSummary.text(
+            PreferencesHelper.getIntervalMs(this), PreferencesHelper.getRepeatMode(this),
+            PreferencesHelper.getRepeatCount(this), PreferencesHelper.getRepeatDurationSec(this)
+        )
         updateRallyInfoCard()
     }
 
     /**
-     * 띄우기/숨기기 버튼은 집결을 못 쓰는 사람(일반 사용자·개발자 미리보기)에게만 보인다(연타 영역을 접어도 늘 보인다).
+     * 띄우기/숨기기 버튼은 집결을 못 쓰는 사람(일반 사용자·개발자 미리보기)에게만 보인다.
      * 회원·관리자는 "집결 화면 열기"가 조작판까지 띄워 주므로 이 버튼을 두지 않는다(큰 버튼은 늘 하나). 조작판은 조작판의 ✕ 로 끈다.
      */
     private fun updateStartButtonVisibility() {
-        val open = binding.layoutGeneralModes.visibility == View.VISIBLE
         binding.btnStartService.visibility = if (!PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
-        binding.tvVolumeTip.visibility = if (open) View.VISIBLE else View.GONE
     }
 
     private fun roomAuth() = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
@@ -504,11 +377,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "먼저 방을 만들어 주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val send = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, "집결 방 번호: $code (오토클리커 Pro 앱 > 집결 방 > 방 선택)")
-            }
-            startActivity(Intent.createChooser(send, "방 번호 공유"))
+            TextShare.sheet(this, "방 번호 보내기", "방 번호", "집결 방 번호: $code\n(오토클리커 Pro 앱 > 집결 방 > 방 선택)")
         }
     }
 
@@ -1036,52 +905,49 @@ class MainActivity : AppCompatActivity() {
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
         )
 
-        var currentGeneratedCode = ""
-        var currentMemberId = ""
+        val shareTitle = "집결장 코드"
+        var shareMsg = ""
+        // 코드를 만든 뒤에만 보이는 것들: 코드와 보낼 내용 미리보기, 보내기 버튼들
+        val afterMade = mutableListOf<View>()
+
+        // 파란 버튼은 "카카오톡으로 보내기" 하나만 되게, 만들기는 테두리 버튼으로 둔다
+        val btnGenerate = sheet.wideButton("집결장 코드 만들기", SheetDialog.Kind.OUTLINE, top = 12) { }
+
         val resultCard = sheet.card(top = 14)
         val tvCode = sheet.line(resultCard, "", bold = true).apply {
             textSize = 22f; setTextColor(SheetDialog.BLUE); gravity = android.view.Gravity.CENTER
             setTextIsSelectable(true)
         }
-        resultCard.addView(sheet.pill("카카오톡 전달용 메시지 복사") {
-            if (currentGeneratedCode.isEmpty()) return@pill
-            // 방 번호를 따로 한 번 더 보내지 않아도 되게, 지금 방이 있으면 같은 메시지에 넣는다
-            val room = roomPrefs().getString("cloud_room_number", "") ?: ""
-            val roomLine = if (room.isEmpty()) "" else "\n집결 방 번호: $room (인증 후 방 선택에서 고르기)"
-            val shareMsg = "[오토클리커 Pro 집결장 초대]\nID: $currentMemberId\n집결장 코드: $currentGeneratedCode\n앱을 열고 인증 창에 둘 다 입력하면 집결 기능을 쓸 수 있어요.$roomLine"
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            clipboard.setPrimaryClip(ClipData.newPlainText("AutoClickerInvite", shareMsg))
-            TextShare.copiedNotice(this)
-        }, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, (44 * resources.displayMetrics.density).toInt()).apply {
-            topMargin = (10 * resources.displayMetrics.density).toInt()
-        })
-        resultCard.visibility = View.GONE
+        val tvPreview = sheet.line(resultCard, "", small = true, top = 8)
+        afterMade += resultCard
+        afterMade += sheet.wideButton("카카오톡으로 보내기", top = 14) { TextShare.toKakao(this, shareTitle, shareMsg) }
+        afterMade += sheet.equalRow(
+            sheet.pill("복사") { TextShare.copy(this, shareTitle, shareMsg) },
+            sheet.pill("다른 앱으로 보내기") { TextShare.chooser(this, shareTitle, shareMsg) }
+        )
+        afterMade.forEach { it.visibility = View.GONE }
 
-        // 생성 버튼은 입력 칸과 결과 상자 사이에 두려고 마지막에 끼워 넣는다
-        val btnGenerate = sheet.wideButton("집결장 코드 만들기", top = 12) {
+        btnGenerate.setOnClickListener {
             val memberId = etTargetId.text.toString().trim()
             if (memberId.isEmpty()) {
                 Toast.makeText(this, "이메일 또는 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                return@wideButton
+                return@setOnClickListener
             }
             val code = InvitationManager.generateInviteCode(memberId)
             if (code.isEmpty()) {
                 Toast.makeText(this, "이 앱에는 집결장 코드 설정이 없어 만들 수 없어요.", Toast.LENGTH_LONG).show()
-                return@wideButton
+                return@setOnClickListener
             }
-            currentGeneratedCode = code
-            currentMemberId = memberId
+            // 방 번호를 따로 한 번 더 보내지 않아도 되게, 지금 방이 있으면 같은 메시지에 넣는다
+            val room = roomPrefs().getString("cloud_room_number", "") ?: ""
+            val roomLine = if (room.isEmpty()) "" else "\n집결 방 번호: $room (인증 후 방 선택에서 고르기)"
+            shareMsg = "[오토클리커 Pro 집결장 초대]\nID: $memberId\n집결장 코드: $code\n앱을 열고 인증 창에 둘 다 입력하면 집결 기능을 쓸 수 있어요.$roomLine"
             tvCode.text = code
-            resultCard.visibility = View.VISIBLE
+            tvPreview.text = shareMsg
+            afterMade.forEach { it.visibility = View.VISIBLE }
             Toast.makeText(this, "집결장 코드를 만들었어요.", Toast.LENGTH_SHORT).show()
         }
-        sheet.content.removeView(btnGenerate)
-        sheet.content.addView(btnGenerate, sheet.content.indexOfChild(resultCard))
 
         sheet.actions(SheetDialog.act("닫기")).show()
     }
 }
-
-
-
-
