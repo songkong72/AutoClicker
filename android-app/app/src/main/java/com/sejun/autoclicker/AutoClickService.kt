@@ -980,7 +980,11 @@ class AutoClickService : AccessibilityService() {
     }
 
     @SuppressLint("InflateParams")
-    fun showSettingsDialog() {
+    /**
+     * [fromApp]: 앱 첫 화면에서 열었을 때. 뒤 화면을 어둡게 덮고 뒤의 버튼이 눌리지 않게 한다.
+     * 게임 위에서 열 때는 뒤(게임)가 그대로 보이고 눌려야 하므로 그렇게 하지 않는다.
+     */
+    fun showSettingsDialog(fromApp: Boolean = false) {
         if (settingsDialogView != null) {
             hideSettingsDialog()
             return
@@ -997,10 +1001,11 @@ class AutoClickService : AccessibilityService() {
             dpToPx(320),
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            if (fromApp) WindowManager.LayoutParams.FLAG_DIM_BEHIND else WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER
+            if (fromApp) dimAmount = 0.5f
         }
         this.settingsDialogParams = params
 

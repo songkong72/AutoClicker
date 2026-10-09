@@ -135,7 +135,7 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             bindServiceCallbacks()
-            service.showSettingsDialog()
+            service.showSettingsDialog(fromApp = true)
         }
 
         // 상단 관리자 설정 아이콘
