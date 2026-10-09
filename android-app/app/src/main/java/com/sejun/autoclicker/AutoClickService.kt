@@ -1643,44 +1643,89 @@ class AutoClickService : AccessibilityService() {
         troopCountSetting = HunterTroops.clampCount(HunterModeManager.troops.size)
         if (bearSetupView == null) {
             val ctx = this
-            bearSetupView = android.widget.LinearLayout(this).apply {
+            val dp = resources.displayMetrics.density
+            fun px(v: Int) = (v * dp).toInt()
+            fun round(color: String, radiusDp: Int, stroke: String? = null) = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.parseColor(color)); cornerRadius = radiusDp * dp
+                if (stroke != null) setStroke(Math.max(1, (1.5f * dp).toInt()), Color.parseColor(stroke))
+            }
+            val wrap = android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            val match = android.widget.LinearLayout.LayoutParams.MATCH_PARENT
+            // 다른 어두운 창(연타 세부 설정)과 같은 모양: 둥근 모서리, 끌어서 옮기기, ✕로 저장 없이 닫기.
+            val root = RallyDragLayout(this).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
-                setBackgroundColor(Color.parseColor("#E60F172A"))
-                setPadding(24, 16, 24, 16)
+                background = round("#121A2C", 20, "#334155")
+                setPadding(px(16), px(12), px(16), px(16))
+
+                addView(View(ctx).apply { background = round("#475569", 2) },
+                    android.widget.LinearLayout.LayoutParams(px(40), px(4)).apply { gravity = android.view.Gravity.CENTER_HORIZONTAL })
+                addView(android.widget.LinearLayout(ctx).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    addView(android.widget.TextView(ctx).apply {
+                        text = "헌터 위치 잡기"
+                        setTextColor(Color.parseColor("#F1F5F9"))
+                        textSize = 16f
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    }, android.widget.LinearLayout.LayoutParams(0, wrap, 1f))
+                    addView(android.widget.TextView(ctx).apply {
+                        text = "✕"
+                        contentDescription = "닫기"
+                        setTextColor(Color.parseColor("#CBD5E1"))
+                        textSize = 13f
+                        gravity = android.view.Gravity.CENTER
+                        background = round("#2A3447", 15)
+                        setOnClickListener { hideBearSetupUi() }
+                    }, android.widget.LinearLayout.LayoutParams(px(30), px(30)))
+                }, android.widget.LinearLayout.LayoutParams(match, px(32)).apply { topMargin = px(6) })
 
                 addView(android.widget.TextView(ctx).apply {
                     text = "과녁 → 출정 버튼 위에\n동그라미 1, 2, 3… → 쓸 부대 깃발 위에 번호 순서대로 놓고 저장\n(누를 때마다 1번부터 차례로 출정)"
-                    setTextColor(Color.WHITE)
+                    setTextColor(Color.parseColor("#A9B4C7"))
                     textSize = 12f
-                    gravity = android.view.Gravity.CENTER
-                })
+                }, android.widget.LinearLayout.LayoutParams(match, wrap).apply { topMargin = px(8) })
+
                 addView(android.widget.LinearLayout(ctx).apply {
                     orientation = android.widget.LinearLayout.HORIZONTAL
-                    gravity = android.view.Gravity.CENTER
-                    fun stepButton(label: String, delta: Int) = android.widget.Button(ctx).apply {
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    addView(android.widget.TextView(ctx).apply {
+                        text = "부대 수"
+                        setTextColor(Color.parseColor("#F1F5F9"))
+                        textSize = 14f
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    }, android.widget.LinearLayout.LayoutParams(0, wrap, 1f))
+                    fun stepButton(label: String, desc: String, delta: Int) = android.widget.TextView(ctx).apply {
                         text = label
-                        setBackgroundColor(Color.parseColor("#334155"))
-                        setTextColor(Color.WHITE)
+                        contentDescription = desc
+                        setTextColor(Color.parseColor("#F1F5F9"))
+                        textSize = 20f
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
+                        gravity = android.view.Gravity.CENTER
+                        background = round("#0B1220", 22, "#475569")
                         setOnClickListener {
                             troopCountSetting = HunterTroops.clampCount(troopCountSetting + delta)
                             syncTroopMarkers()
                         }
                     }
-                    addView(stepButton("−", -1))
+                    addView(stepButton("−", "부대 줄이기", -1), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
                     val countText = android.widget.TextView(ctx).apply {
-                        setTextColor(Color.WHITE)
-                        textSize = 14f
+                        setTextColor(Color.parseColor("#F1F5F9"))
+                        textSize = 16f
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
                         gravity = android.view.Gravity.CENTER
-                        setPadding(24, 0, 24, 0)
                     }
                     troopCountLabel = countText
-                    addView(countText)
-                    addView(stepButton("+", 1))
-                })
-                addView(android.widget.Button(ctx).apply {
+                    addView(countText, android.widget.LinearLayout.LayoutParams(px(56), wrap))
+                    addView(stepButton("+", "부대 늘리기", 1), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
+                }, android.widget.LinearLayout.LayoutParams(match, px(44)).apply { topMargin = px(12) })
+
+                addView(android.widget.TextView(ctx).apply {
                     text = "헌터 위치 저장"
-                    setBackgroundColor(Color.parseColor("#3B82F6"))
                     setTextColor(Color.WHITE)
+                    textSize = 15f
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    gravity = android.view.Gravity.CENTER
+                    background = round("#3B82F6", 14)
                     setOnClickListener {
                         val points = troopMarkers.map { centerOnScreen(it) }
                         val dispatch = centerOnScreen(targetView)
@@ -1695,20 +1740,30 @@ class AutoClickService : AccessibilityService() {
                         hideBearSetupUi()
                         updateHunterFireLabel() // 부대 수가 바뀌었을 수 있다
                     }
-                })
+                }, android.widget.LinearLayout.LayoutParams(match, px(48)).apply { topMargin = px(12) })
             }
+            bearSetupView = root
 
-            bearSetupParams = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
+            val params = WindowManager.LayoutParams(
+                px(320),
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT
-            ).apply {
-                gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
-                y = 200
+            ).apply { gravity = android.view.Gravity.CENTER }
+            bearSetupParams = params
+            // 창을 끌어서 옮긴다(출정 버튼을 가리면 비켜 놓는다). 화면 밖으로는 나가지 않는다.
+            var sx = 0; var sy = 0
+            root.onDragStart = { sx = params.x; sy = params.y }
+            root.onDragMove = { dx, dy ->
+                val dm = resources.displayMetrics
+                val (x, y) = OverlayDragBounds.centered(sx + dx.toInt(), sy + dy.toInt(), dm.widthPixels, dm.heightPixels, root.width, root.height)
+                params.x = x; params.y = y
+                try { windowManager?.updateViewLayout(root, params) } catch (_: Exception) { }
             }
         }
+        // 열 때마다 화면 아래쪽에서 시작한다(가운데 기준이라 아래로 화면 높이의 1/4).
+        bearSetupParams?.let { it.x = 0; it.y = resources.displayMetrics.heightPixels / 4 }
 
         try { windowManager?.addView(bearSetupView, bearSetupParams) } catch (e: Exception) {}
 
@@ -1788,7 +1843,7 @@ class AutoClickService : AccessibilityService() {
             // 저장해 둔 부대 위치가 있으면 그 자리에서 시작한다(다시 열 때마다 기본 자리로 돌아가 보이던 문제).
             HunterModeManager.troops.getOrNull(i)?.let { saved -> placeCenterAt(marker, lp, saved.x, saved.y) }
         }
-        troopCountLabel?.text = "부대 ${troopCountSetting}개"
+        troopCountLabel?.text = "${troopCountSetting}개"
     }
 
     private fun hideBearSetupUi() {
