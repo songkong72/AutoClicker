@@ -4,12 +4,18 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.provider.Settings
+import android.text.InputFilter
+import android.text.InputType
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.accessibility.AccessibilityManager
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -122,21 +128,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 연타 설정 바꾸기: 게임 위에서 쓰는 설정 창을 그대로 연다(설정 화면은 한 곳뿐)
-        binding.btnChangeClickSettings.setOnClickListener {
-            if (!hasAccessibilityPermission()) {
-                Toast.makeText(this, "스위치를 먼저 켜야 설정 창을 열 수 있어요.", Toast.LENGTH_LONG).show()
-                openAccessibilitySettings()
-                return@setOnClickListener
-            }
-            val service = AutoClickService.instance
-            if (service == null) {
-                Toast.makeText(this, "아직 준비 중이에요. 잠시 후 다시 눌러 주세요.\n(계속 안 되면 접근성을 껐다가 다시 켜 주세요)", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
-            bindServiceCallbacks()
-            service.showSettingsDialog()
-        }
+        // 연타 설정 바꾸기: 앱의 다른 창처럼 밝은 아래 창으로 연다(값은 게임 위 설정 창과 같은 곳에 저장한다)
+        binding.btnChangeClickSettings.setOnClickListener { showClickSettingsSheet() }
 
         // 상단 관리자 설정 아이콘
         binding.btnAdminIcon.setOnClickListener {
@@ -250,6 +243,96 @@ class MainActivity : AppCompatActivity() {
             }
             updateServiceState()
         }
+    }
+
+    /**
+     * 앱 첫 화면의 연타 설정 창. 게임 위 설정 창과 같은 값을 고치되, 모양은 앱의 다른 창처럼 밝은 아래 창이다.
+     * 버튼 투명도는 게임 위 막대에만 쓰이는 값이라 여기에는 두지 않는다.
+     */
+    private fun showClickSettingsSheet() {
+        val sheet = SheetDialog(this, "연타 설정")
+        val density = resources.displayMetrics.density
+        fun px(v: Int) = (v * density).toInt()
+        val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
+        fun lp(w: Int, h: Int, weight: Float = 0f, left: Int = 0) = LinearLayout.LayoutParams(w, h, weight).apply { leftMargin = px(left) }
+        fun label(text: String, bold: Boolean = false) = TextView(this).apply {
+            this.text = text; textSize = if (bold) 15f else 14f
+            setTextColor(if (bold) SheetDialog.INK else SheetDialog.SUB)
+            if (bold) setTypeface(typeface, Typeface.BOLD)
+        }
+        fun numberBox(initial: String, decimal: Boolean = false) = EditText(this).apply {
+            setText(initial); gravity = Gravity.CENTER; textSize = 16f; setTextColor(SheetDialog.INK); setTypeface(typeface, Typeface.BOLD)
+            inputType = InputType.TYPE_CLASS_NUMBER or (if (decimal) InputType.TYPE_NUMBER_FLAG_DECIMAL else 0)
+            filters = arrayOf(InputFilter.LengthFilter(5)); setSingleLine(true)
+            background = sheet.box(SheetDialog.FIELD, 14); setPadding(0, 0, 0, 0)
+        }
+        /** 가로 한 줄을 만들어 창에 넣는다. */
+        fun row(top: Int, vararg views: Pair<View, LinearLayout.LayoutParams>) = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setPadding(px(4), 0, px(4), 0)
+            views.forEach { (v, p) -> addView(v, p) }
+        }.also { sheet.content.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).apply { topMargin = px(top) }) }
+        /** 고른 칩만 남색으로 채운다. [on]이 -1이면 아무것도 고르지 않은 것. */
+        fun paint(pills: List<TextView>, on: Int) = pills.forEachIndexed { i, pill ->
+            pill.setTextColor(if (i == on) Color.WHITE else SheetDialog.INK)
+            pill.background = sheet.box(if (i == on) SheetDialog.BLUE else SheetDialog.FIELD, 14)
+        }
+
+        // 클릭 주기: 초로 적는다. 칩을 누르면 입력 칸에 그 값이 들어간다.
+        val etInterval = numberBox(ClickSummary.seconds(PreferencesHelper.getIntervalMs(this)), decimal = true)
+        row(6, label("클릭 주기", bold = true) to lp(0, wrap, 1f), etInterval to lp(px(96), px(44)), label("초") to lp(wrap, wrap, left = 8))
+        val presets = listOf(100L to "0.1초", 200L to "0.2초", 500L to "0.5초", 1000L to "1.0초")
+        val speedPills = presets.map { (ms, text) -> sheet.pill(text) { etInterval.setText(ClickSummary.seconds(ms)) } }
+        sheet.equalRow(*speedPills.toTypedArray())
+        fun paintSpeed() = paint(speedPills, presets.indexOfFirst { it.first == ClickSummary.parseSeconds(etInterval.text.toString()) })
+        etInterval.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) = paintSpeed()
+        })
+        paintSpeed()
+
+        // 반복 조건: 고른 것에 따라 아래 한 줄이 바뀐다(무한 = 안내, 횟수·시간 = 입력 줄).
+        sheet.heading("반복 조건")
+        var mode = PreferencesHelper.getRepeatMode(this)
+        val modes = listOf(RepeatMode.INFINITE to "무한", RepeatMode.COUNT to "횟수", RepeatMode.TIMER to "시간")
+        val modePills = modes.map { (_, text) -> sheet.pill(text) { } }
+        sheet.equalRow(*modePills.toTypedArray())
+        val infiniteNote = sheet.line(sheet.content, "정지 버튼이나 볼륨 키를 누를 때까지 계속 연타해요.", small = true, top = 8).apply { setPadding(px(4), 0, px(4), 0) }
+        val etCount = numberBox(PreferencesHelper.getRepeatCount(this).toString())
+        val countRow = row(8, etCount to lp(px(84), px(44)), label("회") to lp(wrap, wrap, left = 8),
+            *listOf("50", "100", "300").map { n -> sheet.pill(n) { etCount.setText(n) } to lp(0, px(44), 1f, left = 8) }.toTypedArray())
+        val totalSec = PreferencesHelper.getRepeatDurationSec(this)
+        val etMin = numberBox((totalSec / 60).toString())
+        val etSec = numberBox((totalSec % 60).toString())
+        val timerRow = row(8, etMin to lp(px(64), px(44)), label("분") to lp(wrap, wrap, left = 6),
+            etSec to lp(px(64), px(44), left = 8), label("초") to lp(wrap, wrap, left = 6),
+            *listOf(1, 3).map { m -> sheet.pill("${m}분") { etMin.setText(m.toString()); etSec.setText("0") } to lp(0, px(44), 1f, left = 8) }.toTypedArray())
+        fun showMode() {
+            paint(modePills, modes.indexOfFirst { it.first == mode })
+            infiniteNote.visibility = if (mode == RepeatMode.INFINITE) View.VISIBLE else View.GONE
+            countRow.visibility = if (mode == RepeatMode.COUNT) View.VISIBLE else View.GONE
+            timerRow.visibility = if (mode == RepeatMode.TIMER) View.VISIBLE else View.GONE
+        }
+        modePills.forEachIndexed { i, pill -> pill.setOnClickListener { mode = modes[i].first; showMode() } }
+        showMode()
+
+        sheet.actions(
+            SheetDialog.act("취소"),
+            SheetDialog.Action("적용", SheetDialog.Kind.PRIMARY) {
+                val intervalMs = ClickSummary.parseSeconds(etInterval.text.toString())
+                if (intervalMs == null) {
+                    Toast.makeText(this, "클릭 주기를 0보다 큰 숫자로 입력해 주세요 (예: 0.5)", Toast.LENGTH_SHORT).show()
+                    return@Action false
+                }
+                PreferencesHelper.setIntervalMs(this, intervalMs)
+                PreferencesHelper.setRepeatMode(this, mode)
+                PreferencesHelper.setRepeatCount(this, etCount.text.toString().toIntOrNull() ?: 100)
+                PreferencesHelper.setRepeatDurationSec(this, (etMin.text.toString().toIntOrNull() ?: 1) * 60 + (etSec.text.toString().toIntOrNull() ?: 0))
+                updateServiceState() // 첫 화면의 요약 한 줄을 새 값으로
+                true
+            }
+        ).show()
     }
 
     private fun openAccessibilitySettings() {

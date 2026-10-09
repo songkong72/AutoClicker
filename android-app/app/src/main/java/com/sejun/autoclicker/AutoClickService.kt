@@ -1114,7 +1114,7 @@ class AutoClickService : AccessibilityService() {
 
         // 현재 설정값 로드
         val curInterval = PreferencesHelper.getIntervalMs(this)
-        etInterval.setText(curInterval.toString())
+        etInterval.setText(ClickSummary.seconds(curInterval))
         updateSpeedChips(curInterval)
 
         updateTabs(selectedMode)
@@ -1131,10 +1131,10 @@ class AutoClickService : AccessibilityService() {
         tabTimer.setOnClickListener { updateTabs(RepeatMode.TIMER) }
 
         // 속도 프리셋 칩 클릭
-        chip100.setOnClickListener { etInterval.setText("100"); updateSpeedChips(100L) }
-        chip200.setOnClickListener { etInterval.setText("200"); updateSpeedChips(200L) }
-        chip500.setOnClickListener { etInterval.setText("500"); updateSpeedChips(500L) }
-        chip1000.setOnClickListener { etInterval.setText("1000"); updateSpeedChips(1000L) }
+        chip100.setOnClickListener { etInterval.setText(ClickSummary.seconds(100L)); updateSpeedChips(100L) }
+        chip200.setOnClickListener { etInterval.setText(ClickSummary.seconds(200L)); updateSpeedChips(200L) }
+        chip500.setOnClickListener { etInterval.setText(ClickSummary.seconds(500L)); updateSpeedChips(500L) }
+        chip1000.setOnClickListener { etInterval.setText(ClickSummary.seconds(1000L)); updateSpeedChips(1000L) }
 
         // 횟수 칩 클릭
         chipCount50.setOnClickListener { etCount.setText("50") }
@@ -1172,7 +1172,7 @@ class AutoClickService : AccessibilityService() {
 
         btnSave.setOnClickListener {
             vibrate(25)
-            val newInterval = etInterval.text.toString().toLongOrNull() ?: 500L
+            val newInterval = ClickSummary.parseSeconds(etInterval.text.toString()) ?: 500L
             PreferencesHelper.setIntervalMs(this, newInterval)
             currentIntervalMs = newInterval
 
@@ -1189,7 +1189,7 @@ class AutoClickService : AccessibilityService() {
             PreferencesHelper.setOverlayAlpha(this, selectedAlpha)
             applyOverlayAlpha(selectedAlpha)
 
-            showToast("⚙️ 설정 적용 완료! (${newInterval}ms / ${when(selectedMode) {
+            showToast("⚙️ 설정 적용 완료! (${ClickSummary.seconds(newInterval)}초 / ${when(selectedMode) {
                 RepeatMode.INFINITE -> "무한"
                 RepeatMode.COUNT -> "${newCount}회"
                 RepeatMode.TIMER -> "${m}분${s}초"

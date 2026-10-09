@@ -63,9 +63,9 @@
             android:layout_height="34dp"
             android:background="@drawable/bg_floating_capsule"
             android:gravity="center"
-            android:inputType="number"
+            android:inputType="numberDecimal"
             android:maxLength="5"
-            android:text="500"
+            android:text="0.5"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -74,7 +74,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:text="ms"
+            android:text="초"
             android:textColor="#94A3B8"
             android:textSize="13sp"
             android:textStyle="bold" />

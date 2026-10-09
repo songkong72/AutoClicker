@@ -1,6 +1,7 @@
 package com.sejun.autoclicker
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ClickSummaryTest {
@@ -13,4 +14,29 @@ class ClickSummaryTest {
     @Test fun 딱_떨어지는_분은_초를_적지_않는다() = assertEquals("0.25초마다 · 3분 동안", ClickSummary.text(250, RepeatMode.TIMER, 100, 180))
 
     @Test fun 일_분이_안_되면_초만() = assertEquals("0.2초마다 · 45초 동안", ClickSummary.text(200, RepeatMode.TIMER, 100, 45))
+
+    // ---- 입력 칸: 초로 적고 ms로 저장한다
+    @Test fun ms를_초_글자로() {
+        assertEquals("0.5", ClickSummary.seconds(500))
+        assertEquals("1", ClickSummary.seconds(1000))
+        assertEquals("0.25", ClickSummary.seconds(250))
+    }
+
+    @Test fun 초_글자를_ms로() {
+        assertEquals(500L, ClickSummary.parseSeconds("0.5"))
+        assertEquals(500L, ClickSummary.parseSeconds(" .5 "))
+        assertEquals(1000L, ClickSummary.parseSeconds("1.0"))
+        assertEquals(1500L, ClickSummary.parseSeconds("1.5"))
+    }
+
+    @Test fun 숫자가_아니거나_0_이하면_받지_않는다() {
+        assertNull(ClickSummary.parseSeconds(""))
+        assertNull(ClickSummary.parseSeconds("."))
+        assertNull(ClickSummary.parseSeconds("abc"))
+        assertNull(ClickSummary.parseSeconds("0"))
+        assertNull(ClickSummary.parseSeconds("-1"))
+    }
+
+    @Test fun 적은_값은_다시_보여도_같은_글자() =
+        assertEquals("0.2", ClickSummary.seconds(ClickSummary.parseSeconds("0.2")!!))
 }

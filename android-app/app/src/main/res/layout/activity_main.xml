@@ -407,7 +407,7 @@
                     app:cornerRadius="14dp" />
             </LinearLayout>
 
-            <!-- 일반 연타 모드: 설정은 요약 한 줄만 보인다. "바꾸기"는 게임 위에서 쓰는 설정 창을 그대로 연다(설정 화면은 한 곳뿐) -->
+            <!-- 일반 연타 모드: 설정은 요약 한 줄만 보인다. "바꾸기"는 밝은 아래 창(연타 설정)을 연다. 값은 게임 위 설정 창과 같은 곳에 저장된다 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
