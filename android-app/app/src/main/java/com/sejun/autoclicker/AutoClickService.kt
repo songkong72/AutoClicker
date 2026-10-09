@@ -210,14 +210,14 @@ class AutoClickService : AccessibilityService() {
         )
     }
 
-    /** 모드 버튼의 그림과 색을 켜진 모드에 맞춘다: 헌터 초록 곰, 순서 클릭 하늘색, 꺼짐 회색. */
+    /** 모드 버튼의 색을 켜진 모드에 맞춘다: 헌터 초록, 순서 클릭 하늘색, 꺼짐 회색. 그림은 늘 목록 모양이다. */
     private fun refreshModeIcon() {
         val b = controlView?.findViewById<ImageButton>(R.id.btnBearMode) ?: return
-        when {
-            HunterModeManager.isHunterModeEnabled -> { b.setImageResource(R.drawable.ic_action_bear); b.setColorFilter(Color.parseColor("#10B981")) }
-            sequenceUi.isActive -> { b.setImageResource(R.drawable.ic_action_mode); b.setColorFilter(Color.parseColor("#38BDF8")) }
-            else -> { b.setImageResource(R.drawable.ic_action_mode); b.setColorFilter(Color.parseColor("#CBD5E1")) }
-        }
+        b.setColorFilter(Color.parseColor(when {
+            HunterModeManager.isHunterModeEnabled -> "#10B981"
+            sequenceUi.isActive -> "#38BDF8"
+            else -> "#CBD5E1"
+        }))
     }
 
     /** 숨은 곰 사냥 모드를 개방한다. 이미 열려 있으면 안내만 한다. 새 집결 팝업과 옛 대화창 양쪽에서 쓴다. */
