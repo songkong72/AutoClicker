@@ -43,10 +43,10 @@ class RallyPanelHost(
         fun characterName(): String = ""
         /** 지금 들어와 있는 방 번호 */
         fun roomCode(): String = ""
-        /** 관리자 화면에 보일 "마지막 변경: 누구 · 언제" 한 줄. 없으면 빈 문자열. */
+        /** 지휘관 화면에 보일 "마지막 변경: 누구 · 언제" 한 줄. 없으면 빈 문자열. */
         fun changeNote(): String = ""
         fun onSetCharacterName(name: String) {}
-        /** 관리자가 고를 수 있는 방 명단. 가져오지 못하면 null. */
+        /** 지휘관이 고를 수 있는 방 명단. 가져오지 못하면 null. */
         fun loadRoster(onLoaded: (List<RallyMember>?) -> Unit) { onLoaded(emptyList()) }
         /** 마지막 명단 불러오기가 실패한 이유(화면에 보여 주는 용도). */
         fun rosterError(): String = ""
@@ -58,7 +58,7 @@ class RallyPanelHost(
         fun onAddTeam() {}
         fun onSetPrep(sec: Double) {}
         fun onSetWait(sec: Double) {}
-        /** 관리자가 한 군단에 더해 주는 클릭 보정(ms) */
+        /** 지휘관이 한 군단에 더해 주는 클릭 보정(ms) */
         fun onSetAdminAdjust(teamId: String, ms: Int) {}
         fun onRemoveTeam(teamId: String) {}
         /** 내 기기 설정(좌표, ms 보정). 방 데이터가 아니라 이 기기에만 저장된다. */
@@ -197,7 +197,7 @@ class RallyPanelHost(
     }
 
     /**
-     * 방을 목록에서 골라 옮긴다(입력 없음). 관리자와 집결장은 이 기기에서 들어갔던 방, 개발자는 서버에 만들어진 모든 방이 나온다.
+     * 방을 목록에서 골라 옮긴다(입력 없음). 지휘관과 집결장은 이 기기에서 들어갔던 방, 개발자는 서버에 만들어진 모든 방이 나온다.
      * 방 만들기는 앱 첫 화면(첫 입장)에서만 한다. 현재 방을 고르면 아무 일 없이 창이 닫힌다.
      */
     private fun showRoomPicker(current: String) {
@@ -231,7 +231,7 @@ class RallyPanelHost(
     }
 
     private fun promptCharacterName(current: String) {
-        input.show("게임 캐릭터명 · 관리자가 이 이름을 보고 군단을 배정해요", current, freeText = true,
+        input.show("게임 캐릭터명 · 지휘관이 이 이름을 보고 군단을 배정해요", current, freeText = true,
             errorText = "캐릭터명을 입력해 주세요 (최대 ${RallyRoster.MAX_NAME}자)") { text ->
             val name = RallyRoster.cleanName(text)
             if (name.isEmpty()) return@show false
@@ -239,7 +239,7 @@ class RallyPanelHost(
         }
     }
 
-    /** 관리자: 방에 등록한 사람 목록에서 이 군단을 맡을 사람을 고른다. 이미 다른 군단에 있는 사람을 고르면 그쪽에서 빠진다. */
+    /** 지휘관: 방에 등록한 사람 목록에서 이 군단을 맡을 사람을 고른다. 이미 다른 군단에 있는 사람을 고르면 그쪽에서 빠진다. */
     private fun showAssignPicker(teamId: String, teamName: String) {
         // 누르자마자 반응이 보이도록 먼저 "불러오는 중" 창을 띄우고, 결과가 오면 바꿔 그린다.
         pick.show("$teamName 을(를) 맡을 사람", emptyList(), "명단을 불러오는 중…", listOf(RallyPickPopup.Item("닫기") { }))

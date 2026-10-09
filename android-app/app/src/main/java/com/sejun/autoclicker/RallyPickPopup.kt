@@ -12,7 +12,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 
 /**
- * 목록에서 하나를 고르는 팝업(관리자가 군단을 맡을 사람을 고를 때). 키보드가 필요 없어 포커스를 받지 않는다.
+ * 목록에서 하나를 고르는 팝업(지휘관이 군단을 맡을 사람을 고를 때). 키보드가 필요 없어 포커스를 받지 않는다.
  */
 class RallyPickPopup(private val context: Context, private val wm: WindowManager) {
     class Item(val label: String, val color: String = "#E2E8F0", val onPick: () -> Unit)

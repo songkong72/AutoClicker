@@ -3,7 +3,7 @@ package com.sejun.autoclicker
 enum class RallyRunState { IDLE, RUNNING, ARRIVED, CANCELLED }
 
 enum class HeroKind { IDLE, MOVE, WAIT_CLICK, GATHERING, MARCHING, ARRIVED, CANCELLED, EXCLUDED,
-    /** 내 군단이 없는 사람(관리자 등)이 진행 중에 보는 전체 상황. 큰 숫자는 전원 도착까지, 단계는 [HeroModel.phase]. */
+    /** 내 군단이 없는 사람(지휘관 등)이 진행 중에 보는 전체 상황. 큰 숫자는 전원 도착까지, 단계는 [HeroModel.phase]. */
     OVERVIEW }
 
 data class RallyTeamState(
@@ -13,7 +13,7 @@ data class RallyTeamState(
     val marchSec: Double,
     val online: Boolean = true,
     val excluded: Boolean = false,
-    /** 관리자가 이 군단에 더해 준 클릭 보정(ms) */
+    /** 지휘관이 이 군단에 더해 준 클릭 보정(ms) */
     val adminAdjustMs: Int = 0,
     /** 이 군단에 배정된 사람의 기기 ID. 배정 전이면 빈 문자열. */
     val leaderId: String = ""
@@ -29,9 +29,9 @@ data class RallyRoomState(
     val elapsedSec: Double = 0.0,
     /** 이 기기에 클릭 위치가 저장되어 있는지 */
     val positionSaved: Boolean = true,
-    /** 이 기기의 캐릭터명이 등록되어 있는지(관리자는 등록하지 않아도 되므로 true로 넘긴다) */
+    /** 이 기기의 캐릭터명이 등록되어 있는지(지휘관은 등록하지 않아도 되므로 true로 넘긴다) */
     val characterNameSet: Boolean = true,
-    /** 관리자 기기인가. 관리자가 자기 군단을 제외하면 "제외됐어요" 대신 전체 진행을 보여 준다. */
+    /** 지휘관 기기인가. 지휘관이 자기 군단을 제외하면 "제외됐어요" 대신 전체 진행을 보여 준다. */
     val isAdmin: Boolean = false
 )
 
@@ -45,7 +45,7 @@ data class HeroModel(
     val progress: Double,
     /** [HeroKind.OVERVIEW]에서만: 전체 단계 0 대기 · 1 집결 · 2 행군. */
     val phase: Int? = null,
-    /** 제목 옆에 덧붙일 짧은 표시(예: 자기 군단을 제외한 관리자의 "참여 안 함"). 없으면 null. */
+    /** 제목 옆에 덧붙일 짧은 표시(예: 자기 군단을 제외한 지휘관의 "참여 안 함"). 없으면 null. */
     val note: String? = null
 )
 
@@ -117,19 +117,19 @@ object RallyScreenModel {
         state.teams.isEmpty() && state.isAdmin ->
             HeroModel(HeroKind.IDLE, "이 방에는 군단이 없어요", null, "방 번호가 맞는지 확인하세요 · 새 방은 앱 첫 화면에서 만들어요", 0.0)
         state.teams.isEmpty() ->
-            HeroModel(HeroKind.IDLE, "관리자가 군단을 구성하는 중이에요", null, "방에 군단이 생기면 여기에 표시돼요", 0.0)
-        // 군단이 없는 관리자 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
+            HeroModel(HeroKind.IDLE, "지휘관이 군단을 구성하는 중이에요", null, "방에 군단이 생기면 여기에 표시돼요", 0.0)
+        // 군단이 없는 지휘관 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
         // 집결장이 군단을 못 찾았을 때는 전체 보기가 아니라 아래의 "배정되지 않았어요" 안내를 보여 준다.
         (state.isAdmin && (state.teams.none { it.id == state.myTeamId } || my == null)) && run == RallyRunState.RUNNING ->
             overviewHero(plan, state.elapsedSec, state.prepSec).copy(note = if (state.teams.any { it.id == state.myTeamId }) "참여 안 함" else null)
         state.teams.none { it.id == state.myTeamId } ->
-            HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "관리자가 군단을 배정하면 시작할 수 있어요", 0.0)
+            HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "지휘관이 군단을 배정하면 시작할 수 있어요", 0.0)
         state.isAdmin && my == null ->
             HeroModel(HeroKind.IDLE, "이번 작전에는 참여하지 않아요", null, "군단 목록에서 진행을 확인하세요", 0.0)
         my == null ->
-            HeroModel(HeroKind.EXCLUDED, "이번 작전에서 제외됐어요", null, "관리자가 다시 포함하면 참여할 수 있어요", 0.0)
+            HeroModel(HeroKind.EXCLUDED, "이번 작전에서 제외됐어요", null, "지휘관이 다시 포함하면 참여할 수 있어요", 0.0)
         run == RallyRunState.IDLE ->
-            HeroModel(HeroKind.IDLE, "관리자 시작 대기 중", null, "시작 후 ${Math.ceil(my.clickAtSec).toInt()}초에 내 집결 클릭", 0.0)
+            HeroModel(HeroKind.IDLE, "지휘관 시작 대기 중", null, "시작 후 ${Math.ceil(my.clickAtSec).toInt()}초에 내 집결 클릭", 0.0)
         else -> runningHero(state, my)
     }
 
@@ -213,7 +213,7 @@ object RallyScreenModel {
         )
     }
 
-    /** 캐릭터명이 없으면 관리자가 명단에서 나를 찾아 배정할 수 없다. */
+    /** 캐릭터명이 없으면 지휘관이 명단에서 나를 찾아 배정할 수 없다. */
     /** 준비가 덜 됐을 때의 안내. 패널에서 이 줄을 누르면 바로 해당 입력으로 간다. */
     const val WARN_NAME = "캐릭터명을 먼저 등록하세요 (눌러서 입력)"
     const val WARN_POSITION = "클릭 위치를 먼저 저장하세요 (눌러서 열기)"

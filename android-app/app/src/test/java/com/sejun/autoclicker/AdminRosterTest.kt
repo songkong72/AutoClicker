@@ -112,7 +112,7 @@ class AdminRosterTest {
             AdminCode("AD-JKLM2345", "만료", 0L, 10L, used = false)
         )
         val text = AdminRoster.exportText(admins, codes, nowMs = 50L)
-        assertTrue(text, text.contains("등록된 관리자 2명"))
+        assertTrue(text, text.contains("등록된 지휘관 2명"))
         assertTrue(text, text.contains("1. 김민수 · ID …xyz789"))
         assertTrue(text, text.contains("2. 직접 등록 · ID …BBBBBB"))
         assertTrue(text, text.contains("대기 중인 코드 1개"))
@@ -122,11 +122,11 @@ class AdminRosterTest {
 
     @Test fun exportTextSaysNoneWhenEmpty() {
         val text = AdminRoster.exportText(emptyList(), emptyList(), nowMs = 0L)
-        assertTrue(text, text.contains("등록된 관리자 0명"))
+        assertTrue(text, text.contains("등록된 지휘관 0명"))
         assertTrue(text, text.contains("대기 중인 코드 0개"))
     }
 
-    // ---- 관리자 모드 점검: 서버가 모른다고 하면 건드리지 않고, 둘 다 아니라고 할 때만 푼다 ----
+    // ---- 지휘관 모드 점검: 서버가 모른다고 하면 건드리지 않고, 둘 다 아니라고 할 때만 푼다 ----
 
     @Test fun reconcileKeepsServerAdminAndOwner() {
         assertEquals(AdminModeFix.KEEP, AdminRoster.reconcile(viaServer = true, owner = Check.NO, admin = Check.YES))
@@ -254,7 +254,7 @@ class AdminRosterTest {
     }
 
     @Test
-    fun `서버 명단에 있는 기기는 코드 없이 관리자로 들어간다`() {
+    fun `서버 명단에 있는 기기는 코드 없이 지휘관으로 들어간다`() {
         assertEquals(Check.YES, AdminRoster.rosterEntry(Check.YES, Check.NO))
         assertEquals(Check.YES, AdminRoster.rosterEntry(Check.NO, Check.YES))
         assertEquals(Check.YES, AdminRoster.rosterEntry(Check.UNKNOWN, Check.YES))

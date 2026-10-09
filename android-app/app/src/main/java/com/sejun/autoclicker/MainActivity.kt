@@ -131,15 +131,15 @@ class MainActivity : AppCompatActivity() {
         // 연타 설정 바꾸기: 앱의 다른 창처럼 밝은 아래 창으로 연다(값은 게임 위 설정 창과 같은 곳에 저장한다)
         binding.cardClickSettings.setOnClickListener { showClickSettingsSheet() }
 
-        // 상단 관리자 설정 아이콘
+        // 상단 지휘관 설정 아이콘
         binding.btnAdminIcon.setOnClickListener {
             if (PreferencesHelper.isUserView(this)) return@setOnClickListener
-            // 이미 관리자면 로그인 창을 다시 띄우지 않고 관리 메뉴를 연다
+            // 이미 지휘관이면 로그인 창을 다시 띄우지 않고 관리 메뉴를 연다
             if (PreferencesHelper.isAdminMode(this)) showAdminMenu() else showAdminLoginDialog()
         }
 
-        // 관리자로 등록된 기기: 한 번 눌러 관리자 ↔ 집결장 화면을 오간다(코드를 다시 받지 않는다)
-        // 화면 전환 막대: 지금 화면이 아닌 칸을 누르면 그 화면으로 간다(관리자는 누를 때마다 서버에 다시 확인한다)
+        // 지휘관으로 등록된 기기: 한 번 눌러 지휘관 ↔ 집결장 화면을 오간다(코드를 다시 받지 않는다)
+        // 화면 전환 막대: 지금 화면이 아닌 칸을 누르면 그 화면으로 간다(지휘관은 누를 때마다 서버에 다시 확인한다)
         binding.segUser.setOnClickListener { if (!PreferencesHelper.isUserView(this)) enterUserView() }
         binding.segLeader.setOnClickListener {
             if (PreferencesHelper.isUserView(this)) setUserView(false)
@@ -150,7 +150,7 @@ class MainActivity : AppCompatActivity() {
             if (!PreferencesHelper.isAdminMode(this)) enterFromRoster(askCodeIfNot = true)
         }
 
-        // 상단 타이틀 5회 연속 탭 시 관리자 진입 (히든 제스처)
+        // 상단 타이틀 5회 연속 탭 시 지휘관 진입 (히든 제스처)
         var titleTapCount = 0
         var lastTitleTapTime = 0L
         binding.tvAppTitle.setOnClickListener {
@@ -402,7 +402,7 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * 띄우기/숨기기 버튼은 집결을 못 쓰는 사람(일반 사용자·개발자 미리보기)에게만 보인다.
-     * 회원·관리자는 "집결 화면 열기"가 조작판까지 띄워 주므로 이 버튼을 두지 않는다(큰 버튼은 늘 하나). 조작판은 조작판의 ✕ 로 끈다.
+     * 회원·지휘관은 "집결 화면 열기"가 조작판까지 띄워 주므로 이 버튼을 두지 않는다(큰 버튼은 늘 하나). 조작판은 조작판의 ✕ 로 끈다.
      */
     private fun updateStartButtonVisibility() {
         binding.btnStartService.visibility = if (!PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
@@ -427,12 +427,12 @@ class MainActivity : AppCompatActivity() {
         binding.btnShareRoom.visibility = if (admin && hasRoom) View.VISIBLE else View.GONE
         binding.btnManage.visibility = if (admin) View.VISIBLE else View.GONE
         binding.rowRoomActions.visibility = if (hasRoom || admin) View.VISIBLE else View.GONE
-        // 방이 이미 있는 관리자에게는 "방을 만들고 공유하세요" 안내를 되풀이하지 않는다
+        // 방이 이미 있는 지휘관에게는 "방을 만들고 공유하세요" 안내를 되풀이하지 않는다
         binding.tvAuthStatusSubtitle.visibility = if (admin && hasRoom) View.GONE else View.VISIBLE
         // 방 번호는 크게, 옆에 내 역할과 군단·배정 수(마지막으로 받은 방 목록 기준이라 없으면 비운다)
         binding.rowRoomNumber.visibility = if (hasRoom) View.VISIBLE else View.GONE
         binding.tvRoomNumber.text = room
-        binding.tvRoleChip.text = if (admin) "관리자" else "집결장"
+        binding.tvRoleChip.text = if (admin) "지휘관" else "집결장"
         binding.tvRoomSummary.text = RoomChooser.summaryFromLine(RoomListCache.load(roomPrefs()).firstOrNull { it.first == room }?.second).orEmpty()
         val status = listOf(
             when {
@@ -465,7 +465,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 서버의 방 목록을 받아 고르게 한다. 관리자에게는 "+ 새 방 만들기"가 함께 보인다.
+     * 서버의 방 목록을 받아 고르게 한다. 지휘관에게는 "+ 새 방 만들기"가 함께 보인다.
      * 목록을 받지 못하면(인터넷·서버 규칙) 이 기기가 들어갔던 방들을 대신 보여 주고, 그때만 번호를 직접 넣을 수 있다.
      */
     private fun showRoomChooser() {
@@ -536,12 +536,12 @@ class MainActivity : AppCompatActivity() {
         }.show()
     }
 
-    /** 집결장이 처음 입장할 때 한 번 묻는다. 관리자가 군단을 배정할 때 명단에 이 이름으로 보인다. 나중에는 집결 화면의 "내 기기"에서 바꾼다. */
+    /** 집결장이 처음 입장할 때 한 번 묻는다. 지휘관이 군단을 배정할 때 명단에 이 이름으로 보인다. 나중에는 집결 화면의 "내 기기"에서 바꾼다. */
     private fun askCharName(onDone: (String) -> Unit) {
         InputSheet(
             this,
             title = "캐릭터명 입력",
-            message = "관리자가 군단을 배정할 때 이 이름으로 보여요.",
+            message = "지휘관이 군단을 배정할 때 이 이름으로 보여요.",
             fields = listOf(InputSheet.Field(hint = "캐릭터명", maxLength = 20, inputType = android.text.InputType.TYPE_CLASS_TEXT)),
             submitLabel = "확인"
         ) { v ->
@@ -551,13 +551,13 @@ class MainActivity : AppCompatActivity() {
         }.show()
     }
 
-    /** 방에 입장한다. 관리자는 없는 번호면 새로 만들고(방 수 상한 확인), 집결장은 서버에 있는 방에만 들어가 명단에 이름을 올린다. */
+    /** 방에 입장한다. 지휘관은 없는 번호면 새로 만들고(방 수 상한 확인), 집결장은 서버에 있는 방에만 들어가 명단에 이름을 올린다. */
     private fun joinRoom(code: String) {
         val admin = PreferencesHelper.isAdminMode(this)
         val name = RallyRoster.cleanName(PreferencesHelper.getRallyCharacterName(this))
         if (!admin && name.isEmpty()) { askCharName { joinRoom(code) }; return }
 
-        // 입장 동작. 관리자는 없는 방이면 만들고(첫 입장), 집결장은 아래에서 방이 있다고 확인된 뒤에만 부른다.
+        // 입장 동작. 지휘관은 없는 방이면 만들고(첫 입장), 집결장은 아래에서 방이 있다고 확인된 뒤에만 부른다.
         fun enter() {
             roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
             RallyRoomHistory.record(roomPrefs(), code)
@@ -566,7 +566,7 @@ class MainActivity : AppCompatActivity() {
             if (admin) {
                 rosterStatus = ""
             } else {
-                // 곧바로 방 명단에 올려, 관리자 목록에 바로 나타나게 한다.
+                // 곧바로 방 명단에 올려, 지휘관 목록에 바로 나타나게 한다.
                 rosterStatus = "명단에 등록하는 중…"
                 val memberId = PreferencesHelper.getRallyMemberId(this)
                 Thread {
@@ -605,7 +605,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     when (exists) {
                         true -> enter()
-                        false -> fail("없는 방이에요. 관리자에게 받은 방 번호를 확인해 주세요", "없는 방이에요. 방 번호를 확인해 주세요.")
+                        false -> fail("없는 방이에요. 지휘관에게 받은 방 번호를 확인해 주세요", "없는 방이에요. 방 번호를 확인해 주세요.")
                         null -> fail("서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요", "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.")
                     }
                 }
@@ -614,8 +614,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 관리자: 새 방을 만든다. 번호를 적으면 그 번호로, 비워 두면 자동 번호로 만든다.
-     * 이미 방에 들어와 있으면 같은 창에서 알려 준다(관리자만 옮겨 가고 집결장들은 이전 방에 남기 때문).
+     * 지휘관: 새 방을 만든다. 번호를 적으면 그 번호로, 비워 두면 자동 번호로 만든다.
+     * 이미 방에 들어와 있으면 같은 창에서 알려 준다(지휘관만 옮겨 가고 집결장들은 이전 방에 남기 때문).
      */
     private fun askNewRoom() {
         val current = roomPrefs().getString("cloud_room_number", "") ?: ""
@@ -692,7 +692,7 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    // --- 초대코드 및 관리자 모드 관련 기능 ---
+    // --- 초대코드 및 지휘관 모드 관련 기능 ---
 
     private fun updateAuthUI() {
         val isVerified = PreferencesHelper.isVerified(this)
@@ -706,17 +706,17 @@ class MainActivity : AppCompatActivity() {
             binding.btnAuthAction.text = "개발자 화면으로 복귀"
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
         } else if (PreferencesHelper.isAdminMode(this)) {
-            binding.tvAuthStatusTitle.text = "👑 관리자 모드"
+            binding.tvAuthStatusTitle.text = "👑 지휘관 모드"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#2563EB"))
             binding.tvAuthStatusSubtitle.text = "방을 만들고 집결장에게 방 번호와 집결장 코드를 공유하세요."
             binding.btnAuthAction.text = "관리"
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
         } else if (PreferencesHelper.isRosterAdmin(this)) {
-            // 관리자로 등록된 기기가 집결장 화면으로 지내는 중
+            // 지휘관으로 등록된 기기가 집결장 화면으로 지내는 중
             binding.tvAuthStatusTitle.text = "🚩 집결장 모드"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
-            binding.tvAuthStatusSubtitle.text = "관리자로 등록된 기기예요. 위쪽 버튼으로 코드 없이 관리자로 전환할 수 있어요."
-            binding.btnAuthAction.text = "관리자로 전환"
+            binding.tvAuthStatusSubtitle.text = "지휘관으로 등록된 기기예요. 위쪽 버튼으로 코드 없이 지휘관으로 전환할 수 있어요."
+            binding.btnAuthAction.text = "지휘관으로 전환"
         } else if (isVerified) {
             binding.tvAuthStatusTitle.text = "✅ 집결장 인증 완료"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
@@ -744,13 +744,13 @@ class MainActivity : AppCompatActivity() {
             v.setTextColor(ContextCompat.getColor(this, if (on) R.color.text_primary else R.color.text_secondary))
             v.setTypeface(null, if (on) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
         }
-        // 관리자 화면과 (명단에 있는) 집결장 화면에서는 상태 카드를 두지 않는다: 전환은 위 막대, 관리는 집결 방 카드의 "관리"
+        // 지휘관 화면과 (명단에 있는) 집결장 화면에서는 상태 카드를 두지 않는다: 전환은 위 막대, 관리는 집결 방 카드의 "관리"
         binding.cardAuthStatus.visibility = if (!userView && (adminMode || roster)) View.GONE else View.VISIBLE
         binding.btnAdminIcon.visibility = if (roster || userView) View.GONE else View.VISIBLE
-        // 집결장 화면에서는 위쪽 전환 버튼 하나만 둔다: 카드 안에 같은 "관리자로 전환"을 또 두지 않는다
+        // 집결장 화면에서는 위쪽 전환 버튼 하나만 둔다: 카드 안에 같은 "지휘관으로 전환"을 또 두지 않는다
         binding.btnAuthAction.visibility =
             if (roster && !PreferencesHelper.isAdminMode(this)) View.GONE else View.VISIBLE
-        // 집결 방 카드는 인증한 회원·관리자에게만 보인다
+        // 집결 방 카드는 인증한 회원·지휘관에게만 보인다
         binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
         binding.bottomBar.visibility = binding.cardRallyRoom.visibility // "집결 화면 열기"는 화면 맨 아래에 고정
         updateStartButtonVisibility()
@@ -758,7 +758,7 @@ class MainActivity : AppCompatActivity() {
         AutoClickService.instance?.refreshMemberIcons()
     }
 
-    /** 서버 관리자 명단과 통신하는 객체. 앱과 서비스가 같은 익명 로그인(같은 기기 ID)을 쓴다. */
+    /** 서버 지휘관 명단과 통신하는 객체. 앱과 서비스가 같은 익명 로그인(같은 기기 ID)을 쓴다. */
     private fun adminServer(): AdminServer {
         val auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
             load = { roomPrefs().getString("fb_refresh", null) },
@@ -767,7 +767,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 앱을 열 때 관리자 모드를 서버 명단과 맞춘다. 서버가 개발자도 관리자도 아니라고 분명히 답할 때만 푼다.
+     * 앱을 열 때 지휘관 모드를 서버 명단과 맞춘다. 서버가 개발자도 지휘관도 아니라고 분명히 답할 때만 푼다.
      * 네트워크 오류나 서버 규칙 미적용(알 수 없음)일 때는 그대로 둔다. 예전 비밀번호로 들어온 기기도 여기서 정리한다.
      */
     private fun verifyServerAdmin() {
@@ -779,7 +779,7 @@ class MainActivity : AppCompatActivity() {
             val owner = server.isOwner(uid)
             rememberOwner(owner)
             val admin = if (owner == Check.YES) Check.YES else server.isAdmin(uid)
-            // 서버 명단에 있는 관리자면 마지막 접속 시각과 앱 버전을 적는다(개발자 화면에 보인다)
+            // 서버 명단에 있는 지휘관이면 마지막 접속 시각과 앱 버전을 적는다(개발자 화면에 보인다)
             val inRoster = if (owner == Check.YES) server.isAdmin(uid) else admin
             if (inRoster == Check.YES) server.reportSelf(uid, System.currentTimeMillis(), BuildConfig.VERSION_NAME)
             // 서버가 분명히 답했을 때만 "등록된 기기" 표시를 고친다(전환 버튼이 이 표시를 본다)
@@ -796,7 +796,7 @@ class MainActivity : AppCompatActivity() {
                     PreferencesHelper.setAdminMode(this, false)
                     PreferencesHelper.setAdminViaServer(this, false)
                     AutoClickService.instance?.leaveRallyRoom()
-                    Toast.makeText(this, "관리자 권한이 없어서 집결장 화면으로 돌아가요. 관리자 코드를 받아 다시 로그인해 주세요.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "지휘관 권한이 없어서 집결장 화면으로 돌아가요. 지휘관 코드를 받아 다시 로그인해 주세요.", Toast.LENGTH_LONG).show()
                     updateAuthUI()
                     updateRallyInfoCard()
                 }
@@ -811,23 +811,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAdminMenu() {
-        // "관리자 관리"와 "내 기기 ID 보기"는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 관리자와 집결장은 필요 없다)
+        // "지휘관 관리"와 "내 기기 ID 보기"는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 지휘관과 집결장은 필요 없다)
         val owner = roomPrefs().getBoolean("is_owner_cached", false)
         val items = buildList {
             add(MenuSheet.Item("집결장 코드 발급") { showAdminPanelDialog() })
-            if (owner) add(MenuSheet.Item("관리자 관리", "개발자 전용") { AdminRosterUi(this@MainActivity, adminServer()).showManage() })
+            if (owner) add(MenuSheet.Item("지휘관 관리", "개발자 전용") { AdminRosterUi(this@MainActivity, adminServer()).showManage() })
             if (owner) add(MenuSheet.Item("내 기기 ID 보기") { AdminRosterUi(this@MainActivity, adminServer()).showMyId() })
             if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add(MenuSheet.Item("집결장으로 전환") { switchToLeader() }) // 위쪽 전환 버튼이 없을 때만
             if (owner) add(MenuSheet.Item("일반 화면으로 전환", "개발자 전용") { enterUserView() })
         }
-        MenuSheet(this, "관리자", items).show()
+        MenuSheet(this, "지휘관", items).show()
     }
 
     private fun showVerificationDialog() {
         InputSheet(
             this,
             title = "집결장 코드 인증",
-            message = "관리자에게 받은 이메일(또는 ID)과 집결장 코드를 입력해 주세요.",
+            message = "지휘관에게 받은 이메일(또는 ID)과 집결장 코드를 입력해 주세요.",
             fields = listOf(
                 InputSheet.Field(
                     hint = "예: user@gmail.com", maxLength = 100, label = "이메일 또는 ID",
@@ -841,7 +841,7 @@ class MainActivity : AppCompatActivity() {
             ),
             submitLabel = "인증 완료 및 시작하기",
             showCancel = false,
-            link = InputSheet.Link("관리자 로그인 (코드 발급 및 관리)") { showAdminLoginDialog() }
+            link = InputSheet.Link("지휘관 로그인 (코드 발급 및 관리)") { showAdminLoginDialog() }
         ) { v ->
             val userId = v[0].trim()
             val code = v[1].trim()
@@ -866,10 +866,10 @@ class MainActivity : AppCompatActivity() {
     private fun showAdminLoginDialog() {
         InputSheet(
             this,
-            title = "관리자 로그인",
-            message = "개발자에게 받은 관리자 코드를 입력해 주세요. 이미 관리자나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다.",
+            title = "지휘관 로그인",
+            message = "개발자에게 받은 지휘관 코드를 입력해 주세요. 이미 지휘관이나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다.",
             fields = listOf(InputSheet.Field(
-                hint = "관리자 코드 (AD-XXXXXXXX)", maxLength = 40,
+                hint = "지휘관 코드 (AD-XXXXXXXX)", maxLength = 40,
                 inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             )),
             submitLabel = "확인",
@@ -879,8 +879,8 @@ class MainActivity : AppCompatActivity() {
             if (typed.isEmpty()) {
                 enterFromRoster(askCodeIfNot = false)
             } else if (AdminRoster.looksLikeCode(typed)) {
-                // 관리자 코드: 서버 명단에 올라야 관리자가 된다
-                Toast.makeText(this, "관리자 코드를 확인하는 중…", Toast.LENGTH_SHORT).show()
+                // 지휘관 코드: 서버 명단에 올라야 지휘관이 된다
+                Toast.makeText(this, "지휘관 코드를 확인하는 중…", Toast.LENGTH_SHORT).show()
                 Thread {
                     val err = adminServer().redeem(typed)
                     runOnUiThread {
@@ -891,20 +891,20 @@ class MainActivity : AppCompatActivity() {
                             AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
                             updateAuthUI()
                             updateRallyInfoCard()
-                            Toast.makeText(this, "관리자로 등록됐어요. 다음부터는 코드 없이 전환할 수 있어요.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this, "지휘관으로 등록됐어요. 다음부터는 코드 없이 전환할 수 있어요.", Toast.LENGTH_LONG).show()
                         } else {
                             Toast.makeText(this, "$err", Toast.LENGTH_LONG).show()
                         }
                     }
                 }.start()
             } else {
-                Toast.makeText(this, "관리자 코드는 AD- 로 시작해요. 개발자에게 받은 코드를 확인해 주세요.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "지휘관 코드는 AD- 로 시작해요. 개발자에게 받은 코드를 확인해 주세요.", Toast.LENGTH_LONG).show()
             }
             true
         }.show()
     }
 
-    /** 서버의 개발자 목록(owners)에 이 기기가 있으면 코드 없이 관리자 모드로 들어간다. */
+    /** 서버의 개발자 목록(owners)에 이 기기가 있으면 코드 없이 지휘관 모드로 들어간다. */
     /** 개발자만: 서버에 개발자인지 다시 확인한 뒤 일반 사용자 화면으로 바꾼다. 확인하지 못하면 바꾸지 않는다. */
     private fun enterUserView() {
         Toast.makeText(this, "개발자 여부를 확인하는 중…", Toast.LENGTH_SHORT).show()
@@ -935,7 +935,7 @@ class MainActivity : AppCompatActivity() {
         updateRallyInfoCard()
     }
 
-    /** 관리자 화면을 끄고 집결장 화면으로 간다. 서버 명단에는 그대로 남아 있어, 나중에 코드 없이 다시 관리자로 전환할 수 있다. */
+    /** 지휘관 화면을 끄고 집결장 화면으로 간다. 서버 명단에는 그대로 남아 있어, 나중에 코드 없이 다시 지휘관으로 전환할 수 있다. */
     private fun switchToLeader() {
         PreferencesHelper.setAdminMode(this, false)
         PreferencesHelper.setAdminViaServer(this, false)
@@ -946,11 +946,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 코드 없이 관리자로 들어간다. 서버가 이 기기를 개발자나 관리자로 알고 있을 때만 된다(누를 때마다 서버에 다시 묻는다).
-     * 명단에 없으면 들여보내지 않고, [askCodeIfNot]이면 관리자 코드 입력 창을 띄운다. 확인하지 못했을 때도 들여보내지 않는다.
+     * 코드 없이 지휘관으로 들어간다. 서버가 이 기기를 개발자나 지휘관으로 알고 있을 때만 된다(누를 때마다 서버에 다시 묻는다).
+     * 명단에 없으면 들여보내지 않고, [askCodeIfNot]이면 지휘관 코드 입력 창을 띄운다. 확인하지 못했을 때도 들여보내지 않는다.
      */
     private fun enterFromRoster(askCodeIfNot: Boolean) {
-        Toast.makeText(this, "관리자 명단을 확인하는 중…", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "지휘관 명단을 확인하는 중…", Toast.LENGTH_SHORT).show()
         Thread {
             val server = adminServer()
             val uid = server.uid().value
@@ -966,13 +966,13 @@ class MainActivity : AppCompatActivity() {
                         AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
                         updateAuthUI()
                         updateRallyInfoCard()
-                        Toast.makeText(this, if (owner == Check.YES) "개발자로 들어왔어요." else "관리자로 전환했어요.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, if (owner == Check.YES) "개발자로 들어왔어요." else "지휘관으로 전환했어요.", Toast.LENGTH_SHORT).show()
                     }
                     Check.NO -> {
                         PreferencesHelper.setRosterAdmin(this, false)
                         updateAuthUI()
                         updateRallyInfoCard()
-                        Toast.makeText(this, "관리자 명단에 없는 기기예요. 관리자 코드를 입력해 주세요.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "지휘관 명단에 없는 기기예요. 지휘관 코드를 입력해 주세요.", Toast.LENGTH_LONG).show()
                         if (askCodeIfNot && !isFinishing && !isDestroyed) showAdminLoginDialog()
                     }
                     Check.UNKNOWN -> Toast.makeText(this, "서버에서 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()

@@ -4,7 +4,7 @@ import android.content.Context
 
 /**
  * 초대코드 발급/검증. 비밀 값은 코드에 없고 빌드 때 BuildConfig로 주입된다
- * (android-app/local.properties 의 invite.secret). 관리자는 비밀번호가 아니라 서버 명단(AdminRoster)으로 정한다.
+ * (android-app/local.properties 의 invite.secret). 지휘관은 비밀번호가 아니라 서버 명단(AdminRoster)으로 정한다.
  */
 object InvitationManager {
 

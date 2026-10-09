@@ -4,7 +4,7 @@ import java.security.SecureRandom
 import java.util.Random
 
 /**
- * 서버 관리자 명단(admins/{uid})의 한 사람. [code]는 등록에 쓴 관리자 코드(개발자가 직접 넣은 경우 빈 문자열).
+ * 서버 지휘관 명단(admins/{uid})의 한 사람. [code]는 등록에 쓴 지휘관 코드(개발자가 직접 넣은 경우 빈 문자열).
  * [name]은 개발자가 붙인 이름표, [lastSeen]은 마지막으로 앱을 연 시각(ms), [appVersion]은 그때의 앱 버전. 없으면 기본값이다.
  */
 internal data class AdminEntry(
@@ -16,18 +16,18 @@ internal data class AdminEntry(
     val appVersion: String = ""
 )
 
-/** 관리자 코드를 쓸 수 있는 기간. 만들 때 고른다. */
+/** 지휘관 코드를 쓸 수 있는 기간. 만들 때 고른다. */
 internal enum class CodeTtl(val label: String, val ms: Long) {
     HOUR("1시간", 60L * 60 * 1000),
     DAY("24시간", 24L * 60 * 60 * 1000),
     WEEK("7일", 7L * 24 * 60 * 60 * 1000)
 }
 
-/** 개발자가 발급한 관리자 코드(adminCodes/{코드}). [name]은 개발자가 붙인 이름표다. */
+/** 개발자가 발급한 지휘관 코드(adminCodes/{코드}). [name]은 개발자가 붙인 이름표다. */
 internal data class AdminCode(val code: String, val name: String, val createdAt: Long, val expiresAt: Long, val used: Boolean)
 
 /**
- * 관리자 코드와 명단 처리. 안드로이드 클래스를 쓰지 않아 단위 테스트가 된다.
+ * 지휘관 코드와 명단 처리. 안드로이드 클래스를 쓰지 않아 단위 테스트가 된다.
  * 코드는 "AD-" + 헷갈리는 글자(0, O, 1, I)를 뺀 8자이고, 만든 지 24시간이 지나면 못 쓴다.
  */
 internal object AdminRoster {
@@ -50,7 +50,7 @@ internal object AdminRoster {
         return if (CODE_BODY.matches(body)) "AD-$body" else null
     }
 
-    /** 관리자 코드를 넣으려는 것으로 보이나. 비밀번호와 집결장 초대코드(AC-)를 가르는 데 쓴다. */
+    /** 지휘관 코드를 넣으려는 것으로 보이나. 비밀번호와 집결장 초대코드(AC-)를 가르는 데 쓴다. */
     fun looksLikeCode(raw: String): Boolean = raw.trim().uppercase().startsWith("AD-")
 
     fun isExpired(nowMs: Long, createdAt: Long): Boolean = nowMs - createdAt >= CODE_TTL_MS
@@ -72,7 +72,7 @@ internal object AdminRoster {
             )
         }.sortedWith(compareBy({ it.registeredAt }, { it.uid }))
 
-    /** 코드 목록을 최근 순으로. 기한이 지났는데 쓰이지도 않은 코드는 뺀다(쓰인 코드는 관리자 이름표를 찾는 데 남긴다). */
+    /** 코드 목록을 최근 순으로. 기한이 지났는데 쓰이지도 않은 코드는 뺀다(쓰인 코드는 지휘관 이름표를 찾는 데 남긴다). */
     fun decodeCodes(map: Map<String, Any?>?, nowMs: Long): List<AdminCode> =
         map.orEmpty().mapNotNull { (code, raw) ->
             val m = raw as? Map<*, *> ?: return@mapNotNull null
@@ -95,7 +95,7 @@ internal object AdminRoster {
 
     /** 카카오톡으로 보낼 안내 문구 한 사람 몫. */
     fun shareMessage(code: String, ttl: CodeTtl): String =
-        "[오토클리커 Pro 관리자 초대]\n관리자 코드: $code\n앱의 인증 화면 → 관리자 로그인에서 이 코드를 입력하세요. 만든 지 ${ttl.label} 안에 한 번만 쓸 수 있어요."
+        "[오토클리커 Pro 지휘관 초대]\n지휘관 코드: $code\n앱의 인증 화면 → 지휘관 로그인에서 이 코드를 입력하세요. 만든 지 ${ttl.label} 안에 한 번만 쓸 수 있어요."
 
     /** (이름, 코드) 여러 쌍을 사람별 안내 문구로 이어 붙인다. */
     fun batchShare(items: List<Pair<String, String>>, ttl: CodeTtl): String =
@@ -105,7 +105,7 @@ internal object AdminRoster {
     fun labelOf(a: AdminEntry, codes: List<AdminCode>): String =
         a.name.takeIf { it.isNotEmpty() } ?: codes.firstOrNull { it.code == a.code }?.name?.takeIf { it.isNotEmpty() } ?: "직접 등록"
 
-    /** 이름이 아직 저장되지 않은 관리자에게, 등록에 쓴 코드의 이름표를 복사할 목록(uid → 이름). 코드를 정리하기 전에 쓴다. */
+    /** 이름이 아직 저장되지 않은 지휘관에게, 등록에 쓴 코드의 이름표를 복사할 목록(uid → 이름). 코드를 정리하기 전에 쓴다. */
     fun nameBackfill(admins: List<AdminEntry>, codes: List<AdminCode>): Map<String, String> {
         val labels = codes.associate { it.code to it.name }
         return admins.mapNotNull { a ->
@@ -142,11 +142,11 @@ internal object AdminRoster {
     fun adminRecord(code: String, registeredAt: Long): Map<String, Any?> =
         mapOf("code" to code, "registeredAt" to registeredAt)
 
-    /** 관리자 목록 전체를 메모에 붙여 넣기 좋은 글로. 이름표는 쓴 코드에서 찾고, 만료된 코드는 뺀다. */
+    /** 지휘관 목록 전체를 메모에 붙여 넣기 좋은 글로. 이름표는 쓴 코드에서 찾고, 만료된 코드는 뺀다. */
     fun exportText(admins: List<AdminEntry>, codes: List<AdminCode>, nowMs: Long): String {
         val pending = codes.filter { !it.used && nowMs < it.expiresAt }
         return buildString {
-            append("등록된 관리자 ${admins.size}명\n")
+            append("등록된 지휘관 ${admins.size}명\n")
             admins.forEachIndexed { i, a ->
                 append("${i + 1}. ${labelOf(a, codes)} · ID …${a.uid.takeLast(6)}\n")
             }
@@ -156,12 +156,12 @@ internal object AdminRoster {
     }
 
     /**
-     * 앱을 열 때 이 기기의 관리자 모드를 서버 답과 맞춘다. 비밀번호 로그인이 있던 시절 기기(viaServer=false)도 여기서 정리한다.
-     * 서버가 개발자나 관리자라고 하면 유지(옛 기기는 서버 방식으로 표시), 둘 다 아니라고 분명히 답할 때만 푼다.
+     * 앱을 열 때 이 기기의 지휘관 모드를 서버 답과 맞춘다. 비밀번호 로그인이 있던 시절 기기(viaServer=false)도 여기서 정리한다.
+     * 서버가 개발자나 지휘관이라고 하면 유지(옛 기기는 서버 방식으로 표시), 둘 다 아니라고 분명히 답할 때만 푼다.
      * 모르겠으면(네트워크 오류, 규칙 미적용) 건드리지 않는다.
      */
     /**
-     * 코드 없이 관리자로 들어가도 되는지. 서버가 개발자나 관리자라고 답하면 YES, 둘 다 아니라고 분명히 답하면 NO.
+     * 코드 없이 지휘관으로 들어가도 되는지. 서버가 개발자나 지휘관이라고 답하면 YES, 둘 다 아니라고 분명히 답하면 NO.
      * 확인하지 못했으면(네트워크 오류 등) UNKNOWN이고, 그때는 들여보내지 않는다.
      */
     fun rosterEntry(owner: Check, admin: Check): Check = when {

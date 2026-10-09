@@ -169,18 +169,18 @@ object PreferencesHelper {
             .apply()
     }
 
-    // --- 초대코드 및 관리자 권한 관련 설정 ---
+    // --- 초대코드 및 지휘관 권한 관련 설정 ---
     private const val KEY_IS_VERIFIED = "key_is_verified"
     private const val KEY_VERIFIED_USER_ID = "key_verified_user_id"
 
-    /** 기능 사용 권한: 초대코드 인증을 했거나 관리자로 로그인한 기기. */
+    /** 기능 사용 권한: 초대코드 인증을 했거나 지휘관으로 로그인한 기기. */
     fun hasAccess(context: Context): Boolean =
         !isUserView(context) && (isVerified(context) || isAdminMode(context) || isRosterAdmin(context))
 
     private const val KEY_USER_VIEW = "key_user_view"
 
     /**
-     * 개발자가 일반 사용자 화면을 보는 중인지. 켜져 있으면 인증·관리자 상태는 그대로 두고 집결 기능만 가린다
+     * 개발자가 일반 사용자 화면을 보는 중인지. 켜져 있으면 인증·지휘관 상태는 그대로 두고 집결 기능만 가린다
      * (서버 등록과 초대 인증은 건드리지 않아서 끄면 바로 원래 화면으로 돌아온다).
      */
     fun isUserView(context: Context): Boolean = getPrefs(context).getBoolean(KEY_USER_VIEW, false)
@@ -213,7 +213,7 @@ object PreferencesHelper {
         return id
     }
 
-    /** 게임 캐릭터명. 관리자가 군단을 배정할 때 명단에 이 이름으로 보인다. */
+    /** 게임 캐릭터명. 지휘관이 군단을 배정할 때 명단에 이 이름으로 보인다. */
     fun getRallyCharacterName(context: Context): String = getPrefs(context).getString(KEY_RALLY_CHARACTER_NAME, "") ?: ""
 
     fun setRallyCharacterName(context: Context, name: String) {
@@ -222,7 +222,7 @@ object PreferencesHelper {
 
     private const val KEY_IS_ADMIN_MODE = "key_is_admin_mode"
 
-    /** 관리자 비밀번호로 로그인한 기기인지. 집결 화면에서 관리자/집결장 권한을 가른다. */
+    /** 지휘관 비밀번호로 로그인한 기기인지. 집결 화면에서 지휘관/집결장 권한을 가른다. */
     fun isAdminMode(context: Context): Boolean = getPrefs(context).getBoolean(KEY_IS_ADMIN_MODE, false)
 
     fun setAdminMode(context: Context, enabled: Boolean) {
@@ -231,7 +231,7 @@ object PreferencesHelper {
 
     private const val KEY_ADMIN_VIA_SERVER = "key_admin_via_server"
 
-    /** 관리자 코드로 서버 명단에 올라 관리자가 된 기기인지(비밀번호로 들어간 기기는 false). 서버에서 지우면 앱이 관리자 모드를 풀어 준다. */
+    /** 지휘관 코드로 서버 명단에 올라 지휘관이 된 기기인지(비밀번호로 들어간 기기는 false). 서버에서 지우면 앱이 지휘관 모드를 풀어 준다. */
     fun isAdminViaServer(context: Context): Boolean = getPrefs(context).getBoolean(KEY_ADMIN_VIA_SERVER, false)
 
     fun setAdminViaServer(context: Context, viaServer: Boolean) {
@@ -241,8 +241,8 @@ object PreferencesHelper {
     private const val KEY_ROSTER_ADMIN = "key_roster_admin"
 
     /**
-     * 서버가 이 기기를 개발자나 관리자로 알고 있다고 마지막으로 확인됐는지. 관리자 화면을 끄고 집결장으로 지내는 동안에도 남는다.
-     * 이 표시가 있으면 "관리자로 전환" 버튼을 보여 주고, 누를 때마다 서버 명단을 다시 확인한다(여기 값만 믿고 들여보내지 않는다).
+     * 서버가 이 기기를 개발자나 지휘관으로 알고 있다고 마지막으로 확인됐는지. 지휘관 화면을 끄고 집결장으로 지내는 동안에도 남는다.
+     * 이 표시가 있으면 "지휘관으로 전환" 버튼을 보여 주고, 누를 때마다 서버 명단을 다시 확인한다(여기 값만 믿고 들여보내지 않는다).
      */
     fun isRosterAdmin(context: Context): Boolean = getPrefs(context).getBoolean(KEY_ROSTER_ADMIN, false)
 

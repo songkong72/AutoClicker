@@ -14,7 +14,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 /**
- * 앱 첫 화면의 방 선택 창(아래에서 올라오는 창). 방을 눌러 들어가고, 관리자는 "편집"에서 방을 지운다.
+ * 앱 첫 화면의 방 선택 창(아래에서 올라오는 창). 방을 눌러 들어가고, 지휘관은 "편집"에서 방을 지운다.
  * 삭제는 같은 창 안에서 한 번 더 묻는다. 무엇을 보여 줄지는 [RoomChooser]가 정하고, 여기서는 그리기만 한다.
  */
 internal class RoomSheet(
@@ -110,7 +110,7 @@ internal class RoomSheet(
 
         // 방 목록
         val list = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
-        if (rows.isEmpty()) list.addView(label("들어갈 수 있는 방이 없어요. 관리자가 방을 만들면 여기에 보여요.", 15f, sub).apply { setPadding(px(4), px(12), px(4), px(12)) })
+        if (rows.isEmpty()) list.addView(label("들어갈 수 있는 방이 없어요. 지휘관이 방을 만들면 여기에 보여요.", 15f, sub).apply { setPadding(px(4), px(12), px(4), px(12)) })
         rows.forEach { r -> list.addView(if (editing) editRow(r) else pickRow(r), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(if (r.code == current) 60 else 56)).apply { topMargin = px(4) }) }
         root.addView(MaxHeightScrollView(activity).apply {
             maxHeightPx = (activity.resources.displayMetrics.heightPixels * 0.45f).toInt()

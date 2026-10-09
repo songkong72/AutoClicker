@@ -513,7 +513,7 @@
             android:visibility="gone" />
     </LinearLayout>
 
-    <!-- 관리자 버튼: 지금 할 수 있는 하나만 넓게 -->
+    <!-- 지휘관 버튼: 지금 할 수 있는 하나만 넓게 -->
     <LinearLayout
         android:id="@+id/rallyAdminBar"
         android:layout_width="match_parent"

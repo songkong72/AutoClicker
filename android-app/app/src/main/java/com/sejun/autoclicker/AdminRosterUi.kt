@@ -12,7 +12,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** 개발자 전용 "관리자 관리" 화면과 "내 기기 ID" 안내. 화면은 코드로 만든다. 서버 통신은 백그라운드 스레드에서 한다. */
+/** 개발자 전용 "지휘관 관리" 화면과 "내 기기 ID" 안내. 화면은 코드로 만든다. 서버 통신은 백그라운드 스레드에서 한다. */
 internal class AdminRosterUi(private val activity: Activity, private val server: AdminServer) {
 
     private var manageDialog: SheetDialog? = null
@@ -26,10 +26,10 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         TextShare.copiedNotice(activity)
     }
 
-    /** 관리자 목록 보내기. 대기 중인 코드가 들어 있으면 한 줄로 알린다. */
+    /** 지휘관 목록 보내기. 대기 중인 코드가 들어 있으면 한 줄로 알린다. */
     private fun shareList(text: String, pendingCodes: Int) = TextShare.sheet(
-        activity, "관리자 목록 보내기", "관리자 목록", text,
-        if (pendingCodes > 0) "대기 중인 관리자 코드 ${pendingCodes}개가 함께 보내져요. 받을 사람이 맞는 대화방인지 확인해 주세요." else null
+        activity, "지휘관 목록 보내기", "지휘관 목록", text,
+        if (pendingCodes > 0) "대기 중인 지휘관 코드 ${pendingCodes}개가 함께 보내져요. 받을 사람이 맞는 대화방인지 확인해 주세요." else null
     )
 
     /** 이 기기의 서버 ID를 보여 준다. 개발자로 등록할 때 Firebase 콘솔에 적는 값이다. */
@@ -50,7 +50,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         }.start()
     }
 
-    /** 개발자인지 서버에서 확인하고, 맞으면 관리자 관리 화면을 연다. */
+    /** 개발자인지 서버에서 확인하고, 맞으면 지휘관 관리 화면을 연다. */
     fun showManage() {
         toast("서버를 확인하는 중…")
         Thread {
@@ -59,7 +59,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             if (uid == null) { ui { toast(me.error ?: "기기 ID를 받지 못했어요") }; return@Thread }
             when (server.isOwner(uid)) {
                 Check.YES -> load()
-                Check.NO -> ui { toast("개발자만 쓸 수 있어요. 개발자는 Firebase 콘솔에 이 기기 ID를 적어야 해요 (관리자 메뉴 → 내 기기 ID 보기)") }
+                Check.NO -> ui { toast("개발자만 쓸 수 있어요. 개발자는 Firebase 콘솔에 이 기기 ID를 적어야 해요 (지휘관 메뉴 → 내 기기 ID 보기)") }
                 Check.UNKNOWN -> ui { toast("서버에서 확인하지 못했어요. 인터넷 연결과 서버 규칙 적용 여부를 확인해 주세요") }
             }
         }.start()
@@ -84,9 +84,9 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
         val now = System.currentTimeMillis()
         val pending = codes.filter { !it.used && now < it.expiresAt }
         val day = SimpleDateFormat("MM/dd", Locale.KOREA)
-        val sheet = SheetDialog(activity, "관리자 관리")
+        val sheet = SheetDialog(activity, "지휘관 관리")
 
-        sheet.wideButton("+ 관리자 코드 만들기", top = 12) { askNames() }
+        sheet.wideButton("+ 지휘관 코드 만들기", top = 12) { askNames() }
         sheet.equalRow(
             sheet.pill("방 전체 목록") { showRooms() },
             sheet.pill("목록 보내기") { shareList(AdminRoster.exportText(admins, codes, now), codes.count { !it.used && now < it.expiresAt }) },
@@ -94,7 +94,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             top = 10
         )
 
-        sheet.heading("등록된 관리자 (${admins.size}명)")
+        sheet.heading("등록된 지휘관 (${admins.size}명)")
         if (admins.isEmpty()) sheet.line(sheet.card(), "아직 없어요.")
         for (a in admins) {
             val label = AdminRoster.labelOf(a, codes)
@@ -114,7 +114,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             sheet.line(card, "${p.code} · ${p.name}", bold = true)
             sheet.line(card, "${remainText(p.expiresAt - now)} 남음", small = true, top = 2)
             sheet.pillRow(card,
-                sheet.pill("보내기") { TextShare.sheet(activity, "관리자 코드 보내기", "관리자 코드", AdminRoster.shareMessage(p.code, ttlOf(p))) },
+                sheet.pill("보내기") { TextShare.sheet(activity, "지휘관 코드 보내기", "지휘관 코드", AdminRoster.shareMessage(p.code, ttlOf(p))) },
                 sheet.pill("취소", Kind.DANGER) { cancelCode(p) }
             )
         }
@@ -185,7 +185,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
 
     /** 이름표를 한 줄에 한 명씩 적으면 사람마다 코드를 만든다. 코드를 쓸 수 있는 기간도 고른다. */
     private fun askNames() {
-        val sheet = SheetDialog(activity, "새 관리자 코드", "누구에게 줄 코드인지 이름표를 적어 주세요. 목록에서 알아보는 용도입니다. 코드는 한 번만 쓸 수 있어요.")
+        val sheet = SheetDialog(activity, "새 지휘관 코드", "누구에게 줄 코드인지 이름표를 적어 주세요. 목록에서 알아보는 용도입니다. 코드는 한 번만 쓸 수 있어요.")
         val input = sheet.field(
             hint = "이름표 (여러 명이면 줄바꿈으로, 최대 ${AdminRoster.MAX_BATCH}명)",
             maxLength = 400,
@@ -221,7 +221,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
                     }
                     ui {
                         if (made.isEmpty()) { toast(firstError ?: "코드를 만들지 못했어요"); return@ui }
-                        copy("관리자 코드", AdminRoster.batchShare(made, chosen))
+                        copy("지휘관 코드", AdminRoster.batchShare(made, chosen))
                         val warn = if (firstError != null) "\n\n일부는 만들지 못했어요: $firstError" else ""
                         val done = SheetDialog(
                             activity, "코드를 ${made.size}개 만들었어요",
@@ -257,7 +257,7 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
     private fun confirmPurge() {
         SheetDialog.confirm(
             activity, "코드 정리",
-            "이미 쓰였거나 기한이 지난 코드를 서버에서 지워요. 관리자 이름표는 먼저 저장해 두니 목록에 그대로 남아요. 대기 중인 코드는 지우지 않습니다.",
+            "이미 쓰였거나 기한이 지난 코드를 서버에서 지워요. 지휘관 이름표는 먼저 저장해 두니 목록에 그대로 남아요. 대기 중인 코드는 지우지 않습니다.",
             "정리"
         ) {
             Thread {
@@ -270,8 +270,8 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
 
     private fun confirmRemove(a: AdminEntry, label: String) {
         SheetDialog.confirm(
-            activity, "관리자 삭제",
-            "$label (ID …${a.uid.takeLast(6)}) 의 관리자 권한을 없앨까요? 그 폰은 다음에 앱을 열 때 집결장 화면으로 돌아갑니다.",
+            activity, "지휘관 삭제",
+            "$label (ID …${a.uid.takeLast(6)}) 의 지휘관 권한을 없앨까요? 그 폰은 다음에 앱을 열 때 집결장 화면으로 돌아갑니다.",
             "삭제", danger = true
         ) {
             Thread {

@@ -15,8 +15,8 @@ internal object RoomChooser {
 
     /**
      * [server]는 서버에서 받은 (방 번호, 한 줄 설명) 목록. 받지 못했으면 null이고, 그때는 이 기기가 들어갔던 방([history])을 대신 보여 준다.
-     * 지금 들어와 있는 방([current])에는 ✓와 "현재"를 붙인다. 새 방 만들기는 관리자([admin])에게만 보인다.
-     * 방 줄의 휴지통도 관리자에게만, 서버 목록을 받았을 때만 나온다(받지 못한 목록으로는 지우지 않는다).
+     * 지금 들어와 있는 방([current])에는 ✓와 "현재"를 붙인다. 새 방 만들기는 지휘관([admin])에게만 보인다.
+     * 방 줄의 휴지통도 지휘관에게만, 서버 목록을 받았을 때만 나온다(받지 못한 목록으로는 지우지 않는다).
      * 번호 직접 입력은 서버 목록을 받지 못했을 때만 비상구로 보인다(평소에는 목록에서 고르고, 새 번호는 새 방 만들기에서 정한다).
      */
     fun entries(server: List<Pair<String, String>>?, history: List<String>, current: String, admin: Boolean): List<Entry> {

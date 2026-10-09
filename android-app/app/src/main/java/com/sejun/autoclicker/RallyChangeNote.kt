@@ -1,7 +1,7 @@
 package com.sejun.autoclicker
 
 /**
- * 관리자가 방을 바꿀 때 "누가, 언제" 남기는 표시. 관리자 둘이 동시에 만져도 서로 알아볼 수 있게 한다.
+ * 지휘관이 방을 바꿀 때 "누가, 언제" 남기는 표시. 지휘관 둘이 동시에 만져도 서로 알아볼 수 있게 한다.
  * 안드로이드 클래스를 쓰지 않아 단위 테스트가 된다. 시각은 바꾼 기기의 시계라 몇 초쯤 어긋날 수 있다.
  */
 internal object RallyChangeNote {
@@ -9,7 +9,7 @@ internal object RallyChangeNote {
 
     /** 표시에 쓸 이름: 캐릭터명이 있으면 그것, 없으면 기기 ID 끝 4자리. */
     fun label(characterName: String, memberId: String): String =
-        characterName.trim().ifEmpty { "관리자 …" + memberId.takeLast(4) }.take(MAX_LABEL)
+        characterName.trim().ifEmpty { "지휘관 …" + memberId.takeLast(4) }.take(MAX_LABEL)
 
     fun stamp(doc: RallyRoomDoc, label: String, nowMs: Long): RallyRoomDoc = doc.copy(lastBy = label, lastAt = nowMs)
 
@@ -20,7 +20,7 @@ internal object RallyChangeNote {
         return "마지막 변경: $who · ${ago(nowMs - doc.lastAt)}"
     }
 
-    /** 내가 마지막으로 본 변경([prevAt]) 뒤에 다른 관리자가 바꾼 것이 도착했는가. */
+    /** 내가 마지막으로 본 변경([prevAt]) 뒤에 다른 지휘관이 바꾼 것이 도착했는가. */
     fun foreignChange(prevAt: Long, doc: RallyRoomDoc, myLabel: String): Boolean =
         doc.lastAt > prevAt && doc.lastAt > 0L && doc.lastBy.isNotEmpty() && doc.lastBy != myLabel
 

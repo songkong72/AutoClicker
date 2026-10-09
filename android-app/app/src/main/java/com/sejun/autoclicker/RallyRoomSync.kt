@@ -9,7 +9,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Firebase REST로 방(rallyRooms/{room})을 실시간 스트림(SSE)으로 받아 관리자의 시작/취소/다시집결을 즉시 반영한다.
+ * Firebase REST로 방(rallyRooms/{room})을 실시간 스트림(SSE)으로 받아 지휘관의 시작/취소/다시집결을 즉시 반영한다.
  * 스트림이 끊기거나 실패하면 1초 폴링으로 버티다가 다시 스트림에 연결한다.
  *
  * 시간 모델: 서버 시간을 쓰지 않는다. 기기가 startSeq 변화를 처음 본 순간이 0초이고,
@@ -20,7 +20,7 @@ class RallyRoomSync(
     private val dbUrl: String,
     private val auth: FirebaseAuthClient? = null,
     private val room: String,
-    /** 이 기기의 고유 ID. 관리자가 군단을 배정할 때 사람을 가리키는 키다. */
+    /** 이 기기의 고유 ID. 지휘관이 군단을 배정할 때 사람을 가리키는 키다. */
     private val memberId: String,
     private val getCharacterName: () -> String,
     private val saveCharacterName: (String) -> Unit,
@@ -36,16 +36,16 @@ class RallyRoomSync(
     /** 시작 신호를 처음 받은 순간. 패널이 닫혀 있으면 다시 띄워 카운트다운이 보이게 한다. */
     private val onRallyStart: () -> Unit = {},
     private val onCancel: () -> Unit,
-    /** 다른 관리자가 방을 바꾼 것이 도착했을 때(관리자 기기에서만). 인자는 바꾼 사람의 표시 이름. */
+    /** 다른 지휘관이 방을 바꾼 것이 도착했을 때(지휘관 기기에서만). 인자는 바꾼 사람의 표시 이름. */
     private val onOtherAdminChange: (String) -> Unit = {},
     /** 서버에 쓰기가 실패했을 때(규칙 거절, 네트워크 오류). 인자는 화면에 보여 줄 이유. */
     private val onWriteFailed: (String) -> Unit = {},
-    /** 방이 서버에 아직 없을 때 관리자가 새로 만들어도 되는지. 첫 입장(앱 첫 화면의 새 방·입장)에서만 true이고, 패널에서 번호를 골라 옮길 때는 false다. */
+    /** 방이 서버에 아직 없을 때 지휘관이 새로 만들어도 되는지. 첫 입장(앱 첫 화면의 새 방·입장)에서만 true이고, 패널에서 번호를 골라 옮길 때는 false다. */
     private val canCreateRoom: () -> Boolean = { true }
 ) : RallyPanelHost.StateSource {
 
     private val main = Handler(Looper.getMainLooper())
-    /** 내 군단은 관리자의 배정에서 정해진다. 배정이 없으면 빈 문자열. */
+    /** 내 군단은 지휘관의 배정에서 정해진다. 배정이 없으면 빈 문자열. */
     private val myTeamId: String get() = RallyRoomEdit.teamIdOf(doc, memberId, getCharacterName())
     @Volatile private var doc: RallyRoomDoc = RallyRoomCodec.decode(null)
     @Volatile private var online = false
@@ -189,7 +189,7 @@ class RallyRoomSync(
 
     /** 내 기기 아래에 늘 보이는, 시간 확인에 필요한 줄만. 나머지 진단은 [deviceDetailText]에서 펼쳐 본다. */
     override fun devicePositionText(): String = listOfNotNull(
-        myAdminAdjustMs().let { a -> if (a == 0) null else "관리자 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)" },
+        myAdminAdjustMs().let { a -> if (a == 0) null else "지휘관 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)" },
         lastDiag.ifEmpty { null },
         if (streaming) null else "수신 방식: 1초 확인 (실시간보다 최대 1초 늦을 수 있음)"
     ).joinToString("\n")
@@ -212,7 +212,7 @@ class RallyRoomSync(
 
     /**
      * 집결 시작: 서버에 먼저 쓰고, 성공한 뒤에 이 기기에도 적용한다.
-     * 먼저 이 기기에 적용하면 서버 쓰기가 실패했을 때 관리자만 혼자 출발한다.
+     * 먼저 이 기기에 적용하면 서버 쓰기가 실패했을 때 지휘관만 혼자 출발한다.
      * 쓰는 동안 실시간 수신으로 같은 시작이 먼저 도착하면 그때 시작되고, 아래 적용은 같은 번호라 다시 시작하지 않는다.
      */
     override fun onStart() = startWith { RallyRoomEdit.startOrRegroup(it) }
@@ -258,7 +258,7 @@ class RallyRoomSync(
         }.start()
     }
 
-    /** 행군시간은 관리자(모든 팀) 또는 집결장(내 팀)이 고친다. 서버에는 그 팀의 필드 하나만 써서 다른 변경을 덮어쓰지 않는다. */
+    /** 행군시간은 지휘관(모든 팀) 또는 집결장(내 팀)이 고친다. 서버에는 그 팀의 필드 하나만 써서 다른 변경을 덮어쓰지 않는다. */
     override fun onSetMarch(teamId: String, sec: Double) {
         val d = effectiveDoc()
         if (!RallyRoomEdit.canEditMarch(d, isAdmin, myTeamId, teamId)) return
@@ -279,7 +279,7 @@ class RallyRoomSync(
         onSetMarch(teamId, cur.marchSec + deltaSec)
     }
 
-    /** 관리자만: 한 군단의 클릭 보정을 정한다. 그 팀의 필드 하나만 서버에 쓴다. */
+    /** 지휘관만: 한 군단의 클릭 보정을 정한다. 그 팀의 필드 하나만 서버에 쓴다. */
     override fun onSetAdminAdjust(teamId: String, ms: Int) {
         if (!isAdmin) return
         val d = effectiveDoc()
@@ -312,7 +312,7 @@ class RallyRoomSync(
 
     override fun characterName(): String = getCharacterName()
 
-    /** 내 캐릭터명을 이 기기에 저장하고 방 명단에 올린다. 관리자는 이 명단에서 사람을 골라 군단에 배정한다. */
+    /** 내 캐릭터명을 이 기기에 저장하고 방 명단에 올린다. 지휘관은 이 명단에서 사람을 골라 군단에 배정한다. */
     override fun onSetCharacterName(name: String) {
         val clean = RallyRoster.cleanName(name)
         if (clean.isEmpty()) return
@@ -320,7 +320,7 @@ class RallyRoomSync(
         Thread { registerSelf() }.start()
     }
 
-    /** 관리자가 고를 수 있는 방 명단을 가져온다. 실패하면 null을 돌려준다. 결과는 메인 스레드로 전달한다. */
+    /** 지휘관이 고를 수 있는 방 명단을 가져온다. 실패하면 null을 돌려준다. 결과는 메인 스레드로 전달한다. */
     @Volatile private var rosterErr = ""
     override fun rosterError(): String = rosterErr
 
@@ -360,7 +360,7 @@ class RallyRoomSync(
         const val DB_URL = "https://autoclicker-cf5a4-default-rtdb.firebaseio.com"
 
         /**
-         * 같은 이름의 예전 항목(앱을 지우고 다시 설치해 ID가 바뀐 경우)을 지운다. 지우지 않으면 관리자 목록에
+         * 같은 이름의 예전 항목(앱을 지우고 다시 설치해 ID가 바뀐 경우)을 지운다. 지우지 않으면 지휘관 목록에
          * 같은 이름이 둘 보이고, 예전 ID로 배정하면 이 기기는 배정된 줄 모르게 된다. 실패해도 등록 자체는 성공으로 둔다.
          */
         private fun removeStaleSameName(dbUrl: String, auth: FirebaseAuthClient?, room: String, memberId: String, name: String) {
@@ -400,7 +400,7 @@ class RallyRoomSync(
         )
 
         /**
-         * 방을 서버에 바로 만든다(관리자가 "새 방 만들기"를 누른 즉시 방 목록에 보이게). 성공하면 null, 실패하면 이유.
+         * 방을 서버에 바로 만든다(지휘관이 "새 방 만들기"를 누른 즉시 방 목록에 보이게). 성공하면 null, 실패하면 이유.
          * 이미 있는 방을 덮어쓰지 않도록 부르는 쪽에서 없는 번호인지 먼저 확인한다. 네트워크를 쓰므로 메인 스레드에서 부르지 않는다.
          */
         fun createRoom(dbUrl: String, auth: FirebaseAuthClient?, room: String): String? = try {
@@ -455,7 +455,7 @@ class RallyRoomSync(
         return toPlain(JSONObject(text)) as Map<String, Any?>
     }
 
-    /** 관리자만 방을 바꾼다. 내 기기는 즉시 반영하고 서버에는 비동기로 쓴다. */
+    /** 지휘관만 방을 바꾼다. 내 기기는 즉시 반영하고 서버에는 비동기로 쓴다. */
     private fun change(op: (RallyRoomDoc) -> RallyRoomDoc) {
         if (!isAdmin) return
         val cur = effectiveDoc()
@@ -568,7 +568,7 @@ class RallyRoomSync(
         c.inputStream.close()
     }
 
-    /** 관리자가 한 필드만 바꿨을 때도 "마지막 변경"이 남도록 이름과 시각을 쓴다. */
+    /** 지휘관이 한 필드만 바꿨을 때도 "마지막 변경"이 남도록 이름과 시각을 쓴다. */
     private fun putStamp(nowMs: Long) {
         putRaw("lastBy", JSONObject.quote(myLabel))
         putRaw("lastAt", nowMs.toString())

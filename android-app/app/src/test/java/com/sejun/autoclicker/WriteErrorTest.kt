@@ -8,7 +8,7 @@ class WriteErrorTest {
     @Test fun permissionDeniedExplainsRosterAndRules() {
         val t = WriteError.explain("Server returned HTTP response code: 401 for URL: https://x")
         assertTrue(t.contains("거절"))
-        assertTrue(t.contains("관리자 명단"))
+        assertTrue(t.contains("지휘관 명단"))
     }
 
     @Test fun forbiddenIsTreatedTheSame() {

@@ -12,7 +12,7 @@ class RallyPanelFormatTest {
     @Test fun 소수점_차이() =
         assertEquals(listOf("먼저 클릭", "5.5초 뒤"), RallyPanelFormat.lagLabels(listOf(t(35.5), t(30.0))))
 
-    @Test fun 관리자_보정이_시간차이에_들어간다() =
+    @Test fun 지휘관_보정이_시간차이에_들어간다() =
         assertEquals(listOf("먼저 클릭", "19.5초 뒤"), RallyPanelFormat.lagLabels(listOf(t(51.0), t(33.0, 1500))))
 
     @Test fun 보정이_커서_먼저_누르게_되면_그_군단이_기준() =

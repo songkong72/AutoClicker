@@ -13,7 +13,7 @@ class RallyChangeNoteTest {
     }
 
     @Test fun labelFallsBackToDeviceIdTail() {
-        assertEquals("관리자 …3456", RallyChangeNote.label("", "abcdef123456"))
+        assertEquals("지휘관 …3456", RallyChangeNote.label("", "abcdef123456"))
     }
 
     @Test fun stampRecordsWhoAndWhen() {

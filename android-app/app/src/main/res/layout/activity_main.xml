@@ -76,11 +76,11 @@
                     android:padding="8dp"
                     android:src="@drawable/ic_admin_key"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="관리자 로그인"
+                    android:contentDescription="지휘관 로그인"
                     app:tint="#64748B" />
             </LinearLayout>
 
-            <!-- 화면 전환 막대: 역할이 여럿인 기기(관리자 명단·개발자)에만 보인다. 지금 화면이 밝게 표시된다 -->
+            <!-- 화면 전환 막대: 역할이 여럿인 기기(지휘관 명단·개발자)에만 보인다. 지금 화면이 밝게 표시된다 -->
             <LinearLayout
                 android:id="@+id/roleSegments"
                 android:layout_width="match_parent"
@@ -118,7 +118,7 @@
                     android:layout_height="44dp"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="관리자"
+                    android:text="지휘관"
                     android:textColor="@color/text_secondary"
                     android:textSize="15sp" />
             </LinearLayout>
@@ -248,7 +248,7 @@
                     android:textSize="12.5sp" />
             </LinearLayout>
 
-            <!-- Card 4: 집결 방 (같은 방 = 같은 시각에 성에 도착할 팀들). 인증한 회원·관리자에게만 보인다 -->
+            <!-- Card 4: 집결 방 (같은 방 = 같은 시각에 성에 도착할 팀들). 인증한 회원·지휘관에게만 보인다 -->
             <LinearLayout
                 android:id="@+id/cardRallyRoom"
                 android:layout_width="match_parent"
@@ -339,7 +339,7 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
-                <!-- 번호 공유(관리자) · 방 바꾸기 · 관리(관리자): 보이는 것끼리 폭을 나눠 가진다 -->
+                <!-- 번호 공유(지휘관) · 방 바꾸기 · 관리(지휘관): 보이는 것끼리 폭을 나눠 가진다 -->
                 <LinearLayout
                     android:id="@+id/rowRoomActions"
                     android:layout_width="match_parent"
@@ -452,7 +452,7 @@
                     app:tint="@color/text_tertiary" />
             </LinearLayout>
 
-            <!-- 일반 연타용 오토클리커 띄우기/숨기기: 집결을 못 쓰는 사람에게만 보이고, 회원·관리자에게는 보이지 않는다(코드에서 정한다) -->
+            <!-- 일반 연타용 오토클리커 띄우기/숨기기: 집결을 못 쓰는 사람에게만 보이고, 회원·지휘관에게는 보이지 않는다(코드에서 정한다) -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnStartService"
                 android:layout_width="match_parent"
@@ -494,7 +494,7 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- 집결 화면 열기: 화면 맨 아래에 늘 보인다(인증한 회원·관리자에게만) -->
+    <!-- 집결 화면 열기: 화면 맨 아래에 늘 보인다(인증한 회원·지휘관에게만) -->
     <LinearLayout
         android:id="@+id/bottomBar"
         android:layout_width="match_parent"

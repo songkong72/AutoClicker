@@ -2,7 +2,7 @@ package com.sejun.autoclicker
 
 /**
  * 방에서 공유되는 팀 정보. 클릭 좌표와 기기 ms 보정은 기기 로컬이라 여기 없다.
- * [adminAdjustMs]는 관리자가 그 군단에 더해 주는 보정(+면 더 늦게, -면 더 일찍). 기기 보정과 합산해 적용한다.
+ * [adminAdjustMs]는 지휘관이 그 군단에 더해 주는 보정(+면 더 늦게, -면 더 일찍). 기기 보정과 합산해 적용한다.
  */
 data class RallyTeamDoc(
     val id: String,
@@ -25,7 +25,7 @@ data class RallyRoomDoc(
     val waitSec: Double,
     val run: String,          // "IDLE" | "RUNNING" | "CANCELLED"
     val startSeq: Long,
-    /** 마지막으로 방을 바꾼 관리자의 표시 이름과 시각(ms). 바꾼 적이 없으면 빈 문자열과 0. */
+    /** 마지막으로 방을 바꾼 지휘관의 표시 이름과 시각(ms). 바꾼 적이 없으면 빈 문자열과 0. */
     val lastBy: String = "",
     val lastAt: Long = 0L
 )
@@ -76,14 +76,14 @@ object RallyRoomCodec {
 
 /** 내 클릭까지 기다릴 시간(ms). correctionMs가 +면 더 늦게, -면 더 일찍 클릭한다. */
 object RallyClickTiming {
-    /** 기기 보정(내가 맞춘 값)과 관리자가 더해 준 보정의 합. */
+    /** 기기 보정(내가 맞춘 값)과 지휘관이 더해 준 보정의 합. */
     fun totalCorrectionMs(deviceMs: Long, adminMs: Int): Long = deviceMs + adminMs
 
     fun delayUntilClickMs(clickAtSec: Double, elapsedMs: Long, correctionMs: Long): Long =
         Math.max(0L, Math.round(clickAtSec * 1000.0) - elapsedMs + correctionMs)
 }
 
-/** 관리자 편집. 진행 중(RUNNING)에는 잠기고, 잠긴 상태의 요청은 문서를 그대로 돌려준다. */
+/** 지휘관 편집. 진행 중(RUNNING)에는 잠기고, 잠긴 상태의 요청은 문서를 그대로 돌려준다. */
 object RallyRoomEdit {
     /** 한 방에 만들 수 있는 군단 수. */
     const val MAX_TEAMS = 10
@@ -110,7 +110,7 @@ object RallyRoomEdit {
     fun setMarch(doc: RallyRoomDoc, teamId: String, marchSec: Double): RallyRoomDoc =
         mapTeam(doc, teamId) { it.copy(marchSec = Math.max(0.0, marchSec)) }
 
-    /** 관리자가 군단별로 더하는 클릭 보정(ms). 범위는 기기 보정과 같다. */
+    /** 지휘관이 군단별로 더하는 클릭 보정(ms). 범위는 기기 보정과 같다. */
     fun setAdminAdjust(doc: RallyRoomDoc, teamId: String, ms: Int): RallyRoomDoc =
         mapTeam(doc, teamId) { it.copy(adminAdjustMs = ms.coerceIn(-RallyInputParse.MAX_CORRECTION_MS, RallyInputParse.MAX_CORRECTION_MS)) }
 
@@ -124,7 +124,7 @@ object RallyRoomEdit {
         if (locked(doc) || waitSec !in WAIT_PRESETS_SEC) doc else doc.copy(waitSec = waitSec)
 
     /**
-     * 관리자가 사람(기기 ID)을 군단에 배정한다. 한 사람은 한 군단에만 있을 수 있어서, 다른 군단에 있던 같은 사람은 빠진다.
+     * 지휘관이 사람(기기 ID)을 군단에 배정한다. 한 사람은 한 군단에만 있을 수 있어서, 다른 군단에 있던 같은 사람은 빠진다.
      * 진행 중이거나 없는 군단, 빈 ID는 문서를 그대로 돌려준다.
      */
     fun assignLeader(doc: RallyRoomDoc, teamId: String, memberId: String, characterName: String): RallyRoomDoc {
@@ -197,7 +197,7 @@ object RallyRoomEdit {
     fun cancel(doc: RallyRoomDoc): RallyRoomDoc =
         if (doc.run != "RUNNING") doc else doc.copy(run = "CANCELLED")
 
-    /** 관리자는 모든 팀, 집결장은 내 팀의 행군시간만. 진행 중에는 모두 잠긴다. */
+    /** 지휘관은 모든 팀, 집결장은 내 팀의 행군시간만. 진행 중에는 모두 잠긴다. */
     fun canEditMarch(doc: RallyRoomDoc, isAdmin: Boolean, myTeamId: String, teamId: String): Boolean {
         if (locked(doc)) return false
         val team = doc.teams.firstOrNull { it.id == teamId } ?: return false

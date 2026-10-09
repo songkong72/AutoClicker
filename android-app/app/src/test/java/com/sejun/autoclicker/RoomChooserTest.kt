@@ -7,7 +7,7 @@ class RoomChooserTest {
     private val server = listOf("0001" to "0001 · 군단 3개 (배정 3)", "482913" to "482913 · 군단 0개 (배정 0)")
 
     @Test
-    fun `관리자는 서버 방 목록 아래에 새 방 만들기만 보이고 방 줄마다 휴지통이 붙는다`() {
+    fun `지휘관은 서버 방 목록 아래에 새 방 만들기만 보이고 방 줄마다 휴지통이 붙는다`() {
         val e = RoomChooser.entries(server, emptyList(), "", admin = true)
         assertEquals(listOf("0001 · 군단 3개 (배정 3)", "482913 · 군단 0개 (배정 0)", RoomChooser.NEW_LABEL), e.map { it.label })
         assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW), e.map { it.kind })
@@ -23,7 +23,7 @@ class RoomChooserTest {
     }
 
     @Test
-    fun `서버 목록을 받지 못하면 관리자에게도 휴지통은 없고 번호 직접 입력이 비상구로 보인다`() {
+    fun `서버 목록을 받지 못하면 지휘관에게도 휴지통은 없고 번호 직접 입력이 비상구로 보인다`() {
         val none = RoomChooser.entries(null, listOf("0001"), "", admin = true)
         assertEquals(listOf(RoomChooser.Kind.ROOM, RoomChooser.Kind.NEW, RoomChooser.Kind.TYPE), none.map { it.kind })
         assertEquals(false, none[0].deletable)

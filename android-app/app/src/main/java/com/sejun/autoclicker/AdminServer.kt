@@ -17,7 +17,7 @@ internal class RoomData(val rooms: Map<String, Any?>?, val members: Map<String, 
 internal enum class Check { YES, NO, UNKNOWN }
 
 /**
- * 서버 관리자 명단(owners / admins / adminCodes)과 통신한다(Firebase REST). 네트워크를 쓰므로 메인 스레드에서 부르지 않는다.
+ * 서버 지휘관 명단(owners / admins / adminCodes)과 통신한다(Firebase REST). 네트워크를 쓰므로 메인 스레드에서 부르지 않는다.
  * 개발자(owners)는 Firebase 콘솔에서 사람이 직접 적는다. 앱은 읽기만 한다.
  */
 internal class AdminServer(private val dbUrl: String, private val auth: FirebaseAuthClient) {
@@ -43,7 +43,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         return Reply(AdminRoster.decodeCodes(parseMap(text), now), null)
     }
 
-    /** 새 관리자 코드를 만든다. 성공하면 코드를 돌려준다. */
+    /** 새 지휘관 코드를 만든다. 성공하면 코드를 돌려준다. */
     fun createCode(rawName: String, ttl: CodeTtl = CodeTtl.DAY, now: Long = System.currentTimeMillis()): Reply<String> {
         val body = AdminRoster.encodeCode(rawName, now, ttl.ms) ?: return Reply(null, "이름표를 입력해 주세요")
         val newCode = AdminRoster.newCode()
@@ -53,7 +53,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
 
     fun cancelCode(code: String): String? = delete("adminCodes/$code")
 
-    /** 관리자의 이름표를 고친다. 성공하면 null, 실패하면 이유. 개발자만 된다. */
+    /** 지휘관의 이름표를 고친다. 성공하면 null, 실패하면 이유. 개발자만 된다. */
     fun renameAdmin(uid: String, rawName: String): String? {
         val name = AdminRoster.cleanName(rawName)
         if (name.isEmpty()) return "이름표를 입력해 주세요"
@@ -61,14 +61,14 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         return if (code in 200..299) null else explain(code, text)
     }
 
-    /** 이름이 없는 관리자에게 등록에 쓴 코드의 이름표를 복사해 둔다. 코드를 정리해도 이름이 남게 한다. 실패해도 목록 보기에는 영향이 없다. */
+    /** 이름이 없는 지휘관에게 등록에 쓴 코드의 이름표를 복사해 둔다. 코드를 정리해도 이름이 남게 한다. 실패해도 목록 보기에는 영향이 없다. */
     fun backfillNames(admins: List<AdminEntry>, codes: List<AdminCode>) {
         for ((uid, name) in AdminRoster.nameBackfill(admins, codes)) {
             call("PUT", "admins/$uid/name", JSONObject.quote(name))
         }
     }
 
-    /** 이미 쓰였거나 기한이 지난 코드를 서버에서 지운다. 지우기 전에 관리자 이름표를 먼저 저장한다. 지운 개수를 돌려준다. */
+    /** 이미 쓰였거나 기한이 지난 코드를 서버에서 지운다. 지우기 전에 지휘관 이름표를 먼저 저장한다. 지운 개수를 돌려준다. */
     fun purgeCodes(now: Long = System.currentTimeMillis()): Reply<Int> {
         val admins = listAdmins().let { it.value ?: return Reply(null, it.error) }
         val codes = listCodes(now).let { it.value ?: return Reply(null, it.error) }
@@ -82,7 +82,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         return Reply(removed, null)
     }
 
-    /** 개발자와 관리자: 서버의 모든 방(명단 제외)을 읽어 온다. 방 선택 목록에 쓴다. */
+    /** 개발자와 지휘관: 서버의 모든 방(명단 제외)을 읽어 온다. 방 선택 목록에 쓴다. */
     fun loadRoomsOnly(): Reply<Map<String, Any?>?> {
         val (c, t) = call("GET", "rallyRooms")
         return if (c in 200..299) Reply(parseMap(t), null) else Reply(null, explain(c, t))
@@ -97,14 +97,14 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         return Reply(RoomData(parseMap(t1), parseMap(t2)), null)
     }
 
-    /** 개발자 전용: 방 하나와 그 방의 명단을 서버에서 지운다. 성공하면 null, 실패하면 이유. 규칙에서 개발자(owners)와 관리자만 방을 쓸 수 있고, 지우기는 개발자 화면에서만 연다. */
+    /** 개발자 전용: 방 하나와 그 방의 명단을 서버에서 지운다. 성공하면 null, 실패하면 이유. 규칙에서 개발자(owners)와 지휘관만 방을 쓸 수 있고, 지우기는 개발자 화면에서만 연다. */
     fun deleteRoom(room: String): String? {
         if (room.isEmpty() || room.any { it in "./#$[]" }) return "방 번호가 올바르지 않아요"
         delete("rallyMembers/$room")?.let { return it }
         return delete("rallyRooms/$room")
     }
 
-    /** 내가 서버 명단에 있는 관리자일 때 마지막 접속 시각과 앱 버전을 적는다. 실패해도 조용히 넘어간다. */
+    /** 내가 서버 명단에 있는 지휘관일 때 마지막 접속 시각과 앱 버전을 적는다. 실패해도 조용히 넘어간다. */
     fun reportSelf(uid: String, now: Long, appVersion: String) {
         call("PUT", "admins/$uid/lastSeen", now.toString())
         call("PUT", "admins/$uid/appVersion", JSONObject.quote(appVersion.take(20)))
@@ -112,9 +112,9 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
 
     fun removeAdmin(uid: String): String? = delete("admins/$uid")
 
-    /** 코드로 관리자가 된다. 성공하면 null, 실패하면 이유. 코드를 먼저 내 것으로 잡고(먼저 쓴 사람만 성공), 그다음 명단에 올린다. */
+    /** 코드로 지휘관이 된다. 성공하면 null, 실패하면 이유. 코드를 먼저 내 것으로 잡고(먼저 쓴 사람만 성공), 그다음 명단에 올린다. */
     fun redeem(rawCode: String, now: Long = System.currentTimeMillis()): String? {
-        val code = AdminRoster.normalizeCode(rawCode) ?: return "관리자 코드 모양이 맞지 않아요 (AD-로 시작하는 10자)"
+        val code = AdminRoster.normalizeCode(rawCode) ?: return "지휘관 코드 모양이 맞지 않아요 (AD-로 시작하는 10자)"
         val me = uid()
         val uid = me.value ?: return me.error
         val (c1, t1) = call("PUT", "adminCodes/$code/usedBy", JSONObject.quote(uid))

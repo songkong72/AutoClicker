@@ -34,7 +34,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onTitleTap()
         fun onMarchDelta(teamId: String, deltaSec: Double)
         fun onToggleExclude(teamId: String)
-        /** 관리자가 군단 이름을 눌렀을 때: 그 군단을 맡을 사람을 고른다. */
+        /** 지휘관이 군단 이름을 눌렀을 때: 그 군단을 맡을 사람을 고른다. */
         fun onAssignLeader(teamId: String, teamName: String)
         /** "내 기기"의 캐릭터명 줄을 눌렀을 때 */
         fun onEditCharacterName(current: String)
@@ -49,7 +49,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         fun onSetPrep(sec: Double)
         fun onSetWait(sec: Double)
         fun onEditAdminAdjust(teamId: String, teamName: String, currentMs: Int)
-        /** 보정 −/+ 버튼: 이 군단의 관리자 보정을 ms로 정한다(범위는 서버 쪽 편집 규칙이 맞춘다). */
+        /** 보정 −/+ 버튼: 이 군단의 지휘관 보정을 ms로 정한다(범위는 서버 쪽 편집 규칙이 맞춘다). */
         fun onSetAdminAdjust(teamId: String, ms: Int)
         fun onRemoveTeam(teamId: String)
         fun onSavePosition()
@@ -102,7 +102,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
-        // ✎: 관리자 편집 모드. 평소엔 읽기 전용으로 깔끔하게, 켜면 −/+ · ✕ · 밑줄(눌러서 고치기)이 나타난다.
+        // ✎: 지휘관 편집 모드. 평소엔 읽기 전용으로 깔끔하게, 켜면 −/+ · ✕ · 밑줄(눌러서 고치기)이 나타난다.
         root.findViewById<View>(R.id.rallyEdit).setOnClickListener { editMode = !editMode; expandedId = null; deleteGuard.reset(); lastRender?.invoke() }
         // 카운트다운 상자(단계명·시간·안내)를 탭하면 축소/확대된다. 작은 —/▢ 버튼 옆의 ✕를 잘못 누르지 않게 큰 영역으로도 누를 수 있다.
         // 알약(최소화 상태)에서는 단계명이나 시간을 탭하면 펼쳐진다. 창을 끄는 일은 ✕만 한다.
@@ -280,7 +280,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     fun render(model: ScreenModel, isAdmin: Boolean, hasStarted: Boolean = false, arrivalNote: String = "",
                conn: RallyConnection = RallyConnection.LIVE, urgent: Boolean = false, starting: Boolean = false) {
         val hero = model.hero
-        val name = if (isAdmin) "관리자" else "집결장"
+        val name = if (isAdmin) "지휘관" else "집결장"
         // 연결 상태 점: 초록=실시간, 주황=1초 확인, 빨강=끊김. 알약(최소화)에서는 단계 표시가 대신 쓴다.
         title.text = name
         connColor = Color.parseColor(when (conn) { RallyConnection.LIVE -> "#22C55E"; RallyConnection.POLLING -> "#F59E0B"; RallyConnection.OFFLINE -> "#EF4444" })
@@ -421,9 +421,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
         list.forEachIndexed { i, r ->
             val v = rows.getChildAt(i)
-            // 행군시간 고치기: 관리자는 편집 모드에서 모든 군단, 집결장은 평소에도 내 군단만
+            // 행군시간 고치기: 지휘관은 편집 모드에서 모든 군단, 집결장은 평소에도 내 군단만
             val canMarch = editable && !r.excluded && (if (isAdmin) editing else r.isMine)
-            // 펼침: 관리자는 편집 모드에서 누른 줄 하나, 집결장은 내 군단 줄(행군시간만)
+            // 펼침: 지휘관은 편집 모드에서 누른 줄 하나, 집결장은 내 군단 줄(행군시간만)
             val leaderOwn = !isAdmin && canMarch
             val editOpen = editing && !r.excluded && expandedId == r.id
             val open = editOpen || leaderOwn
@@ -459,7 +459,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             v.findViewById<View>(R.id.rowNameWrap).visibility = if (editOpen) View.GONE else View.VISIBLE
             v.findViewById<TextView>(R.id.rowName).apply {
-                // "1군 달구지": 군단은 굵게, 맡은 사람은 조금 작고 옅게. 관리자에게는 비어 있는 군단을 "미배정"으로 보여 준다.
+                // "1군 달구지": 군단은 굵게, 맡은 사람은 조금 작고 옅게. 지휘관에게는 비어 있는 군단을 "미배정"으로 보여 준다.
                 val who = if (r.leaderName.isNotBlank()) r.leaderName else if (isAdmin) "미배정" else ""
                 text = if (who.isEmpty()) android.text.SpannableStringBuilder(r.name).apply {
                     setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -492,7 +492,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 setOnClickListener { callbacks.onAssignLeader(r.id, r.name) }
             }
             v.findViewById<TextView>(R.id.rowMarch).apply {
-                // 행군시간 아래에, 가장 먼저 누르는 군단보다 몇 초 늦게 누르는지(관리자 보정 포함) 작게 보여 준다.
+                // 행군시간 아래에, 가장 먼저 누르는 군단보다 몇 초 늦게 누르는지(지휘관 보정 포함) 작게 보여 준다.
                 // 제외된 군단은 계산에서 빠져 있으니 행군 시간을 보이지 않는다
                 visibility = if (editOpen || r.excluded) View.GONE else View.VISIBLE
                 text = twoLine(RallyPanelFormat.sec(r.marchSec) + "초", lags[i])
@@ -501,7 +501,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             v.findViewById<TextView>(R.id.rowStatus).apply {
                 // 상태 글자. 제외된 군단은 테두리 알약 "제외"(편집 중에 누르면 다시 참여).
-                // 관리자가 더해 준 보정이 있으면 아래 줄에 작게 보여 준다.
+                // 지휘관이 더해 준 보정이 있으면 아래 줄에 작게 보여 준다.
                 val dp = resources.displayMetrics.density
                 text = when {
                     editing && !r.excluded -> ""

@@ -23,10 +23,10 @@ class RallyScreenModelTest {
     private fun build(s: RallyRoomState) = RallyScreenModel.build(s)
 
     @Test
-    fun `시작 전에는 관리자 시작 대기 문구와 내 클릭 시각을 보여준다`() {
+    fun `시작 전에는 지휘관 시작 대기 문구와 내 클릭 시각을 보여준다`() {
         val m = build(room())
         assertEquals(HeroKind.IDLE, m.hero.kind)
-        assertEquals("관리자 시작 대기 중", m.hero.label)
+        assertEquals("지휘관 시작 대기 중", m.hero.label)
         assertNull(m.hero.remainingSec)
         assertEquals("시작 후 15초에 내 집결 클릭", m.hero.subLabel)
         assertTrue(m.editable)
@@ -168,15 +168,15 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `방에 팀이 하나도 없으면 제외가 아니라 관리자 구성 대기 안내를 보여준다`() {
+    fun `방에 팀이 하나도 없으면 제외가 아니라 지휘관 구성 대기 안내를 보여준다`() {
         val m = build(room(teams = emptyList()))
         assertEquals(HeroKind.IDLE, m.hero.kind)
-        assertEquals("관리자가 군단을 구성하는 중이에요", m.hero.label)
+        assertEquals("지휘관이 군단을 구성하는 중이에요", m.hero.label)
         assertNull(m.hero.remainingSec)
     }
 
     @Test
-    fun `팀이 하나도 없는 방에서 관리자에게는 방 번호 확인과 새 방 만드는 곳을 안내한다`() {
+    fun `팀이 하나도 없는 방에서 지휘관에게는 방 번호 확인과 새 방 만드는 곳을 안내한다`() {
         val m = build(room(teams = emptyList()).copy(isAdmin = true))
         assertEquals(HeroKind.IDLE, m.hero.kind)
         assertEquals("이 방에는 군단이 없어요", m.hero.label)
@@ -184,11 +184,11 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `내 군단이 배정되지 않았으면 관리자의 배정을 기다리라고 안내한다`() {
+    fun `내 군단이 배정되지 않았으면 지휘관의 배정을 기다리라고 안내한다`() {
         val m = build(room(teams = listOf(t2, t1), mine = ""))
         assertEquals(HeroKind.IDLE, m.hero.kind)
         assertEquals("아직 군단이 배정되지 않았어요", m.hero.label)
-        assertEquals("관리자가 군단을 배정하면 시작할 수 있어요", m.hero.subLabel)
+        assertEquals("지휘관이 군단을 배정하면 시작할 수 있어요", m.hero.subLabel)
     }
 
     @Test
@@ -230,7 +230,7 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `관리자 보정이 행에 실리고 제외된 팀도 값을 유지한다`() {
+    fun `지휘관 보정이 행에 실리고 제외된 팀도 값을 유지한다`() {
         val adj = t1.copy(adminAdjustMs = 700)
         val ex = t2.copy(excluded = true, adminAdjustMs = -300)
         val m = build(room(teams = listOf(t3, ex, adj)))
@@ -255,9 +255,9 @@ class RallyScreenModelTest {
     }
 
     // 방: 3군 50s, 2군 30s, 1군 10s / 준비 15s, 대기 300s → 클릭 시각 3군 15s, 2군 35s, 1군 55s, 출발은 클릭+300s(첫 315s, 마지막 355s), 전원 도착 365s
-    // 군단이 없는 관리자의 큰 숫자는 집결장처럼 "다음 단계까지 남은 시간"이다.
+    // 군단이 없는 지휘관의 큰 숫자는 집결장처럼 "다음 단계까지 남은 시간"이다.
     @Test
-    fun `군단이 없는 관리자는 시작 직후 첫 클릭까지 이동 준비로 센다`() {
+    fun `군단이 없는 지휘관은 시작 직후 첫 클릭까지 이동 준비로 센다`() {
         val m = build(room(RallyRunState.RUNNING, elapsed = 0.0, mine = "").copy(isAdmin = true))
         assertEquals(HeroKind.OVERVIEW, m.hero.kind)
         assertEquals("이동 준비", m.hero.label)
@@ -267,7 +267,7 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `군단이 없는 관리자의 첫 클릭까지 숫자는 시간이 갈수록 줄어든다`() {
+    fun `군단이 없는 지휘관의 첫 클릭까지 숫자는 시간이 갈수록 줄어든다`() {
         val a = build(room(RallyRunState.RUNNING, elapsed = 3.0, mine = "").copy(isAdmin = true))
         val b = build(room(RallyRunState.RUNNING, elapsed = 10.0, mine = "").copy(isAdmin = true))
         assertEquals(12.0, a.hero.remainingSec!!, d)
@@ -275,7 +275,7 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `군단이 없는 관리자는 첫 클릭 뒤 전원 출발까지를 집결 중으로 센다`() {
+    fun `군단이 없는 지휘관은 첫 클릭 뒤 전원 출발까지를 집결 중으로 센다`() {
         val m = build(room(RallyRunState.RUNNING, elapsed = 100.0, mine = "").copy(isAdmin = true))
         assertEquals("집결 중", m.hero.label)
         assertEquals(1, m.hero.phase)
@@ -284,7 +284,7 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `군단이 없는 관리자는 전원 출발 뒤 전원 도착까지를 행군 중으로 센다`() {
+    fun `군단이 없는 지휘관은 전원 출발 뒤 전원 도착까지를 행군 중으로 센다`() {
         val m = build(room(RallyRunState.RUNNING, elapsed = 360.0, mine = "").copy(isAdmin = true))
         assertEquals("행군 중", m.hero.label)
         assertEquals(2, m.hero.phase)
@@ -301,7 +301,7 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `자기 군단을 제외한 관리자의 전체 보기에는 참여 안 함 표시가 붙고 군단이 없는 관리자에는 안 붙는다`() {
+    fun `자기 군단을 제외한 지휘관의 전체 보기에는 참여 안 함 표시가 붙고 군단이 없는 지휘관에는 안 붙는다`() {
         val excluded = build(room(RallyRunState.RUNNING, elapsed = 3.0, teams = listOf(t3.copy(excluded = true), t2, t1)).copy(isAdmin = true))
         assertEquals(HeroKind.OVERVIEW, excluded.hero.kind)
         assertEquals("참여 안 함", excluded.hero.note)
@@ -310,7 +310,7 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `군단이 없는 관리자도 시작 전에는 배정 안내를 그대로 보여준다`() {
+    fun `군단이 없는 지휘관도 시작 전에는 배정 안내를 그대로 보여준다`() {
         val m = build(room(RallyRunState.IDLE, mine = ""))
         assertEquals("아직 군단이 배정되지 않았어요", m.hero.label)
         assertNull(m.hero.remainingSec)
@@ -342,7 +342,7 @@ class RallyScreenModelTest {
         room(run, elapsed, mine = "1군", teams = listOf(t3, t2, t1.copy(excluded = true))).copy(isAdmin = true)
 
     @Test
-    fun `자기 군단을 제외한 관리자도 진행 중에는 전체 진행을 센다`() {
+    fun `자기 군단을 제외한 지휘관도 진행 중에는 전체 진행을 센다`() {
         val m = build(adminExcluded(RallyRunState.RUNNING, 100.0))
         assertEquals(HeroKind.OVERVIEW, m.hero.kind)
         assertEquals("집결 중", m.hero.label)
@@ -351,14 +351,14 @@ class RallyScreenModelTest {
     }
 
     @Test
-    fun `자기 군단을 제외한 관리자의 시작 전 안내는 제외됐다가 아니라 참여하지 않는다`() {
+    fun `자기 군단을 제외한 지휘관의 시작 전 안내는 제외됐다가 아니라 참여하지 않는다`() {
         val m = build(adminExcluded(RallyRunState.IDLE))
         assertEquals(HeroKind.IDLE, m.hero.kind)
         assertEquals("이번 작전에는 참여하지 않아요", m.hero.label)
     }
 
     @Test
-    fun `제외된 집결장은 관리자가 아니면 계속 제외됐다고 보인다`() {
+    fun `제외된 집결장은 지휘관이 아니면 계속 제외됐다고 보인다`() {
         val s = adminExcluded(RallyRunState.RUNNING, 100.0).copy(isAdmin = false)
         assertEquals(HeroKind.EXCLUDED, build(s).hero.kind)
     }

@@ -284,7 +284,7 @@ class AutoClickService : AccessibilityService() {
                 onClickArm = { on -> rallyClickArmed = on; setTargetTouchable(!on) },
                 onRallyStart = { rallyPanelHost?.let { if (!it.isShowing) it.show() } },
                 onCancel = { },
-                onOtherAdminChange = { who -> showToast("다른 관리자($who)가 방을 바꿨어요") },
+                onOtherAdminChange = { who -> showToast("다른 지휘관($who)가 방을 바꿨어요") },
                 onWriteFailed = { why -> showToast(why) },
                 canCreateRoom = {
                     // 앱 첫 화면에서 만든·입장한 방만 새로 만든다. 값이 아예 없으면(예전 버전에서 정한 방) 그대로 허용한다.

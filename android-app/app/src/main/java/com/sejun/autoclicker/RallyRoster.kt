@@ -4,7 +4,7 @@ package com.sejun.autoclicker
 data class RallyMember(val id: String, val name: String)
 
 /**
- * 방 명단(rallyMembers/{방}/{기기ID}) 처리. 방 문서와 따로 저장해서, 관리자가 방 문서를 통째로 쓸 때 명단이 지워지지 않는다.
+ * 방 명단(rallyMembers/{방}/{기기ID}) 처리. 방 문서와 따로 저장해서, 지휘관이 방 문서를 통째로 쓸 때 명단이 지워지지 않는다.
  * org.json 대신 Map을 써서 JVM 단위 테스트가 가능하다.
  */
 object RallyRoster {

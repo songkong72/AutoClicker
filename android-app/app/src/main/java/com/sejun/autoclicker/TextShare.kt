@@ -26,7 +26,7 @@ object TextShare {
 
     /**
      * 보내기 창: 보낼 내용을 미리 보여 주고, 카카오톡으로 바로 보내기를 크게, 복사·다른 앱은 그 아래 작게 둔다.
-     * 방 번호·집결장 코드·관리자 코드·관리자 목록이 모두 이 창 하나로 보낸다. [note]는 미리보기 아래의 한 줄 안내.
+     * 방 번호·집결장 코드·지휘관 코드·지휘관 목록이 모두 이 창 하나로 보낸다. [note]는 미리보기 아래의 한 줄 안내.
      */
     fun sheet(activity: Activity, sheetTitle: String, shareTitle: String, text: String, note: String? = null) {
         val sheet = SheetDialog(activity, sheetTitle)
