@@ -19,7 +19,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 
 /**
@@ -94,22 +93,40 @@ internal class SequenceClickController(
 
     private fun hidePopup() { remove(popup); popup = null }
 
-    /** 목록 바깥을 누르면 닫히는 작은 창으로 [content]를 띄운다. */
+    /** 목록 바깥을 누르면 닫히는 작은 창으로 [content]를 띄운다. 창을 잡고 끌면 옮겨진다. */
     private fun showPopup(content: LinearLayout) {
         hidePopup()
+        val manager = wm ?: return
         content.orientation = LinearLayout.VERTICAL
-        content.background = round(PANEL, 16, LINE)
-        content.setPadding(px(8), px(8), px(8), px(8))
-        val root = ScrollView(service).apply {
-            addView(content)
+        val root = RallyDragLayout(service).apply {
+            orientation = LinearLayout.VERTICAL
+            background = round(PANEL, 16, LINE)
+            setPadding(px(8), px(8), px(8), px(8))
+            addView(View(service).apply { background = round("#475569", 2) },
+                LinearLayout.LayoutParams(px(40), px(4)).apply { gravity = Gravity.CENTER_HORIZONTAL; bottomMargin = px(4) })
+            addView(content, LinearLayout.LayoutParams(MATCH, WRAP))
             setOnTouchListener { _, e -> if (e.action == MotionEvent.ACTION_OUTSIDE) { hidePopup(); true } else false }
         }
         val params = overlayParams(
             px(280), WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
-        ).apply { gravity = Gravity.CENTER }
-        try { wm?.addView(root, params); popup = root } catch (e: Exception) { Log.w(TAG, "모드 목록 추가 실패", e) }
+        ).apply { gravity = Gravity.CENTER; x = popupX; y = popupY }
+        var sx = 0; var sy = 0
+        root.onDragStart = { sx = params.x; sy = params.y }
+        root.onDragMove = { dx, dy ->
+            val dm = service.resources.displayMetrics
+            val (x, y) = OverlayDragBounds.centered(sx + dx.toInt(), sy + dy.toInt(), dm.widthPixels, dm.heightPixels, root.width, root.height)
+            params.x = x; params.y = y
+            // 옮긴 자리를 기억해, 이어서 뜨는 창(연필 메뉴·삭제 확인)과 다음에 여는 목록이 같은 자리에 뜨게 한다.
+            popupX = x; popupY = y
+            try { manager.updateViewLayout(root, params) } catch (_: Exception) { }
+        }
+        try { manager.addView(root, params); popup = root } catch (e: Exception) { Log.w(TAG, "모드 목록 추가 실패", e) }
     }
+
+    /** 목록 창을 마지막으로 둔 자리(화면 가운데 기준). 이번 실행 중에만 기억한다. */
+    private var popupX = 0
+    private var popupY = 0
 
     private fun caption(text: String) = label(text, 12f, SUB).apply { setPadding(px(12), px(6), px(12), px(4)) }
 
