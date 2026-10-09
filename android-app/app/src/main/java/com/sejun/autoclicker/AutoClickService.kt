@@ -1571,7 +1571,14 @@ class AutoClickService : AccessibilityService() {
         val lp = WindowManager.LayoutParams(
             size, size, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT
-        ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.START; x = (12 * dp).toInt(); y = (220 * dp).toInt() }
+        ).apply {
+            gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            // 마지막으로 두었던 자리에서 연다. 화면이 달라졌을 수 있으니(폴드 접기 등) 화면 안으로 당긴다.
+            val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+            val dm = resources.displayMetrics
+            x = prefs.getInt("hunter_fire_x", (12 * dp).toInt()).coerceIn(0, Math.max(0, dm.widthPixels - size))
+            y = prefs.getInt("hunter_fire_y", (220 * dp).toInt()).coerceIn(0, Math.max(0, dm.heightPixels - size))
+        }
         var sx = 0; var sy = 0; var tx = 0f; var ty = 0f; var moved = false
         v.setOnTouchListener { _, e ->
             when (e.action) {
@@ -1584,7 +1591,11 @@ class AutoClickService : AccessibilityService() {
                         try { wm.updateViewLayout(v, lp) } catch (_: Exception) { }
                     }
                 }
-                android.view.MotionEvent.ACTION_UP -> if (!moved) { vibrate(30); fireHunter(0) }
+                android.view.MotionEvent.ACTION_UP -> if (moved) {
+                    // 옮긴 자리를 기억해 다음에 켤 때 그 자리에서 연다
+                    getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit()
+                        .putInt("hunter_fire_x", lp.x).putInt("hunter_fire_y", lp.y).apply()
+                } else { vibrate(30); fireHunter(0) }
             }
             true
         }
