@@ -7,6 +7,11 @@
     <!-- 클라우드 동기화를 위한 인터넷 권한 -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- 카카오톡으로 바로 보내려면 카카오톡의 "글 받기" 화면을 찾아야 한다(안드로이드 11부터는 적어 둔 앱만 보인다) -->
+    <queries>
+        <package android:name="com.kakao.talk" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

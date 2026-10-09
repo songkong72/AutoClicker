@@ -6,6 +6,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.widget.Toast
 
 /** 글을 복사하거나 다른 앱(카카오톡 등)으로 보낸다. */
@@ -48,8 +49,13 @@ object TextShare {
 
     /** 카카오톡의 "보낼 대화방 고르기"로 바로 연다. 카카오톡이 없으면 앱 고르기 창을 띄운다. */
     fun toKakao(activity: Activity, title: String, text: String) {
+        val intent = sendIntent(text).setPackage(KAKAO)
+        // 카카오톡 안에 글을 받는 입구가 여럿이면 휴대폰이 "한 번만 / 항상"을 한 번 더 묻는다. 첫 입구를 직접 지정해 건너뛴다.
+        // (찾지 못하면 지정하지 않고 예전처럼 연다.)
+        activity.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            .firstOrNull()?.activityInfo?.let { intent.setClassName(it.packageName, it.name) }
         try {
-            activity.startActivity(sendIntent(text).setPackage(KAKAO))
+            activity.startActivity(intent)
         } catch (_: ActivityNotFoundException) {
             Toast.makeText(activity, "카카오톡이 없어요. 보낼 앱을 골라 주세요", Toast.LENGTH_SHORT).show()
             chooser(activity, title, text)
