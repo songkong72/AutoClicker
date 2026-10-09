@@ -55,17 +55,17 @@
             android:src="@drawable/ic_rally"
             android:tint="#38BDF8" />
 
-        <!-- 분노의 곰 헌터 모드 (🐻) 버튼 -->
+        <!-- 모드 버튼: 헌터 / 순서 클릭을 고르는 목록을 연다 -->
         <ImageButton
             android:id="@+id/btnBearMode"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="Toggle Bear Hunter Mode"
+            android:contentDescription="모드 고르기"
             android:padding="7dp"
-            android:src="@drawable/ic_action_bear"
-            android:tint="#F59E0B" />
+            android:src="@drawable/ic_action_mode"
+            android:tint="#CBD5E1" />
 
         <!-- 인게임 실시간 설정 팝업 (⚙️) 버튼 -->
         <ImageButton

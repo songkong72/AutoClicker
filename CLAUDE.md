@@ -39,6 +39,8 @@
 - 취소 직후 1.5초는 같은 자리의 "다시 집결"을 받지 않는다. 늦게 도착한 옛 번호(startSeq)의 상태는 무시한다.
 - 접힌 상태(알약): 단계 이름·내 군단·방, 남은 시간, 펼치기 아이콘. ✕ 없음. 취소·대기일 때는 회색, 막대 숨김.
 - 색: 대기 노랑 `#FBBF24` · 집결 파랑 `#3B82F6` · 행군 보라 `#A78BFA` · 도착 청록 `#2DD4BF`. 초록은 연결 상태 점과 저장 체크에만. 패널 바탕은 불투명 `#121A2C`(비침은 설정의 오버레이 투명도로만).
+- 순서 클릭: 순서는 **최대 5개**, 한 순서의 자리는 **최대 10개**(`ClickSequences`). 자리 사이 쉬는 시간은 순서마다 한 값, −/+ **0.1초씩**(0.1~5초, 기본 0.5초). 실행하면 1번부터 끝까지 누르고 멈추며, 실행 중에 누르면 멈춘다.
+- 막대에는 기능마다 버튼을 늘리지 않는다. **모드 버튼 하나**의 목록(헌터 / 저장한 순서 / 끄기)에서 고르고, 헌터와 순서 클릭은 한 번에 하나만 켠다. 모드 버튼은 인증한 사람에게, 헌터 줄은 헌터를 개방한 사람에게만 보인다.
 - 안드로이드 13 이상은 복사 시 시스템이 알려 주므로 앱 토스트는 그 아래 버전에서만(`TextShare.copiedNotice`).
 
 ## 주요 파일 (android-app/app/src/main/java/com/sejun/autoclicker)
@@ -47,6 +49,7 @@
 - `RallyDragLayout.kt`: 패널 드래그와 목록 높이 맞춤(목록 위 세로 드래그는 스크롤).
 - `RallyRoomSync.kt`: 서버 동기화(실시간 스트림+폴링), 시작·취소, 내 클릭 예약.
 - `RallyRoomDoc.kt`: 방 문서와 편집 규칙(`RallyRoomEdit`). `RallySchedule.kt`: 클릭 시각 계산. `RallyScreenModel.kt`: 화면 모델.
+- `SequenceClickController.kt`(모드 목록, 순서 클릭 자리 잡기·실행 버튼), `ClickSequences.kt`(순서 저장 형식과 규칙). 헌터 모드는 `AutoClickService.kt`·`HunterModeManager.kt`.
 - `RallyPickPopup.kt`(방 선택·배정 팝업), `RallyInputPopup.kt`(숫자 입력).
 - 앱 화면: `MainActivity.kt`, `RoleSwitch.kt`, 하단 시트 `SheetDialog.kt`, `InputSheet.kt`, 관리자 관리 `AdminRosterUi.kt`, 공유 `TextShare.kt`.
 - 서버 규칙: `database.rules.next.json`(콘솔에 붙여 넣어 게시하는 쪽). 설명과 게시 기록은 `docs/관리자-서버-설정.md`. `firebase.json`은 아직 옛 파일 `database.rules.json`을 가리키므로 `firebase deploy`로 규칙을 올리지 않는다.

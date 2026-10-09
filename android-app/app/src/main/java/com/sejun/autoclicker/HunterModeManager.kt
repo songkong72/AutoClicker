@@ -66,7 +66,7 @@ object HunterModeManager {
     fun fire(service: AutoClickService, repeatCount: Int, beforeTap: () -> Unit = {}, afterTap: () -> Unit = {}): Boolean {
         val now = System.currentTimeMillis()
         if (!hasTargets) {
-            Toast.makeText(service, "🐻 먼저 헌터 위치를 저장해 주세요 (🐻 버튼을 길게 누르기)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(service, "🐻 먼저 헌터 위치를 저장해 주세요 (모드 목록에서 헌터 옆 연필)", Toast.LENGTH_SHORT).show()
             return false
         }
         if (!HunterFirePolicy.allow(hasTargets, repeatCount, now, lastFireMs)) return false

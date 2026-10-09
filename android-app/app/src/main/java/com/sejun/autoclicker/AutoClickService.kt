@@ -178,7 +178,43 @@ class AutoClickService : AccessibilityService() {
         val member = PreferencesHelper.hasAccess(this)
         val bearUnlocked = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("bear_mode_unlocked", false)
         control.findViewById<ImageButton>(R.id.btnRally)?.visibility = if (member) View.VISIBLE else View.GONE
-        control.findViewById<ImageButton>(R.id.btnBearMode)?.visibility = if (member && bearUnlocked) View.VISIBLE else View.GONE
+        // 모드 버튼(순서 클릭)은 인증한 사람에게 보인다. 목록 안의 헌터 줄은 헌터를 개방한 사람에게만 나온다.
+        control.findViewById<ImageButton>(R.id.btnBearMode)?.visibility = if (member) View.VISIBLE else View.GONE
+        if (!(member && bearUnlocked) && HunterModeManager.isHunterModeEnabled) toggleBearMode()
+        if (!member) sequenceUi.hideAll()
+    }
+
+    private fun hunterAllowed(): Boolean =
+        PreferencesHelper.hasAccess(this) &&
+            getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("bear_mode_unlocked", false)
+
+    /** 모드 목록과 순서 클릭 화면. 헌터는 이 서비스에 있고, 목록에서 켜고 끄는 것만 넘겨받는다. */
+    private val sequenceUi by lazy {
+        SequenceClickController(
+            service = this,
+            toast = { showToast(it) },
+            vibrate = { vibrate(it) },
+            setTargetTouchable = { setTargetTouchable(it) },
+            hunterAllowed = { hunterAllowed() },
+            hunterOn = { HunterModeManager.isHunterModeEnabled },
+            setHunter = { on -> if (HunterModeManager.isHunterModeEnabled != on) toggleBearMode() },
+            editHunter = {
+                if (!HunterModeManager.isHunterModeEnabled) toggleBearMode()
+                hideBearSetupUi()
+                showBearSetupUi() // 위치 다시 잡기
+            },
+            onModeChanged = { refreshModeIcon() },
+        )
+    }
+
+    /** 모드 버튼의 그림과 색을 켜진 모드에 맞춘다: 헌터 초록 곰, 순서 클릭 하늘색, 꺼짐 회색. */
+    private fun refreshModeIcon() {
+        val b = controlView?.findViewById<ImageButton>(R.id.btnBearMode) ?: return
+        when {
+            HunterModeManager.isHunterModeEnabled -> { b.setImageResource(R.drawable.ic_action_bear); b.setColorFilter(Color.parseColor("#10B981")) }
+            sequenceUi.isActive -> { b.setImageResource(R.drawable.ic_action_mode); b.setColorFilter(Color.parseColor("#38BDF8")) }
+            else -> { b.setImageResource(R.drawable.ic_action_mode); b.setColorFilter(Color.parseColor("#CBD5E1")) }
+        }
     }
 
     /** 숨은 곰 사냥 모드를 개방한다. 이미 열려 있으면 안내만 한다. 새 집결 팝업과 옛 대화창 양쪽에서 쓴다. */
@@ -187,7 +223,7 @@ class AutoClickService : AccessibilityService() {
         if (!prefs.getBoolean("bear_mode_unlocked", false)) {
             prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
             controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
-            showToast("🐻 비밀 헌터 모드가 열렸어요!")
+            showToast("🐻 비밀 헌터 모드가 열렸어요! 막대의 모드 버튼 목록에서 켜세요")
         } else {
             showToast("🐻 헌터 모드는 이미 열려 있어요.")
         }
@@ -397,6 +433,7 @@ class AutoClickService : AccessibilityService() {
         HunterModeManager.stop()
         hideHunterFireButton()
         hideBearSetupUi()
+        sequenceUi.hideAll()
         hideClock()
         stopAutoClick()
         hideSettingsDialog()
@@ -561,19 +598,23 @@ class AutoClickService : AccessibilityService() {
         val btnRally = control.findViewById<ImageButton>(R.id.btnRally)
         val btnBearMode = control.findViewById<ImageButton>(R.id.btnBearMode)
         refreshMemberIcons()
+        // 모드 버튼: 누르면 목록(헌터 / 저장한 순서 / 끄기)이 뜬다. 길게 누르면 켜진 모드의 자리를 다시 잡는다.
         btnBearMode?.setOnClickListener {
             vibrate(20)
             hideOpacityPanel()
-            toggleBearMode()
+            sequenceUi.toggleMenu()
         }
         btnBearMode?.setOnLongClickListener {
             vibrate(30)
             hideOpacityPanel()
-            if (!HunterModeManager.isHunterModeEnabled) toggleBearMode()
-            hideBearSetupUi()
-            showBearSetupUi() // 위치 다시 잡기
+            when {
+                sequenceUi.isActive -> sequenceUi.editActive()
+                HunterModeManager.isHunterModeEnabled -> { hideBearSetupUi(); showBearSetupUi() }
+                else -> sequenceUi.showMenu()
+            }
             true
         }
+        refreshModeIcon()
         val btnSettings = control.findViewById<ImageButton>(R.id.btnSettings)
         val btnClock = control.findViewById<ImageButton>(R.id.btnClock)
         val btnClose = control.findViewById<ImageButton>(R.id.btnClose)
@@ -1611,23 +1652,22 @@ class AutoClickService : AccessibilityService() {
 
     private fun toggleBearMode() {
         HunterModeManager.isHunterModeEnabled = !HunterModeManager.isHunterModeEnabled
-        val btnBearMode = controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)
         if (HunterModeManager.isHunterModeEnabled) {
+            sequenceUi.deactivate() // 헌터와 순서 클릭은 한 번에 하나만
             HunterModeManager.resetSequence() // 켤 때마다 1번 부대부터
-            btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#10B981")) // 초록: 켜짐
             showHunterFireButton()
             if (HunterModeManager.hasTargets) {
-                showToast("🐻 헌터 모드 켜짐 · 집결을 고른 뒤 🐻 발사 버튼을 누르세요 (위치를 다시 잡으려면 🐻 길게 누르기)")
+                showToast("🐻 헌터 모드 켜짐 · 집결을 고른 뒤 🐻 발사 버튼을 누르세요 (위치를 다시 잡으려면 모드 버튼 길게 누르기)")
             } else {
                 showToast("🐻 먼저 쓸 부대와 출정 버튼 위치를 잡아 저장해 주세요")
                 showBearSetupUi()
             }
         } else {
             showToast("🐻 헌터 모드 종료!")
-            btnBearMode?.setColorFilter(android.graphics.Color.parseColor("#F59E0B")) // 노랑: 꺼짐
             hideBearSetupUi()
             hideHunterFireButton()
         }
+        refreshModeIcon()
     }
 
     /** 화면 위에 떠 있는 뷰의 중심을 화면 픽셀 좌표로 구한다. */
