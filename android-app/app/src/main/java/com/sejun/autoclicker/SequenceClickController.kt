@@ -174,7 +174,8 @@ internal class SequenceClickController(
     fun showMenu() {
         ensureLoaded()
         val box = LinearLayout(service)
-        box.addView(caption("모드 고르기"))
+        // 어느 빌드가 폰에 깔려 있는지 바로 알 수 있게 버전을 함께 보여 준다.
+        box.addView(caption("모드 고르기 · ${BuildConfig.VERSION_NAME}"))
         if (hunterAllowed()) {
             val sub = if (HunterModeManager.hasTargets) "부대 ${HunterModeManager.troops.size}개" else "위치 저장 전"
             box.addView(row(GREEN, "헌터", sub, on = hunterOn(), onPencil = { hidePopup(); editHunter() }) { hidePopup(); selectHunter() })
