@@ -407,8 +407,9 @@
                     app:cornerRadius="14dp" />
             </LinearLayout>
 
-            <!-- 일반 연타 모드: 설정은 요약 한 줄만 보인다. "바꾸기"는 밝은 아래 창(연타 설정)을 연다. 값은 게임 위 설정 창과 같은 곳에 저장된다 -->
+            <!-- 일반 연타 모드: 설정은 요약 한 줄만 보인다. 카드를 누르면 밝은 아래 창(연타 설정)이 열린다(오른쪽 › 가 누를 수 있다는 표시). 값은 게임 위 설정 창과 같은 곳에 저장된다 -->
             <LinearLayout
+                android:id="@+id/cardClickSettings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
@@ -443,17 +444,12 @@
                         android:textSize="14sp" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/btnChangeClickSettings"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:background="@drawable/bg_btn_outline"
-                    android:gravity="center"
-                    android:paddingHorizontal="16dp"
-                    android:text="바꾸기"
-                    android:textColor="@color/text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="@color/text_tertiary" />
             </LinearLayout>
 
             <!-- 일반 연타용 오토클리커 띄우기/숨기기: 집결을 못 쓰는 사람에게만 보이고, 회원·관리자에게는 보이지 않는다(코드에서 정한다) -->

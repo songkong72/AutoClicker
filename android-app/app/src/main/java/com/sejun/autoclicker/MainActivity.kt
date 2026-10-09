@@ -129,7 +129,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // 연타 설정 바꾸기: 앱의 다른 창처럼 밝은 아래 창으로 연다(값은 게임 위 설정 창과 같은 곳에 저장한다)
-        binding.btnChangeClickSettings.setOnClickListener { showClickSettingsSheet() }
+        binding.cardClickSettings.setOnClickListener { showClickSettingsSheet() }
 
         // 상단 관리자 설정 아이콘
         binding.btnAdminIcon.setOnClickListener {
