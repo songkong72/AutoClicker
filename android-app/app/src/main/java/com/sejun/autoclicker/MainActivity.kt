@@ -1000,6 +1000,7 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "집결장 인증을 마쳤어요. 환영해요!", Toast.LENGTH_LONG).show()
                 }
                 updateAuthUI()
+                updateRallyInfoCard() // 방 카드의 소속 표시도 바로 맞춘다
                 true
             } else {
                 Toast.makeText(this, "코드가 맞지 않거나, 코드를 받은 ID와 달라요.", Toast.LENGTH_LONG).show()
