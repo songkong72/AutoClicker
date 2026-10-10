@@ -56,8 +56,10 @@ if ($code -eq 0 -and (Test-Path $apk)) {
     $share = 'G:\내 드라이브\공유'
     if (Test-Path -LiteralPath $share) {
         try {
-            Copy-Item -LiteralPath $apk -Destination (Join-Path $share 'AutoClicker-debug.apk') -Force -ErrorAction Stop
-            Log "APK also copied to: $share"
+            # the shared copy is named as a work-in-progress build so it is not mistaken for a finished release
+            $shareName = 'AutoClicker-개발중.apk'
+            Copy-Item -LiteralPath $apk -Destination (Join-Path $share $shareName) -Force -ErrorAction Stop
+            Log "APK also copied to: $share\$shareName"
         } catch { Log "WARN: could not copy to ${share}: $($_.Exception.Message)" }
     } else { Log "NOTE: shared folder not found, skipped: $share" }
     Log "RESULT: SUCCESS"
