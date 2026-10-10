@@ -433,16 +433,20 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val current = group()
+        // 아직 소속이 없을 때, 복사해 둔 초대 글에 소속이 있으면 그대로 채워 둔다(손으로 옮기다 대소문자를 틀리지 않게)
+        val copied = if (current == null) InviteText.groupIn(clipboardText()) else null
+        val shown = current ?: copied
         val sheet = SheetDialog(
             this, "소속 정하기",
-            "같은 소속끼리만 방이 보여요. 지휘관에게 받은 그대로 적어 주세요.\n연맹은 대문자와 소문자를 구분해요 (WBI와 wbi는 다른 소속)."
+            (if (copied != null) "복사해 둔 글에서 소속을 가져왔어요. 맞는지 보고 저장을 눌러 주세요.\n" else "") +
+                "같은 소속끼리만 방이 보여요. 지휘관에게 받은 그대로 적어 주세요.\n연맹은 대문자와 소문자를 구분해요 (WBI와 wbi는 다른 소속)."
         )
-        val server = sheet.field("서버 번호 (예: 2000)", RallyGroup.MAX_SERVER, InputType.TYPE_CLASS_NUMBER, current?.server.orEmpty())
+        val server = sheet.field("서버 번호 (예: 2000)", RallyGroup.MAX_SERVER, InputType.TYPE_CLASS_NUMBER, shown?.server.orEmpty())
         // 키보드가 첫 글자를 대문자로 바꾸거나 자동 고침을 하지 않게 한다(대소문자를 구분하므로 적은 그대로 들어가야 한다).
         val alliance = sheet.field(
             "연맹 (예: WBI)", RallyGroup.MAX_ALLIANCE,
             InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
-            current?.alliance.orEmpty(), top = 10
+            shown?.alliance.orEmpty(), top = 10
         )
         sheet.actions(
             SheetDialog.act("취소"),
@@ -461,6 +465,12 @@ class MainActivity : AppCompatActivity() {
             }
         ).show()
     }
+
+    /** 지금 복사해 둔 글. 없거나 읽지 못하면 빈 글. (안드로이드는 앱 화면이 앞에 있을 때만 읽게 해 준다) */
+    private fun clipboardText(): String = try {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
+    } catch (e: Exception) { "" }
 
     /** 소속을 바꾼다. 들어와 있던 방에서 나오고, 이 폰이 기억하던 방 목록도 비운다(다른 소속의 방이라 더는 보이지 않는다). */
     private fun applyGroup(next: RallyGroup, notice: String) {
@@ -949,19 +959,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showVerificationDialog() {
+        // 받은 초대 글을 통째로 복사해 두었으면 ID·코드를 채워 두고, 인증되면 글에 적힌 소속도 함께 정한다
+        val invite = InviteText.parse(clipboardText())
         InputSheet(
             this,
             title = "집결장 코드 인증",
-            message = "지휘관에게 받은 이메일(또는 ID)과 집결장 코드를 입력해 주세요.",
+            message = if (invite != null) "복사해 둔 초대 글에서 채웠어요. 맞는지 보고 아래 버튼을 눌러 주세요."
+                else "지휘관에게 받은 이메일(또는 ID)과 집결장 코드를 입력해 주세요. 받은 글을 통째로 복사한 뒤 이 창을 열면 저절로 채워져요.",
             fields = listOf(
                 InputSheet.Field(
                     hint = "예: user@gmail.com", maxLength = 100, label = "이메일 또는 ID",
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
-                    initial = PreferencesHelper.getVerifiedUserId(this)
+                    initial = invite?.id ?: PreferencesHelper.getVerifiedUserId(this)
                 ),
                 InputSheet.Field(
                     hint = "예: AC-8F3K9A", maxLength = 20, label = "집결장 코드 (AC- 뒤 6자리)",
-                    inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS,
+                    initial = invite?.code.orEmpty()
                 )
             ),
             submitLabel = "인증 완료 및 시작하기",
@@ -978,7 +992,13 @@ class MainActivity : AppCompatActivity() {
                 false
             } else if (InvitationManager.verifyInviteCode(this, userId, code)) {
                 PreferencesHelper.setVerified(this, true, userId)
-                Toast.makeText(this, "집결장 인증을 마쳤어요. 환영해요!", Toast.LENGTH_LONG).show()
+                // 채워 준 그대로 인증했고 아직 소속이 없으면, 초대 글의 소속을 그대로 쓴다
+                val invited = invite?.takeIf { it.id == userId && it.code.equals(code, ignoreCase = true) }?.group
+                if (invited != null && group() == null && !groupLocked()) {
+                    applyGroup(invited, "집결장 인증을 마쳤어요. 소속은 ${invited.label}(으)로 정했어요. 방을 골라 주세요.")
+                } else {
+                    Toast.makeText(this, "집결장 인증을 마쳤어요. 환영해요!", Toast.LENGTH_LONG).show()
+                }
                 updateAuthUI()
                 true
             } else {
