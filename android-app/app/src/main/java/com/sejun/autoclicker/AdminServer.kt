@@ -82,10 +82,13 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         return Reply(removed, null)
     }
 
-    /** 개발자와 지휘관: 서버의 모든 방(명단 제외)을 읽어 온다. 방 선택 목록에 쓴다. */
-    fun loadRoomsOnly(): Reply<Map<String, Any?>?> {
+    /**
+     * 서버의 방(명단 제외)을 읽어 온다. 방 선택 목록에 쓴다.
+     * [group]을 주면 그 소속의 방만 방 번호로 돌려주고, 없으면 서버에 저장된 이름 그대로 전부 돌려준다(개발자의 방 전체 목록).
+     */
+    fun loadRoomsOnly(group: RallyGroup? = null): Reply<Map<String, Any?>?> {
         val (c, t) = call("GET", "rallyRooms")
-        return if (c in 200..299) Reply(parseMap(t), null) else Reply(null, explain(c, t))
+        return if (c in 200..299) Reply(RallyGroup.scope(parseMap(t), group), null) else Reply(null, explain(c, t))
     }
 
     /** 개발자 전용: 서버의 모든 방과 방 명단을 읽어 온다. 규칙에서 개발자(owners)만 통째로 읽을 수 있다. */

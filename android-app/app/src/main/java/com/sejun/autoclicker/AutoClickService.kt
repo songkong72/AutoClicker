@@ -257,6 +257,17 @@ class AutoClickService : AccessibilityService() {
             }
             return
         }
+        // 방은 소속(서버·연맹) 아래에 있다. 소속을 아직 정하지 않았으면 앱 화면에서 먼저 정하게 한다.
+        val group = RallyGroup.load(getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE))
+        if (group == null) {
+            showToast("소속(서버·연맹)을 먼저 정해 주세요. 앱 화면을 열게요")
+            try {
+                startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+            } catch (e: Exception) {
+                Log.w(TAG, "앱 화면을 열지 못했다", e)
+            }
+            return
+        }
         if (rallyPanelHost != null && (rallyPanelRoleAdmin != isAdmin || rallyRoomCode != room)) { // 권한이나 방이 바뀌면 새로 만든다
             leaveRallyRoom()
         }
@@ -264,7 +275,7 @@ class AutoClickService : AccessibilityService() {
         rallyRoomCode = room
         val host = rallyPanelHost ?: run {
             val source = RallyRoomSync(
-                dbUrl = firebaseDbUrl, room = room, isAdmin = isAdmin,
+                dbUrl = firebaseDbUrl, room = room, group = group, isAdmin = isAdmin,
                 auth = FirebaseAuthClient(BuildConfig.FIREBASE_API_KEY,
                     load = { getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getString("fb_refresh", null) },
                     save = { t -> getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit().putString("fb_refresh", t).apply() }),

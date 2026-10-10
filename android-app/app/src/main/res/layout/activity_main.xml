@@ -265,13 +265,31 @@
                     android:orientation="horizontal">
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:text="집결 방"
                         android:textColor="@color/text_secondary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
+
+                    <!-- 소속(서버 · 연맹). 누르면 소속 정하기 창이 뜬다 -->
+                    <TextView
+                        android:id="@+id/tvRoomGroup"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_chip_group"
+                        android:gravity="center"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
 
                     <ImageView
                         android:id="@+id/btnRoomHelp"

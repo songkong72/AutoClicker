@@ -41,8 +41,12 @@ class RallyRoomSync(
     /** 서버에 쓰기가 실패했을 때(규칙 거절, 네트워크 오류). 인자는 화면에 보여 줄 이유. */
     private val onWriteFailed: (String) -> Unit = {},
     /** 방이 서버에 아직 없을 때 지휘관이 새로 만들어도 되는지. 첫 입장(앱 첫 화면의 새 방·입장)에서만 true이고, 패널에서 번호를 골라 옮길 때는 false다. */
-    private val canCreateRoom: () -> Boolean = { true }
+    private val canCreateRoom: () -> Boolean = { true },
+    /** 이 폰의 소속(서버·연맹). 방은 서버에 "서버-연맹-방번호"로 저장된다. 없으면 방 번호 그대로 쓴다. */
+    private val group: RallyGroup? = null
 ) : RallyPanelHost.StateSource {
+    /** 서버 경로에 쓰는 방 이름. 화면에는 [room](방 번호)만 보인다. */
+    private val roomKey = RallyGroup.keyFor(group, room)
 
     private val main = Handler(Looper.getMainLooper())
     /** 내 군단은 지휘관의 배정에서 정해진다. 배정이 없으면 빈 문자열. */
@@ -72,7 +76,7 @@ class RallyRoomSync(
     @Volatile private var holdRemoteUntil = 0L
     private fun holdRemote() { holdRemoteUntil = SystemClock.elapsedRealtime() + 2500L }
 
-    private val url get() = FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room.json", auth?.token())
+    private val url get() = FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$roomKey.json", auth?.token())
 
     fun start() {
         if (polling) return
@@ -328,7 +332,7 @@ class RallyRoomSync(
         val a = auth
         if (a == null) { onLoaded(null, "로그인이 필요해요"); return }
         Thread {
-            val r = AdminServer(dbUrl, a).loadRoomsOnly()
+            val r = AdminServer(dbUrl, a).loadRoomsOnly(group)
             val ok = r.error == null
             val list = if (!ok) null else RoomList.summarize(r.value, null).map { it.code to RoomList.linePick(it) }
             main.post { onLoaded(list, if (ok) "" else (r.error ?: "")) }
@@ -348,12 +352,12 @@ class RallyRoomSync(
     override fun onUnassignLeader(teamId: String) = change { RallyRoomEdit.unassignLeader(it, teamId) }
 
     private fun membersUrl(path: String) =
-        FirebaseAuthCodec.withAuth("$dbUrl/rallyMembers/$room$path.json", auth?.token())
+        FirebaseAuthCodec.withAuth("$dbUrl/rallyMembers/$roomKey$path.json", auth?.token())
 
     /** 방 명단에 내 항목(rallyMembers/{방}/{내 ID})을 쓴다. 이름이 없으면 아무것도 하지 않는다. */
     private fun registerSelf() {
         if (getCharacterName().isBlank()) return
-        registerMember(dbUrl, auth, room, memberId, getCharacterName())
+        registerMember(dbUrl, auth, roomKey, memberId, getCharacterName())
     }
 
     companion object {
@@ -381,9 +385,9 @@ class RallyRoomSync(
             } catch (_: Exception) { }
         }
 
-    /** 서버에 있는 방 번호들. 읽지 못하면 null. 방 만들기 상한을 볼 때 쓴다. */
-    fun roomCodes(dbUrl: String, auth: FirebaseAuthClient): Set<String>? {
-        val r = AdminServer(dbUrl, auth).loadRoomsOnly()
+    /** 서버에 있는 [group] 소속의 방 번호들. 읽지 못하면 null. 방 만들기 상한(소속마다)을 볼 때 쓴다. */
+    fun roomCodes(dbUrl: String, auth: FirebaseAuthClient, group: RallyGroup? = null): Set<String>? {
+        val r = AdminServer(dbUrl, auth).loadRoomsOnly(group)
         return if (r.error != null) null else (r.value ?: emptyMap()).keys.toSet()
     }
 
@@ -577,7 +581,7 @@ class RallyRoomSync(
     private fun putField(path: String, value: Double) = putRaw(path, value.toString())
 
     private fun putRaw(path: String, json: String) {
-        val c = URL(FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room/$path.json", auth?.token())).openConnection() as HttpURLConnection
+        val c = URL(FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$roomKey/$path.json", auth?.token())).openConnection() as HttpURLConnection
         c.requestMethod = "PUT"
         c.setRequestProperty("Content-Type", "application/json")
         c.connectTimeout = 3000; c.readTimeout = 3000
