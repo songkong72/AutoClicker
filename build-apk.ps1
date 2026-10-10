@@ -57,7 +57,9 @@ if ($code -eq 0 -and (Test-Path $apk)) {
     if (Test-Path -LiteralPath $share) {
         try {
             # the shared copy is named as a work-in-progress build so it is not mistaken for a finished release
-            $shareName = 'AutoClicker-개발중.apk'
+            # the version is the same one the app shows (1.0.<commit count>); without it, fall back to the plain name
+            $count = (git -C $wt rev-list --count HEAD 2>$null | Select-Object -First 1)
+            $shareName = if ("$count" -match '^\d+$') { "AutoClicker-개발중-1.0.$count.apk" } else { 'AutoClicker-개발중.apk' }
             Copy-Item -LiteralPath $apk -Destination (Join-Path $share $shareName) -Force -ErrorAction Stop
             Log "APK also copied to: $share\$shareName"
         } catch { Log "WARN: could not copy to ${share}: $($_.Exception.Message)" }
