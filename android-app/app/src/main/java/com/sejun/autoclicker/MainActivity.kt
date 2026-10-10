@@ -989,10 +989,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAdminLoginDialog() {
+        // "개발자"라는 말은 개발자 폰에서만 보인다. 다른 사람에게는 연맹 대표만 알면 된다.
+        val owner = roomPrefs().getBoolean("is_owner_cached", false)
+        val intro = if (owner) "개발자나 연맹 대표에게 받은 지휘관 코드를 입력해 주세요. 이미 지휘관이나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다."
+            else "연맹 대표에게 받은 지휘관 코드를 입력해 주세요. 이미 지휘관으로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다."
         InputSheet(
             this,
             title = "지휘관 로그인",
-            message = "개발자나 연맹 대표에게 받은 지휘관 코드를 입력해 주세요. 이미 지휘관이나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다. 우리 연맹에 대표가 아직 없다면 아래에서 신청할 수 있어요.",
+            message = "$intro 우리 연맹에 대표가 아직 없다면 아래에서 신청할 수 있어요.",
             fields = listOf(InputSheet.Field(
                 hint = "지휘관 코드 (AD-XXXXXXXX)", maxLength = 40,
                 inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
