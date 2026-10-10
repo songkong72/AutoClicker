@@ -359,12 +359,13 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
      * 연맹 대표 신청 창. 이미 지휘관이 됐으면(승인됨) [onApproved]를, 신청 상태가 바뀌면 [onChanged]를 부른다.
      * 이 폰에 신청이 걸려 있는지는 "rep_request_group"에 소속을 적어 기억한다(첫 화면의 대기 카드가 본다).
      */
-    fun showRepRequest(onApproved: () -> Unit, onChanged: () -> Unit) {
+    /** [preview]는 개발자가 일반 화면 미리보기에서 시험해 보는 경우다. 이미 등록된 기기라도 신청 화면을 그대로 보여 준다. */
+    fun showRepRequest(onApproved: () -> Unit, onChanged: () -> Unit, preview: Boolean = false) {
         toast("서버를 확인하는 중…")
         Thread {
             val uid = server.uid().value
             if (uid == null) { ui { toast("기기 ID를 받지 못했어요. 인터넷 연결을 확인해 주세요") }; return@Thread }
-            if (server.isAdmin(uid) == Check.YES) {
+            if (!preview && server.isAdmin(uid) == Check.YES) {
                 ui { prefs().edit().remove(KEY_REQUEST).apply(); onApproved() }
                 return@Thread
             }
@@ -373,6 +374,11 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
                 val req = r.value
                 when {
                     r.error != null -> toast("${r.error}\n(새 서버 규칙이 아직 게시되지 않았을 수 있어요)")
+                    // 미리보기에서 신청해 둔 것이 사라졌으면 승인된 것이다(승인하면 신청이 지워진다). 실제 사용자는 여기서 지휘관 화면으로 넘어간다.
+                    req == null && preview && prefs().getString(KEY_REQUEST, null) != null -> {
+                        prefs().edit().remove(KEY_REQUEST).apply(); onChanged()
+                        toast("승인됐어요. 실제 사용자라면 여기서 지휘관 화면으로 바뀌어요. (미리보기라 화면은 그대로예요)")
+                    }
                     req == null -> { prefs().edit().remove(KEY_REQUEST).apply(); onChanged(); askRequest(uid, onChanged) }
                     req.pending -> { prefs().edit().putString(KEY_REQUEST, req.group).apply(); onChanged(); showPending(uid, req, onChanged) }
                     else -> { prefs().edit().remove(KEY_REQUEST).apply(); onChanged(); showRejected(uid, req, onChanged) }

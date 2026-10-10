@@ -121,7 +121,9 @@ class MainActivity : AppCompatActivity() {
         // 회원 인증 관리 버튼
         binding.btnAuthAction.setOnClickListener {
             when {
-                PreferencesHelper.isUserView(this) -> setUserView(false)
+                // 일반 화면 미리보기에서는 일반 사용자와 똑같이 움직인다(개발자가 인증·대표 신청 화면을 시험해 볼 수 있게)
+                PreferencesHelper.isUserView(this) ->
+                    if (roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null) != null) openRepRequest() else showVerificationDialog()
                 PreferencesHelper.isAdminMode(this) -> showAdminMenu()
                 PreferencesHelper.isRosterAdmin(this) -> enterFromRoster(askCodeIfNot = true)
                 roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null) != null -> openRepRequest()
@@ -134,9 +136,8 @@ class MainActivity : AppCompatActivity() {
 
         // 상단 지휘관 설정 아이콘
         binding.btnAdminIcon.setOnClickListener {
-            if (PreferencesHelper.isUserView(this)) return@setOnClickListener
-            // 이미 지휘관이면 로그인 창을 다시 띄우지 않고 관리 메뉴를 연다
-            if (PreferencesHelper.isAdminMode(this)) showAdminMenu() else showAdminLoginDialog()
+            // 이미 지휘관이면 로그인 창을 다시 띄우지 않고 관리 메뉴를 연다. 일반 화면 미리보기에서는 일반 사용자처럼 로그인 창을 보여 준다.
+            if (PreferencesHelper.isAdminMode(this) && !PreferencesHelper.isUserView(this)) showAdminMenu() else showAdminLoginDialog()
         }
 
         // 지휘관으로 등록된 기기: 한 번 눌러 지휘관 ↔ 집결장 화면을 오간다(코드를 다시 받지 않는다)
@@ -504,7 +505,8 @@ class MainActivity : AppCompatActivity() {
     private fun openRepRequest() {
         AdminRosterUi(this, adminServer()).showRepRequest(
             onApproved = { enterFromRoster(askCodeIfNot = false) },
-            onChanged = { updateAuthUI() }
+            onChanged = { updateAuthUI() },
+            preview = PreferencesHelper.isUserView(this)
         )
     }
 
@@ -802,9 +804,16 @@ class MainActivity : AppCompatActivity() {
             // 개발자가 일반 사용자 화면을 보는 중: 집결 기능은 가려지고 연타만 남는다
             binding.tvAuthStatusTitle.text = "👤 일반 화면 (개발자 미리보기)"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#F59E0B"))
-            binding.tvAuthStatusSubtitle.text = "일반 사용자가 보는 화면이에요. 위쪽 탭을 눌러 돌아가세요."
-            binding.btnAuthAction.text = "개발자 화면으로 복귀"
-            binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
+            if (roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null) != null) {
+                // 미리보기에서 연맹 대표를 신청해 본 상태: 일반 사용자의 대기 화면과 같게 보인다
+                binding.tvAuthStatusSubtitle.text = "연맹 대표 승인 대기 중 · " + RallyRoles.groupLabel(roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null).orEmpty()) +
+                    "\n위쪽 탭을 눌러 돌아가서 '지휘관 관리'에서 승인하거나 거절해 볼 수 있어요."
+                binding.btnAuthAction.text = "승인됐는지 확인"
+            } else {
+                binding.tvAuthStatusSubtitle.text = "일반 사용자가 보는 화면이에요. 인증·지휘관 로그인·연맹 대표 신청을 시험해 볼 수 있어요. 위쪽 탭을 눌러 돌아가세요."
+                binding.btnAuthAction.text = "인증하기"
+            }
+            binding.btnAuthAction.setBackgroundColor(Color.parseColor("#3B82F6"))
         } else if (PreferencesHelper.isAdminMode(this)) {
             binding.tvAuthStatusTitle.text = "👑 지휘관 모드"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#2563EB"))
@@ -854,11 +863,11 @@ class MainActivity : AppCompatActivity() {
         }
         // 지휘관 화면과 (명단에 있는) 집결장 화면에서는 상태 카드를 두지 않는다: 전환은 위 막대, 관리는 집결 방 카드의 "관리"
         binding.cardAuthStatus.visibility = if (!userView && (adminMode || roster)) View.GONE else View.VISIBLE
-        binding.btnAdminIcon.visibility = if (roster || userView) View.GONE else View.VISIBLE
+        binding.btnAdminIcon.visibility = if (roster) View.GONE else View.VISIBLE // 미리보기에서는 일반 사용자처럼 보인다
         // 집결장 화면에서는 위쪽 전환 버튼 하나만 둔다: 카드 안에 같은 "지휘관으로 전환"을 또 두지 않는다
-        // 일반 화면 미리보기에서도 복귀 버튼을 두지 않는다: 위쪽 막대의 집결장·지휘관 칸을 누르면 돌아간다.
+        // 일반 화면 미리보기에서는 일반 사용자와 같은 버튼(인증하기)이 보인다. 돌아가는 것은 위쪽 막대의 집결장·지휘관 칸이다.
         binding.btnAuthAction.visibility =
-            if (userView || (roster && !PreferencesHelper.isAdminMode(this))) View.GONE else View.VISIBLE
+            if (!userView && roster && !PreferencesHelper.isAdminMode(this)) View.GONE else View.VISIBLE
         // 집결 방 카드는 인증한 회원·지휘관에게만 보인다
         binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
         binding.bottomBar.visibility = binding.cardRallyRoom.visibility // "집결 화면 열기"는 화면 맨 아래에 고정
@@ -1085,6 +1094,7 @@ class MainActivity : AppCompatActivity() {
                 when (AdminRoster.rosterEntry(owner, admin)) {
                     Check.YES -> {
                         roomPrefs().edit().remove(AdminRosterUi.KEY_REQUEST).apply() // 대표 신청이 승인돼 들어온 경우 대기 표시를 지운다
+                        if (PreferencesHelper.isUserView(this)) PreferencesHelper.setUserView(this, false) // 미리보기의 로그인 창으로 들어온 경우
                         PreferencesHelper.setAdminMode(this, true)
                         PreferencesHelper.setAdminViaServer(this, true)
                         PreferencesHelper.setRosterAdmin(this, true)
