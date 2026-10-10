@@ -8,19 +8,24 @@ import javax.crypto.spec.SecretKeySpec
 object InviteCodes {
     private const val POOL = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ" // 0, O, 1, I 제외
 
-    fun generate(userId: String, secret: String): String {
+    /**
+     * [group]("2000-WBI")을 주면 그 소속에서만 맞는 코드가 된다(집결장이 지휘관의 소속을 물려받는다).
+     * 소속의 대문자·소문자는 그대로 구분한다. 비워 두면 소속이 없던 예전 방식의 코드다.
+     */
+    fun generate(userId: String, secret: String, group: String = ""): String {
         val normalized = userId.trim().lowercase()
         if (normalized.isEmpty() || secret.isEmpty()) return ""
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
-        val hash = mac.doFinal(normalized.toByteArray(Charsets.UTF_8))
+        val message = if (group.isEmpty()) normalized else normalized + "\n" + group
+        val hash = mac.doFinal(message.toByteArray(Charsets.UTF_8))
         val sb = StringBuilder("AC-")
         for (i in 0 until 6) sb.append(POOL[(hash[i].toInt() and 0xFF) % POOL.length])
         return sb.toString()
     }
 
-    fun verify(userId: String, input: String, secret: String): Boolean {
-        val expected = generate(userId, secret)
+    fun verify(userId: String, input: String, secret: String, group: String = ""): Boolean {
+        val expected = generate(userId, secret, group)
         if (expected.isEmpty()) return false
         val a = input.trim().replace("-", "").uppercase()
         val b = expected.replace("-", "").uppercase()

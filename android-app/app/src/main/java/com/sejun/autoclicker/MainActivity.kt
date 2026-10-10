@@ -432,6 +432,12 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "지휘관의 소속은 개발자나 연맹 대표가 정해요. 바꾸려면 그분께 말씀해 주세요.", Toast.LENGTH_LONG).show()
             return
         }
+        if (leaderLocked()) {
+            // 집결장의 소속은 받은 코드에 묶여 있다. 다른 소속으로 가려면 그 소속의 지휘관에게 새 코드를 받아 다시 인증한다.
+            Toast.makeText(this, "소속은 지휘관에게 받은 집결장 코드로 정해져요. 바꾸려면 새 코드를 받아 다시 인증해 주세요.", Toast.LENGTH_LONG).show()
+            showVerificationDialog()
+            return
+        }
         val current = group()
         // 아직 소속이 없을 때, 복사해 둔 초대 글에 소속이 있으면 그대로 채워 둔다(손으로 옮기다 대소문자를 틀리지 않게)
         val copied = if (current == null) InviteText.groupIn(clipboardText()) else null
@@ -487,6 +493,14 @@ class MainActivity : AppCompatActivity() {
      * 지휘관의 소속이 서버에서 정해져 있어 이 폰에서 바꿀 수 없는지. 개발자는 모든 소속을 다루므로 잠기지 않는다.
      * 값은 [syncServerGroup]이 서버 명단을 보고 적어 둔다.
      */
+    /**
+     * 집결장의 소속이 인증한 코드에 묶여 있어 직접 바꿀 수 없는지. 소속이 묶인 코드로 인증한 폰만 해당한다
+     * (그 전에 인증한 집결장은 전처럼 직접 바꾼다). 지휘관은 [groupLocked]가 따로 정하고, 개발자는 잠기지 않는다.
+     */
+    private fun leaderLocked(): Boolean =
+        roomPrefs().getBoolean("leader_group_locked", false) && !PreferencesHelper.isRosterAdmin(this) &&
+            !roomPrefs().getBoolean("is_owner_cached", false)
+
     private fun groupLocked(): Boolean =
         roomPrefs().getBoolean("group_locked", false) && PreferencesHelper.isRosterAdmin(this) &&
             !roomPrefs().getBoolean("is_owner_cached", false)
@@ -540,7 +554,7 @@ class MainActivity : AppCompatActivity() {
         binding.tvRoomNumber.text = room
         binding.tvRoleChip.text = if (admin) "지휘관" else "집결장"
         // 소속 표시: 정해 둔 소속, 없으면 정하라는 안내. 누르면 소속 정하기 창이 뜬다.
-        binding.tvRoomGroup.text = (group()?.label ?: "소속 정하기") + if (groupLocked()) " 🔒" else " ›"
+        binding.tvRoomGroup.text = (group()?.label ?: "소속 정하기") + if (groupLocked() || leaderLocked()) " 🔒" else " ›"
         binding.tvRoomSummary.text = RoomChooser.summaryFromLine(RoomListCache.load(roomPrefs()).firstOrNull { it.first == room }?.second).orEmpty()
         val status = listOf(
             when {
@@ -959,13 +973,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showVerificationDialog() {
-        // 받은 초대 글을 통째로 복사해 두었으면 ID·코드를 채워 두고, 인증되면 글에 적힌 소속도 함께 정한다
+        // 집결장 코드는 지휘관의 소속에 묶여 있다. 받은 초대 글을 통째로 복사해 두었으면 ID·코드·소속을 채워 둔다.
         val invite = InviteText.parse(clipboardText())
+        val knownGroup = invite?.group ?: group()
         InputSheet(
             this,
             title = "집결장 코드 인증",
             message = if (invite != null) "복사해 둔 초대 글에서 채웠어요. 맞는지 보고 아래 버튼을 눌러 주세요."
-                else "지휘관에게 받은 이메일(또는 ID)과 집결장 코드를 입력해 주세요. 받은 글을 통째로 복사한 뒤 이 창을 열면 저절로 채워져요.",
+                else "지휘관에게 받은 글을 통째로 복사한 뒤 이 창을 열면 저절로 채워져요. 직접 적을 때는 ID, 집결장 코드, 소속을 받은 그대로 적어 주세요.",
             fields = listOf(
                 InputSheet.Field(
                     hint = "예: user@gmail.com", maxLength = 100, label = "이메일 또는 ID",
@@ -976,6 +991,16 @@ class MainActivity : AppCompatActivity() {
                     hint = "예: AC-8F3K9A", maxLength = 20, label = "집결장 코드 (AC- 뒤 6자리)",
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS,
                     initial = invite?.code.orEmpty()
+                ),
+                InputSheet.Field(
+                    hint = "예: 2000", maxLength = RallyGroup.MAX_SERVER, label = "서버 번호",
+                    inputType = android.text.InputType.TYPE_CLASS_NUMBER, initial = knownGroup?.server.orEmpty()
+                ),
+                // 대문자·소문자를 구분하므로 키보드가 글자를 바꾸지 않게 한다
+                InputSheet.Field(
+                    hint = "예: WBI", maxLength = RallyGroup.MAX_ALLIANCE, label = "연맹 (대문자·소문자 구분)",
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+                    initial = knownGroup?.alliance.orEmpty()
                 )
             ),
             submitLabel = "인증 완료 및 시작하기",
@@ -990,21 +1015,30 @@ class MainActivity : AppCompatActivity() {
             } else if (code.isEmpty()) {
                 Toast.makeText(this, "집결장 코드를 입력해 주세요.", Toast.LENGTH_SHORT).show()
                 false
-            } else if (InvitationManager.verifyInviteCode(this, userId, code)) {
-                PreferencesHelper.setVerified(this, true, userId)
-                // 채워 준 그대로 인증했고 아직 소속이 없으면, 초대 글의 소속을 그대로 쓴다
-                val invited = invite?.takeIf { it.id == userId && it.code.equals(code, ignoreCase = true) }?.group
-                if (invited != null && group() == null && !groupLocked()) {
-                    applyGroup(invited, "집결장 인증을 마쳤어요. 소속은 ${invited.label}(으)로 정했어요. 방을 골라 주세요.")
-                } else {
-                    Toast.makeText(this, "집결장 인증을 마쳤어요. 환영해요!", Toast.LENGTH_LONG).show()
-                }
-                updateAuthUI()
-                updateRallyInfoCard() // 방 카드의 소속 표시도 바로 맞춘다
-                true
-            } else {
-                Toast.makeText(this, "코드가 맞지 않거나, 코드를 받은 ID와 달라요.", Toast.LENGTH_LONG).show()
+            } else if (RallyGroup.problem(v[2], v[3]) != null) {
+                Toast.makeText(this, RallyGroup.problem(v[2], v[3]), Toast.LENGTH_SHORT).show()
                 false
+            } else {
+                val codeGroup = RallyGroup.of(v[2], v[3])
+                if (codeGroup != null && InvitationManager.verifyInviteCode(this, userId, code, codeGroup)) {
+                    PreferencesHelper.setVerified(this, true, userId)
+                    // 코드가 그 소속에서만 맞으므로 소속도 함께 정하고 잠근다(지휘관의 소속을 물려받는다)
+                    roomPrefs().edit().putBoolean("leader_group_locked", true).apply()
+                    if (codeGroup != group() && !groupLocked()) {
+                        applyGroup(codeGroup, "집결장 인증을 마쳤어요. 소속은 ${codeGroup.label}이에요. 방을 골라 주세요.")
+                    } else {
+                        Toast.makeText(this, "집결장 인증을 마쳤어요. 환영해요!", Toast.LENGTH_LONG).show()
+                    }
+                    updateAuthUI()
+                    updateRallyInfoCard() // 방 카드의 소속 표시도 바로 맞춘다
+                    true
+                } else if (InvitationManager.isOldInviteCode(userId, code)) {
+                    Toast.makeText(this, "예전 방식의 코드예요. 지휘관에게 새 집결장 코드를 받아 주세요. (지휘관도 앱을 최신으로 올려야 해요)", Toast.LENGTH_LONG).show()
+                    false
+                } else {
+                    Toast.makeText(this, "코드가 맞지 않아요. ID, 코드, 소속(대문자·소문자)을 받은 그대로 적었는지 봐 주세요.", Toast.LENGTH_LONG).show()
+                    false
+                }
             }
         }.show()
     }
@@ -1173,16 +1207,20 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "이메일 또는 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val code = InvitationManager.generateInviteCode(memberId)
+            val codeGroup = group()
+            if (codeGroup == null) {
+                Toast.makeText(this, "집결장 코드는 소속에 묶여요. 먼저 소속을 정해 주세요.", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            val code = InvitationManager.generateInviteCode(memberId, codeGroup)
             if (code.isEmpty()) {
                 Toast.makeText(this, "이 앱에는 집결장 코드 설정이 없어 만들 수 없어요.", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             // 방 번호를 따로 한 번 더 보내지 않아도 되게, 지금 방이 있으면 같은 메시지에 넣는다
             val room = roomPrefs().getString("cloud_room_number", "") ?: ""
-            val groupLine = group()?.let { "\n" + it.shareLine }.orEmpty()
-            val roomLine = groupLine + if (room.isEmpty()) "" else "\n집결 방 번호: $room (인증 후 소속을 정하고 방 선택에서 고르기)"
-            shareMsg = "[오토클리커 Pro 집결장 초대]\nID: $memberId\n집결장 코드: $code\n앱을 열고 인증 창에 둘 다 입력하면 집결 기능을 쓸 수 있어요.$roomLine"
+            val roomLine = "\n" + codeGroup.shareLine + if (room.isEmpty()) "" else "\n집결 방 번호: $room (인증 후 방 선택에서 고르기)"
+            shareMsg = "[오토클리커 Pro 집결장 초대]\nID: $memberId\n집결장 코드: $code\n이 글을 통째로 복사한 뒤 앱에서 \"인증하기\"를 누르면 저절로 채워져요. 이 코드는 아래 소속에서만 맞아요.$roomLine"
             tvCode.text = code
             tvPreview.text = shareMsg
             afterMade.forEach { it.visibility = View.VISIBLE }

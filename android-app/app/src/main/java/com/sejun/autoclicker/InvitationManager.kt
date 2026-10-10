@@ -11,10 +11,17 @@ object InvitationManager {
     private val secret: String get() = BuildConfig.INVITE_SECRET
 
     /** 회원 식별자 기반 1:1 초대코드. 비밀 문자열이 주입되지 않은 빌드에서는 빈 문자열(발급 불가). */
-    fun generateInviteCode(userId: String): String = InviteCodes.generate(userId, secret)
+    fun generateInviteCode(userId: String, group: RallyGroup): String = InviteCodes.generate(userId, secret, group.id)
 
-    /** 입력된 초대코드가 해당 회원의 코드일 때만 통과. */
-    fun verifyInviteCode(context: Context, userId: String, inputCode: String): Boolean {
+    /** 입력된 초대코드가 해당 회원이 [group] 소속으로 받은 코드일 때만 통과. */
+    fun verifyInviteCode(context: Context, userId: String, inputCode: String, group: RallyGroup): Boolean {
+        val code = inputCode.trim()
+        if (code.isEmpty() || userId.trim().isEmpty()) return false
+        return InviteCodes.verify(userId, code, secret, group.id)
+    }
+
+    /** 소속이 묶이지 않던 예전 방식의 코드인지. 새로 인증할 때는 받지 않고, 새 코드를 받으라고 알려 주는 데만 쓴다. */
+    fun isOldInviteCode(userId: String, inputCode: String): Boolean {
         val code = inputCode.trim()
         if (code.isEmpty() || userId.trim().isEmpty()) return false
         return InviteCodes.verify(userId, code, secret)
