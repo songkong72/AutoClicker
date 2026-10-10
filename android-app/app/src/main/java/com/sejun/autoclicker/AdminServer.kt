@@ -191,9 +191,14 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
     }
 
     /** 개발자: 신청을 승인한다. 그 기기를 신청한 소속의 연맹 대표로 명단에 올리고 신청을 지운다. 성공하면 null. */
-    fun approveRequest(req: RepRequest, now: Long = System.currentTimeMillis()): String? {
+    fun approveRequest(req: RepRequest, oldRepUid: String? = null, now: Long = System.currentTimeMillis()): String? {
         val (c, t) = call("PUT", "admins/${req.uid}", JSONObject(RallyRoles.approveRecord(req, now)).toString())
         if (c !in 200..299) return explain(c, t)
+        // 대표는 연맹마다 한 명: 예전 대표는 일반 지휘관으로 내린다(지휘관 권한과 소속은 그대로)
+        if (oldRepUid != null) {
+            val (c2, t2) = call("PUT", "admins/$oldRepUid/rep", "false")
+            if (c2 !in 200..299) return "새 대표는 정했지만 예전 대표를 내리지 못했어요. 지휘관 관리에서 확인해 주세요. (${explain(c2, t2)})"
+        }
         delete("repRequests/${req.uid}") // 신청이 남아도 권한에는 영향이 없다
         return null
     }

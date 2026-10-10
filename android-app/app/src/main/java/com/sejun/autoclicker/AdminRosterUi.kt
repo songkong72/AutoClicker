@@ -213,25 +213,29 @@ internal class AdminRosterUi(private val activity: Activity, private val server:
             sheet.line(card, "${RallyRoles.groupLabel(r.group)} · ${r.name}", bold = true)
             sheet.line(card, "${agoText(r.createdAt, now)} 신청 · ID …${r.uid.takeLast(6)}", small = true, top = 2)
             sheet.line(card, if (r.note.isEmpty()) "(한마디 없음)" else "\"${r.note}\"", top = 6)
-            RallyRoles.requestWarning(r, requests, admins)?.let { warn ->
+            RallyRoles.requestWarning(r, requests, admins, now)?.let { warn ->
                 sheet.line(card, warn, small = true, bold = true, top = 6).setTextColor(android.graphics.Color.parseColor("#B45309"))
             }
             sheet.pillRow(card,
                 sheet.pill("거절", Kind.DANGER) { sheet.dismiss(); askReject(r) },
-                sheet.pill("승인", Kind.PRIMARY) { sheet.dismiss(); confirmApprove(r) }
+                sheet.pill("승인", Kind.PRIMARY) { sheet.dismiss(); confirmApprove(r, admins) }
             )
         }
         sheet.actions(act("닫기")).show()
     }
 
-    private fun confirmApprove(r: RepRequest) {
+    private fun confirmApprove(r: RepRequest, admins: List<AdminEntry>) {
+        val old = RallyRoles.currentRep(r, admins)
+        val swap = if (old == null) "" else "\n지금 대표 ${old.name.ifEmpty { "이름 없음" }} 님은 일반 지휘관으로 내려가요."
+        val after = RallyRoles.commandersAfterApprove(r, admins)
+        val over = if (after <= RallyRoles.MAX_COMMANDERS) "" else "\n이 연맹의 지휘관이 ${after}명이 돼요(한도 ${RallyRoles.MAX_COMMANDERS}명). 새 대표가 한 명을 빼야 코드를 더 만들 수 있어요."
         SheetDialog.confirm(
-            activity, "연맹 대표 승인",
-            "${r.name} 님을 ${RallyRoles.groupLabel(r.group)}의 연맹 대표로 정할까요? 대표는 그 연맹의 지휘관을 직접 정하고 뺄 수 있어요.",
+            activity, if (old == null) "연맹 대표 승인" else "연맹 대표 바꾸기",
+            "${r.name} 님을 ${RallyRoles.groupLabel(r.group)}의 연맹 대표로 정할까요? 대표는 그 연맹의 지휘관을 직접 정하고 뺄 수 있어요.$swap$over",
             "승인"
         ) {
             Thread {
-                val err = server.approveRequest(r)
+                val err = server.approveRequest(r, old?.uid)
                 ui { toast(err ?: "${r.name} 님을 연맹 대표로 정했어요") }
                 load()
             }.start()

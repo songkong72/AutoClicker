@@ -60,10 +60,24 @@ internal object RallyRoles {
     fun approveRecord(req: RepRequest, now: Long): Map<String, Any?> =
         linkedMapOf("registeredAt" to now, "name" to req.name, "group" to req.group, "rep" to true)
 
-    /** 개발자의 신청 목록에서 한 줄 아래에 보일 주의. 없으면 null. 이미 대표가 있는 연맹이 먼저다. */
-    fun requestWarning(req: RepRequest, all: List<RepRequest>, admins: List<AdminEntry>): String? {
-        val rep = admins.firstOrNull { it.rep && it.group == req.group }
-        if (rep != null) return "이미 대표가 있어요: ${rep.name.ifEmpty { "이름 없음" }}"
+    /** 신청한 소속에 이미 있는 대표(신청한 본인은 뺀다). 없으면 null. 승인하면 이 사람이 일반 지휘관으로 내려간다. */
+    fun currentRep(req: RepRequest, admins: List<AdminEntry>): AdminEntry? =
+        admins.firstOrNull { it.rep && it.group == req.group && it.uid != req.uid }
+
+    /** 승인하면 그 연맹의 지휘관이 몇 명이 되는지(대표 포함). 신청한 사람이 이미 그 연맹 지휘관이면 늘지 않는다. */
+    fun commandersAfterApprove(req: RepRequest, admins: List<AdminEntry>): Int =
+        admins.count { it.group == req.group && it.uid != req.uid } + 1
+
+    /**
+     * 개발자의 신청 목록에서 한 줄 아래에 보일 주의. 없으면 null. 이미 대표가 있는 연맹이 먼저다.
+     * 대표가 있으면 마지막 접속을 함께 보여 준다(오래 안 들어왔으면 바꿔 줄지 판단하는 근거).
+     */
+    fun requestWarning(req: RepRequest, all: List<RepRequest>, admins: List<AdminEntry>, now: Long): String? {
+        val rep = currentRep(req, admins)
+        if (rep != null) {
+            val seen = AdminRoster.activityText(rep.lastSeen, rep.appVersion, now).substringBefore(" · ")
+            return "지금 대표: ${rep.name.ifEmpty { "이름 없음" }} · 마지막 접속 $seen. 승인하면 대표가 바뀌어요."
+        }
         val same = all.count { it.pending && it.group == req.group }
         return if (same > 1) "같은 연맹에서 신청이 ${same}건이에요. 한 명만 대표가 돼요." else null
     }

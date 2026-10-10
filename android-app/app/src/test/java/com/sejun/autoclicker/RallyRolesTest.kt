@@ -65,14 +65,30 @@ class RallyRolesTest {
         val b = RepRequest(uidB, "2000-WBI", "둘", "", 2L)
         val other = RepRequest(uidC, "1873-KOR", "셋", "", 3L)
         val all = listOf(a, b, other)
-        assertEquals("같은 연맹에서 신청이 2건이에요. 한 명만 대표가 돼요.", RallyRoles.requestWarning(a, all, emptyList()))
-        assertNull(RallyRoles.requestWarning(other, all, emptyList()))
+        assertEquals("같은 연맹에서 신청이 2건이에요. 한 명만 대표가 돼요.", RallyRoles.requestWarning(a, all, emptyList(), 0L))
+        assertNull(RallyRoles.requestWarning(other, all, emptyList(), 0L))
+        val day = 86_400_000L
         val admins = listOf(
-            AdminEntry("x".repeat(28), "", 1L, name = "박철수", group = "1873-KOR", rep = true),
+            AdminEntry("x".repeat(28), "", 1L, name = "박철수", lastSeen = day, appVersion = "1.0.200", group = "1873-KOR", rep = true),
             AdminEntry("y".repeat(28), "", 1L, name = "지휘관", group = "2000-WBI", rep = false)
         )
-        assertEquals("이미 대표가 있어요: 박철수", RallyRoles.requestWarning(other, all, admins))
-        assertEquals("같은 연맹에서 신청이 2건이에요. 한 명만 대표가 돼요.", RallyRoles.requestWarning(a, all, admins))
+        assertEquals("지금 대표: 박철수 · 마지막 접속 23일 전. 승인하면 대표가 바뀌어요.", RallyRoles.requestWarning(other, all, admins, 24 * day))
+        assertEquals("같은 연맹에서 신청이 2건이에요. 한 명만 대표가 돼요.", RallyRoles.requestWarning(a, all, admins, 24 * day))
+    }
+
+    @Test fun `대표가 있는 연맹의 신청을 승인하면 예전 대표가 바뀔 사람이다`() {
+        val rep = AdminEntry(uidB, "", 1L, name = "옛 대표", group = "2000-WBI", rep = true)
+        val plain = AdminEntry(uidC, "", 1L, name = "지휘관", group = "2000-WBI")
+        val elsewhere = AdminEntry("z".repeat(28), "", 1L, name = "남", group = "1873-KOR", rep = true)
+        val admins = listOf(rep, plain, elsewhere)
+        val newcomer = RepRequest(uidA, "2000-WBI", "새 사람", "", 1L)
+        assertEquals(rep, RallyRoles.currentRep(newcomer, admins))
+        assertEquals(3, RallyRoles.commandersAfterApprove(newcomer, admins))
+        // 이미 그 연맹 지휘관인 사람이 신청하면 사람 수는 늘지 않는다
+        assertEquals(2, RallyRoles.commandersAfterApprove(RepRequest(uidC, "2000-WBI", "지휘관", "", 1L), admins))
+        // 대표 본인이 다시 신청한 경우는 바꿀 사람이 없다
+        assertNull(RallyRoles.currentRep(RepRequest(uidB, "2000-WBI", "옛 대표", "", 1L), admins))
+        assertNull(RallyRoles.currentRep(RepRequest(uidA, "3000-NEW", "새 연맹", "", 1L), admins))
     }
 
     @Test fun `연맹의 지휘관은 대기 중인 코드까지 합쳐 5명까지`() {
