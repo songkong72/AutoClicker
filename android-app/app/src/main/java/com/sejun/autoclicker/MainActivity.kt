@@ -702,7 +702,7 @@ class MainActivity : AppCompatActivity() {
             // 개발자가 일반 사용자 화면을 보는 중: 집결 기능은 가려지고 연타만 남는다
             binding.tvAuthStatusTitle.text = "👤 일반 화면 (개발자 미리보기)"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#F59E0B"))
-            binding.tvAuthStatusSubtitle.text = "일반 사용자가 보는 화면이에요. 눌러서 원래 화면으로 돌아가세요."
+            binding.tvAuthStatusSubtitle.text = "일반 사용자가 보는 화면이에요. 위쪽 탭을 눌러 돌아가세요."
             binding.btnAuthAction.text = "개발자 화면으로 복귀"
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
         } else if (PreferencesHelper.isAdminMode(this)) {
@@ -748,8 +748,9 @@ class MainActivity : AppCompatActivity() {
         binding.cardAuthStatus.visibility = if (!userView && (adminMode || roster)) View.GONE else View.VISIBLE
         binding.btnAdminIcon.visibility = if (roster || userView) View.GONE else View.VISIBLE
         // 집결장 화면에서는 위쪽 전환 버튼 하나만 둔다: 카드 안에 같은 "지휘관으로 전환"을 또 두지 않는다
+        // 일반 화면 미리보기에서도 복귀 버튼을 두지 않는다: 위쪽 막대의 집결장·지휘관 칸을 누르면 돌아간다.
         binding.btnAuthAction.visibility =
-            if (roster && !PreferencesHelper.isAdminMode(this)) View.GONE else View.VISIBLE
+            if (userView || (roster && !PreferencesHelper.isAdminMode(this))) View.GONE else View.VISIBLE
         // 집결 방 카드는 인증한 회원·지휘관에게만 보인다
         binding.cardRallyRoom.visibility = if (PreferencesHelper.hasAccess(this)) View.VISIBLE else View.GONE
         binding.bottomBar.visibility = binding.cardRallyRoom.visibility // "집결 화면 열기"는 화면 맨 아래에 고정
@@ -818,7 +819,7 @@ class MainActivity : AppCompatActivity() {
             if (owner) add(MenuSheet.Item("지휘관 관리", "개발자 전용") { AdminRosterUi(this@MainActivity, adminServer()).showManage() })
             if (owner) add(MenuSheet.Item("내 기기 ID 보기") { AdminRosterUi(this@MainActivity, adminServer()).showMyId() })
             if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add(MenuSheet.Item("집결장으로 전환") { switchToLeader() }) // 위쪽 전환 버튼이 없을 때만
-            if (owner) add(MenuSheet.Item("일반 화면으로 전환", "개발자 전용") { enterUserView() })
+            // "일반 화면으로 전환"은 두지 않는다: 위쪽 막대의 "일반 화면" 칸이 같은 일을 한다.
         }
         MenuSheet(this, "지휘관", items).show()
     }
