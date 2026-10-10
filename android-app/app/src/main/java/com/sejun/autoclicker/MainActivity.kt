@@ -998,12 +998,9 @@ class MainActivity : AppCompatActivity() {
                 inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             )),
             submitLabel = "확인",
-            link = InputSheet.Link("연맹 대표 신청 · 내 기기 ID") {
-                MenuSheet(this, "더 보기", listOf(
-                    MenuSheet.Item("연맹 대표 신청하기") { openRepRequest() },
-                    MenuSheet.Item("내 기기 ID") { AdminRosterUi(this, adminServer()).showMyId() }
-                )).show()
-            }
+            link = InputSheet.Link("내 기기 ID") { AdminRosterUi(this, adminServer()).showMyId() },
+            // 대표가 없는 연맹 사람이 찾아야 하는 길이라 작은 글자 단추가 아니라 버튼으로 둔다
+            extra = InputSheet.Link("우리 연맹 대표 신청하기") { openRepRequest() }
         ) { v ->
             val typed = v[0].trim()
             if (typed.isEmpty()) {

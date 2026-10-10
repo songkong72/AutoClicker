@@ -28,6 +28,8 @@ internal class InputSheet(
     private val submitLabel: String,
     private val showCancel: Boolean = true,
     private val link: Link? = null,
+    /** 버튼 줄 아래에 놓는 테두리 버튼(작은 글자 단추보다 눈에 띄어야 하는 길). 누르면 창을 닫고 실행한다. */
+    private val extra: Link? = null,
     private val onSubmit: (List<String>) -> Boolean
 ) {
     /** 입력 칸 하나. [label]이 있으면 칸 위에 이름을 붙인다. [inputType]은 android.text.InputType 값. */
@@ -115,6 +117,14 @@ internal class InputSheet(
                 setOnClickListener { if (onSubmit(inputs.map { it.text.toString() })) d.dismiss() }
             }, LinearLayout.LayoutParams(0, px(52), 1f).apply { if (showCancel) leftMargin = px(8) })
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = px(14) })
+
+        extra?.let { l ->
+            root.addView(TextView(activity).apply {
+                text = l.label; textSize = 15f; setTextColor(blue); setTypeface(typeface, Typeface.BOLD); gravity = Gravity.CENTER
+                background = box(Color.WHITE, 16, blue)
+                setOnClickListener { d.dismiss(); l.onClick() }
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(48)).apply { topMargin = px(10) })
+        }
 
         link?.let { l ->
             root.addView(TextView(activity).apply {
