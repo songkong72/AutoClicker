@@ -124,6 +124,7 @@ class MainActivity : AppCompatActivity() {
                 PreferencesHelper.isUserView(this) -> setUserView(false)
                 PreferencesHelper.isAdminMode(this) -> showAdminMenu()
                 PreferencesHelper.isRosterAdmin(this) -> enterFromRoster(askCodeIfNot = true)
+                roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null) != null -> openRepRequest()
                 else -> showVerificationDialog()
             }
         }
@@ -426,6 +427,10 @@ class MainActivity : AppCompatActivity() {
      * 소속이 바뀌면 들어와 있던 방에서 나오고, 이 폰이 기억하던 방 목록도 비운다(다른 소속의 방이라 더는 보이지 않는다).
      */
     private fun showGroupSheet(then: () -> Unit = {}) {
+        if (groupLocked()) {
+            Toast.makeText(this, "지휘관의 소속은 개발자나 연맹 대표가 정해요. 바꾸려면 그분께 말씀해 주세요.", Toast.LENGTH_LONG).show()
+            return
+        }
         val current = group()
         val sheet = SheetDialog(
             this, "소속 정하기",
@@ -447,21 +452,60 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, problem ?: "소속을 다시 확인해 주세요.", Toast.LENGTH_SHORT).show()
                     false
                 } else {
-                    if (next != current) {
-                        RallyGroup.save(roomPrefs(), next)
-                        roomPrefs().edit().remove("cloud_room_number").remove("cloud_room_creatable").apply()
-                        RallyRoomHistory.load(roomPrefs()).forEach { RallyRoomHistory.forget(roomPrefs(), it) }
-                        RoomListCache.save(roomPrefs(), emptyList())
-                        AutoClickService.instance?.leaveRallyRoom()
-                        rosterStatus = ""
-                        Toast.makeText(this, "소속을 ${next.label}(으)로 정했어요. 방을 골라 주세요.", Toast.LENGTH_LONG).show()
-                    }
+                    if (next != current) applyGroup(next, "소속을 ${next.label}(으)로 정했어요. 방을 골라 주세요.")
                     updateRallyInfoCard()
                     then()
                     true
                 }
             }
         ).show()
+    }
+
+    /** 소속을 바꾼다. 들어와 있던 방에서 나오고, 이 폰이 기억하던 방 목록도 비운다(다른 소속의 방이라 더는 보이지 않는다). */
+    private fun applyGroup(next: RallyGroup, notice: String) {
+        RallyGroup.save(roomPrefs(), next)
+        roomPrefs().edit().remove("cloud_room_number").remove("cloud_room_creatable").apply()
+        RallyRoomHistory.load(roomPrefs()).forEach { RallyRoomHistory.forget(roomPrefs(), it) }
+        RoomListCache.save(roomPrefs(), emptyList())
+        AutoClickService.instance?.leaveRallyRoom()
+        rosterStatus = ""
+        Toast.makeText(this, notice, Toast.LENGTH_LONG).show()
+    }
+
+    /**
+     * 지휘관의 소속이 서버에서 정해져 있어 이 폰에서 바꿀 수 없는지. 개발자는 모든 소속을 다루므로 잠기지 않는다.
+     * 값은 [syncServerGroup]이 서버 명단을 보고 적어 둔다.
+     */
+    private fun groupLocked(): Boolean =
+        roomPrefs().getBoolean("group_locked", false) && PreferencesHelper.isRosterAdmin(this) &&
+            !roomPrefs().getBoolean("is_owner_cached", false)
+
+    /**
+     * 서버 명단의 내 항목에서 소속과 대표 여부를 읽어 이 폰에 맞춘다. 네트워크를 쓰므로 백그라운드 스레드에서 부른다.
+     * 소속이 정해진 지휘관은 그 소속으로 바뀌고 잠긴다. 읽지 못하면 아무것도 바꾸지 않는다.
+     */
+    private fun syncServerGroup(server: AdminServer, uid: String, owner: Boolean) {
+        val me = server.myAdmin(uid)
+        if (me.error != null) return
+        val entry = me.value
+        val serverGroup = RallyGroup.fromId(entry?.group)
+        val locked = serverGroup != null && !owner
+        roomPrefs().edit().putBoolean("group_locked", locked).putBoolean("is_rep_cached", entry?.rep == true).apply()
+        runOnUiThread {
+            if (isFinishing || isDestroyed) return@runOnUiThread
+            if (locked && serverGroup != null && serverGroup != group()) {
+                applyGroup(serverGroup, "소속이 ${serverGroup.label}(으)로 정해졌어요. 방을 골라 주세요.")
+            }
+            updateRallyInfoCard()
+        }
+    }
+
+    /** 연맹 대표 신청 창을 연다. 승인돼 있으면 곧바로 지휘관 화면으로 들어간다. */
+    private fun openRepRequest() {
+        AdminRosterUi(this, adminServer()).showRepRequest(
+            onApproved = { enterFromRoster(askCodeIfNot = false) },
+            onChanged = { updateAuthUI() }
+        )
     }
 
     /** 입장 직후 명단 등록 결과(성공/실패 이유). 토스트가 안 보이는 기기가 있어 방 상태 글에 붙여 보여 준다. */
@@ -484,7 +528,7 @@ class MainActivity : AppCompatActivity() {
         binding.tvRoomNumber.text = room
         binding.tvRoleChip.text = if (admin) "지휘관" else "집결장"
         // 소속 표시: 정해 둔 소속, 없으면 정하라는 안내. 누르면 소속 정하기 창이 뜬다.
-        binding.tvRoomGroup.text = (group()?.label ?: "소속 정하기") + " ›"
+        binding.tvRoomGroup.text = (group()?.label ?: "소속 정하기") + if (groupLocked()) " 🔒" else " ›"
         binding.tvRoomSummary.text = RoomChooser.summaryFromLine(RoomListCache.load(roomPrefs()).firstOrNull { it.first == room }?.second).orEmpty()
         val status = listOf(
             when {
@@ -773,6 +817,14 @@ class MainActivity : AppCompatActivity() {
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
             binding.tvAuthStatusSubtitle.text = "지휘관으로 등록된 기기예요. 위쪽 버튼으로 코드 없이 지휘관으로 전환할 수 있어요."
             binding.btnAuthAction.text = "지휘관으로 전환"
+        } else if (roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null) != null) {
+            // 연맹 대표를 신청하고 개발자의 승인을 기다리는 중
+            binding.tvAuthStatusTitle.text = "⏳ 연맹 대표 승인 대기 중"
+            binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#B45309"))
+            binding.tvAuthStatusSubtitle.text = RallyRoles.groupLabel(roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null).orEmpty()) +
+                " · 개발자가 승인하면 지휘관 화면이 열려요. 아래 버튼으로 확인하거나 신청을 취소할 수 있어요."
+            binding.btnAuthAction.text = "승인됐는지 확인"
+            binding.btnAuthAction.setBackgroundColor(Color.parseColor("#475569"))
         } else if (isVerified) {
             binding.tvAuthStatusTitle.text = "✅ 집결장 인증 완료"
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
@@ -839,6 +891,8 @@ class MainActivity : AppCompatActivity() {
             // 서버 명단에 있는 지휘관이면 마지막 접속 시각과 앱 버전을 적는다(개발자 화면에 보인다)
             val inRoster = if (owner == Check.YES) server.isAdmin(uid) else admin
             if (inRoster == Check.YES) server.reportSelf(uid, System.currentTimeMillis(), BuildConfig.VERSION_NAME)
+            // 소속이 서버에서 정해진 지휘관이면 그 소속으로 맞추고 잠근다(대표 여부도 여기서 안다)
+            if (owner != Check.UNKNOWN && admin == Check.YES) syncServerGroup(server, uid, owner == Check.YES)
             // 서버가 분명히 답했을 때만 "등록된 기기" 표시를 고친다(전환 버튼이 이 표시를 본다)
             AdminRoster.rosterEntry(owner, admin).let { known ->
                 if (known != Check.UNKNOWN && PreferencesHelper.isRosterAdmin(this) != (known == Check.YES)) {
@@ -850,6 +904,7 @@ class MainActivity : AppCompatActivity() {
                 AdminModeFix.KEEP -> Unit
                 AdminModeFix.MARK_SERVER -> PreferencesHelper.setAdminViaServer(this, true)
                 AdminModeFix.CLEAR -> runOnUiThread {
+                    roomPrefs().edit().putBoolean("group_locked", false).putBoolean("is_rep_cached", false).apply()
                     PreferencesHelper.setAdminMode(this, false)
                     PreferencesHelper.setAdminViaServer(this, false)
                     AutoClickService.instance?.leaveRallyRoom()
@@ -874,6 +929,10 @@ class MainActivity : AppCompatActivity() {
             add(MenuSheet.Item("집결장 코드 발급") { showAdminPanelDialog() })
             if (owner) add(MenuSheet.Item("지휘관 관리", "개발자 전용") { AdminRosterUi(this@MainActivity, adminServer()).showManage() })
             if (owner) add(MenuSheet.Item("내 기기 ID 보기") { AdminRosterUi(this@MainActivity, adminServer()).showMyId() })
+            // 연맹 대표는 자기 소속의 지휘관을 정하고 뺀다(개발자는 "지휘관 관리"에서 모든 소속을 다룬다)
+            if (!owner && roomPrefs().getBoolean("is_rep_cached", false)) {
+                add(MenuSheet.Item("우리 연맹 지휘관", "대표 전용") { AdminRosterUi(this@MainActivity, adminServer()).showMyAlliance() })
+            }
             if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add(MenuSheet.Item("집결장으로 전환") { switchToLeader() }) // 위쪽 전환 버튼이 없을 때만
             // "일반 화면으로 전환"은 두지 않는다: 위쪽 막대의 "일반 화면" 칸이 같은 일을 한다.
         }
@@ -924,13 +983,18 @@ class MainActivity : AppCompatActivity() {
         InputSheet(
             this,
             title = "지휘관 로그인",
-            message = "개발자에게 받은 지휘관 코드를 입력해 주세요. 이미 지휘관이나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다.",
+            message = "개발자나 연맹 대표에게 받은 지휘관 코드를 입력해 주세요. 이미 지휘관이나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다. 우리 연맹에 대표가 아직 없다면 아래에서 신청할 수 있어요.",
             fields = listOf(InputSheet.Field(
                 hint = "지휘관 코드 (AD-XXXXXXXX)", maxLength = 40,
                 inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             )),
             submitLabel = "확인",
-            link = InputSheet.Link("내 기기 ID") { AdminRosterUi(this, adminServer()).showMyId() }
+            link = InputSheet.Link("연맹 대표 신청 · 내 기기 ID") {
+                MenuSheet(this, "더 보기", listOf(
+                    MenuSheet.Item("연맹 대표 신청하기") { openRepRequest() },
+                    MenuSheet.Item("내 기기 ID") { AdminRosterUi(this, adminServer()).showMyId() }
+                )).show()
+            }
         ) { v ->
             val typed = v[0].trim()
             if (typed.isEmpty()) {
@@ -939,7 +1003,9 @@ class MainActivity : AppCompatActivity() {
                 // 지휘관 코드: 서버 명단에 올라야 지휘관이 된다
                 Toast.makeText(this, "지휘관 코드를 확인하는 중…", Toast.LENGTH_SHORT).show()
                 Thread {
-                    val err = adminServer().redeem(typed)
+                    val server = adminServer()
+                    val err = server.redeem(typed)
+                    if (err == null) server.uid().value?.let { syncServerGroup(server, it, owner = false) }
                     runOnUiThread {
                         if (err == null) {
                             PreferencesHelper.setAdminMode(this, true)
@@ -1014,9 +1080,11 @@ class MainActivity : AppCompatActivity() {
             val owner = if (uid == null) Check.UNKNOWN else server.isOwner(uid)
             rememberOwner(owner)
             val admin = if (uid == null) Check.UNKNOWN else if (owner == Check.YES) Check.YES else server.isAdmin(uid)
+            if (uid != null && owner != Check.UNKNOWN && admin == Check.YES) syncServerGroup(server, uid, owner == Check.YES)
             runOnUiThread {
                 when (AdminRoster.rosterEntry(owner, admin)) {
                     Check.YES -> {
+                        roomPrefs().edit().remove(AdminRosterUi.KEY_REQUEST).apply() // 대표 신청이 승인돼 들어온 경우 대기 표시를 지운다
                         PreferencesHelper.setAdminMode(this, true)
                         PreferencesHelper.setAdminViaServer(this, true)
                         PreferencesHelper.setRosterAdmin(this, true)

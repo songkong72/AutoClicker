@@ -13,7 +13,11 @@ internal data class AdminEntry(
     val registeredAt: Long,
     val name: String = "",
     val lastSeen: Long = 0L,
-    val appVersion: String = ""
+    val appVersion: String = "",
+    /** 이 지휘관이 묶인 소속("2000-WBI"). 아직 정해지지 않았으면 빈 문자열. */
+    val group: String = "",
+    /** 연맹 대표인지. 대표는 자기 소속의 지휘관을 정하고 뺄 수 있다. */
+    val rep: Boolean = false
 )
 
 /** 지휘관 코드를 쓸 수 있는 기간. 만들 때 고른다. */
@@ -24,7 +28,15 @@ internal enum class CodeTtl(val label: String, val ms: Long) {
 }
 
 /** 개발자가 발급한 지휘관 코드(adminCodes/{코드}). [name]은 개발자가 붙인 이름표다. */
-internal data class AdminCode(val code: String, val name: String, val createdAt: Long, val expiresAt: Long, val used: Boolean)
+internal data class AdminCode(
+    val code: String, val name: String, val createdAt: Long, val expiresAt: Long, val used: Boolean,
+    /** 이 코드로 들어온 사람이 묶일 소속("2000-WBI"). 없으면 빈 문자열. */
+    val group: String = "",
+    /** 연맹 대표 코드인지(개발자만 만든다). */
+    val rep: Boolean = false,
+    /** 코드를 만든 연맹 대표의 기기 ID. 개발자가 만든 코드는 빈 문자열. */
+    val by: String = ""
+)
 
 /**
  * 지휘관 코드와 명단 처리. 안드로이드 클래스를 쓰지 않아 단위 테스트가 된다.
@@ -68,7 +80,9 @@ internal object AdminRoster {
                 uid, (m["code"] as? String).orEmpty(), (m["registeredAt"] as? Number)?.toLong() ?: 0L,
                 name = cleanName((m["name"] as? String).orEmpty()),
                 lastSeen = (m["lastSeen"] as? Number)?.toLong() ?: 0L,
-                appVersion = (m["appVersion"] as? String).orEmpty().trim().take(MAX_VERSION)
+                appVersion = (m["appVersion"] as? String).orEmpty().trim().take(MAX_VERSION),
+                group = (m["group"] as? String).orEmpty(),
+                rep = m["rep"] == true
             )
         }.sortedWith(compareBy({ it.registeredAt }, { it.uid }))
 
@@ -80,26 +94,43 @@ internal object AdminRoster {
             val expiresAt = (m["expiresAt"] as? Number)?.toLong() ?: return@mapNotNull null
             val used = m["usedBy"] != null
             if (nowMs >= expiresAt && !used) return@mapNotNull null
-            AdminCode(code, (m["name"] as? String).orEmpty(), (m["createdAt"] as? Number)?.toLong() ?: 0L, expiresAt, used)
+            AdminCode(
+                code, (m["name"] as? String).orEmpty(), (m["createdAt"] as? Number)?.toLong() ?: 0L, expiresAt, used,
+                group = (m["group"] as? String).orEmpty(), rep = m["rep"] == true, by = (m["by"] as? String).orEmpty()
+            )
         }.sortedByDescending { it.createdAt }
 
-    /** 새 코드로 서버에 쓸 내용. 이름이 비면 null. */
-    fun encodeCode(rawName: String, createdAt: Long, ttlMs: Long = CODE_TTL_MS): Map<String, Any?>? {
+    /**
+     * 새 코드로 서버에 쓸 내용. 이름이 비면 null.
+     * [group]은 이 코드로 들어온 사람이 묶일 소속, [rep]은 연맹 대표 코드인지, [by]는 코드를 만든 연맹 대표의 기기 ID다(없으면 적지 않는다).
+     */
+    fun encodeCode(
+        rawName: String, createdAt: Long, ttlMs: Long = CODE_TTL_MS,
+        group: String = "", rep: Boolean = false, by: String = ""
+    ): Map<String, Any?>? {
         val name = cleanName(rawName)
-        return if (name.isEmpty()) null else mapOf("name" to name, "createdAt" to createdAt, "expiresAt" to createdAt + ttlMs)
+        if (name.isEmpty()) return null
+        val out = linkedMapOf<String, Any?>("name" to name, "createdAt" to createdAt, "expiresAt" to createdAt + ttlMs)
+        if (group.isNotEmpty()) out["group"] = group
+        if (rep) out["rep"] = true
+        if (by.isNotEmpty()) out["by"] = by
+        return out
     }
 
     /** 여러 이름을 줄바꿈이나 쉼표로 적은 입력을 이름 목록으로. 비거나 겹친 이름은 빼고 [MAX_BATCH]명까지만 쓴다. */
     fun parseNames(raw: String): List<String> =
         raw.split('\n', ',').map { cleanName(it) }.filter { it.isNotEmpty() }.distinct().take(MAX_BATCH)
 
-    /** 카카오톡으로 보낼 안내 문구 한 사람 몫. */
-    fun shareMessage(code: String, ttl: CodeTtl): String =
-        "[오토클리커 Pro 지휘관 초대]\n지휘관 코드: $code\n앱의 인증 화면 → 지휘관 로그인에서 이 코드를 입력하세요. 만든 지 ${ttl.label} 안에 한 번만 쓸 수 있어요."
+    /** 카카오톡으로 보낼 안내 문구 한 사람 몫. 코드에 소속이 묶여 있으면 그 소속과 대표 여부를 함께 적는다. */
+    fun shareMessage(code: String, ttl: CodeTtl, group: String = "", rep: Boolean = false): String {
+        val who = if (rep) "연맹 대표" else "지휘관"
+        val groupLine = RallyGroup.fromId(group)?.let { "\n${it.shareLine}" }.orEmpty()
+        return "[오토클리커 Pro $who 초대]$groupLine\n지휘관 코드: $code\n앱의 인증 화면 → 지휘관 로그인에서 이 코드를 입력하세요. 만든 지 ${ttl.label} 안에 한 번만 쓸 수 있어요."
+    }
 
     /** (이름, 코드) 여러 쌍을 사람별 안내 문구로 이어 붙인다. */
-    fun batchShare(items: List<Pair<String, String>>, ttl: CodeTtl): String =
-        items.joinToString("\n\n────────\n\n") { (name, code) -> "${name}님께\n" + shareMessage(code, ttl) }
+    fun batchShare(items: List<Pair<String, String>>, ttl: CodeTtl, group: String = "", rep: Boolean = false): String =
+        items.joinToString("\n\n────────\n\n") { (name, code) -> "${name}님께\n" + shareMessage(code, ttl, group, rep) }
 
     /** 목록에 보일 이름: 저장된 이름표, 없으면 등록에 쓴 코드의 이름표, 그것도 없으면 "직접 등록". */
     fun labelOf(a: AdminEntry, codes: List<AdminCode>): String =
@@ -139,8 +170,13 @@ internal object AdminRoster {
     }
 
     /** 코드를 쓴 뒤 서버 명단에 적는 내 항목. 코드를 먼저 내 것으로 잡은(usedBy) 다음에 쓴다. */
-    fun adminRecord(code: String, registeredAt: Long): Map<String, Any?> =
-        mapOf("code" to code, "registeredAt" to registeredAt)
+    fun adminRecord(code: String, registeredAt: Long, group: String = "", rep: Boolean = false): Map<String, Any?> {
+        val out = linkedMapOf<String, Any?>("code" to code, "registeredAt" to registeredAt)
+        // 서버 규칙은 코드에 적힌 소속·대표 여부와 똑같이 적은 등록만 받는다.
+        if (group.isNotEmpty()) out["group"] = group
+        if (rep) out["rep"] = true
+        return out
+    }
 
     /** 지휘관 목록 전체를 메모에 붙여 넣기 좋은 글로. 이름표는 쓴 코드에서 찾고, 만료된 코드는 뺀다. */
     fun exportText(admins: List<AdminEntry>, codes: List<AdminCode>, nowMs: Long): String {

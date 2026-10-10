@@ -14,6 +14,9 @@ data class RallyGroup(val server: String, val alliance: String) {
     /** 서버에 저장되는 방 이름. */
     fun key(room: String): String = prefix + room
 
+    /** 서버의 지휘관 명단과 코드에 적는 값. 예: "2000-WBI" */
+    val id: String get() = "$server-$alliance"
+
     /** 화면의 짧은 표시. 예: "2000 · WBI" */
     val label: String get() = "$server · $alliance"
 
@@ -41,6 +44,13 @@ data class RallyGroup(val server: String, val alliance: String) {
                 !a.all { it.isLetterOrDigit() } -> "연맹은 글자와 숫자만 적어 주세요. (띄어쓰기·기호 없이)"
                 else -> null
             }
+        }
+
+        /** 서버에 적힌 값("2000-WBI")을 소속으로. 모양이 틀리면 null. */
+        fun fromId(id: String?): RallyGroup? {
+            val s = id.orEmpty()
+            val cut = s.indexOf('-')
+            return if (cut <= 0) null else of(s.substring(0, cut), s.substring(cut + 1))
         }
 
         /** 서버에 쓸 방 이름. 소속이 없으면(옛 방식) 방 번호 그대로. */

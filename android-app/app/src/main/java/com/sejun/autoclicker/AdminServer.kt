@@ -43,9 +43,15 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         return Reply(AdminRoster.decodeCodes(parseMap(text), now), null)
     }
 
-    /** 새 지휘관 코드를 만든다. 성공하면 코드를 돌려준다. */
-    fun createCode(rawName: String, ttl: CodeTtl = CodeTtl.DAY, now: Long = System.currentTimeMillis()): Reply<String> {
-        val body = AdminRoster.encodeCode(rawName, now, ttl.ms) ?: return Reply(null, "이름표를 입력해 주세요")
+    /**
+     * 새 지휘관 코드를 만든다. 성공하면 코드를 돌려준다.
+     * [group]은 이 코드로 들어온 사람이 묶일 소속("2000-WBI"), [rep]은 연맹 대표 코드인지(개발자만), [by]는 만드는 연맹 대표의 기기 ID다.
+     */
+    fun createCode(
+        rawName: String, ttl: CodeTtl = CodeTtl.DAY, now: Long = System.currentTimeMillis(),
+        group: String = "", rep: Boolean = false, by: String = ""
+    ): Reply<String> {
+        val body = AdminRoster.encodeCode(rawName, now, ttl.ms, group, rep, by) ?: return Reply(null, "이름표를 입력해 주세요")
         val newCode = AdminRoster.newCode()
         val (code, text) = call("PUT", "adminCodes/$newCode", JSONObject(body).toString())
         return if (code in 200..299) Reply(newCode, null) else Reply(null, explain(code, text))
@@ -122,9 +128,88 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         val uid = me.value ?: return me.error
         val (c1, t1) = call("PUT", "adminCodes/$code/usedBy", JSONObject.quote(uid))
         if (c1 !in 200..299) return if (c1 == 401 || c1 == 403) "코드가 없거나, 이미 쓰였거나, 기한(24시간)이 지났어요" else explain(c1, t1)
-        val (c2, t2) = call("PUT", "admins/$uid", JSONObject(AdminRoster.adminRecord(code, now)).toString())
+        // 코드에 적힌 소속과 대표 여부를 읽어 그대로 등록한다(서버 규칙이 똑같은지 본다). 읽지 못하면(옛 규칙) 소속 없이 등록한다.
+        val made = parseMap(call("GET", "adminCodes/$code").let { (c, t) -> if (c in 200..299) t else "" })
+        val group = (made?.get("group") as? String).orEmpty()
+        val rep = made?.get("rep") == true
+        val (c2, t2) = call("PUT", "admins/$uid", JSONObject(AdminRoster.adminRecord(code, now, group, rep)).toString())
         return if (c2 in 200..299) null else explain(c2, t2)
     }
+
+    // ---- 소속과 연맹 대표 ----
+
+    /** 서버 명단의 내 항목(소속, 대표 여부). 명단에 없으면 값이 null이고 오류도 없다. */
+    fun myAdmin(uid: String): Reply<AdminEntry?> {
+        val (c, t) = call("GET", "admins/$uid")
+        if (c !in 200..299) return Reply(null, explain(c, t))
+        val raw = parseMap(t) ?: return Reply(null, null)
+        return Reply(AdminRoster.decodeAdmins(mapOf(uid to raw)).firstOrNull(), null)
+    }
+
+    /** 개발자: 지휘관의 소속과 대표 여부를 정한다. 성공하면 null. */
+    fun setAdminGroup(uid: String, group: RallyGroup, rep: Boolean): String? {
+        val (c1, t1) = call("PUT", "admins/$uid/group", JSONObject.quote(group.id))
+        if (c1 !in 200..299) return explain(c1, t1)
+        val (c2, t2) = call("PUT", "admins/$uid/rep", rep.toString())
+        return if (c2 in 200..299) null else explain(c2, t2)
+    }
+
+    /** 연맹 대표: 내 소속의 지휘관들. 서버 규칙이 "내 소속으로 거른 조회"만 허락한다. */
+    fun listGroupAdmins(group: String): Reply<List<AdminEntry>> {
+        val (c, t) = call("GET", "admins", query = equalTo("group", group))
+        return if (c in 200..299) Reply(AdminRoster.decodeAdmins(parseMap(t)), null) else Reply(null, explain(c, t))
+    }
+
+    /** 연맹 대표: 내가 만든 지휘관 코드들. */
+    fun listMyCodes(uid: String, now: Long = System.currentTimeMillis()): Reply<List<AdminCode>> {
+        val (c, t) = call("GET", "adminCodes", query = equalTo("by", uid))
+        return if (c in 200..299) Reply(AdminRoster.decodeCodes(parseMap(t), now), null) else Reply(null, explain(c, t))
+    }
+
+    // ---- 연맹 대표 신청 ----
+
+    /** 연맹 대표를 신청한다. 한 기기에 신청 하나라, 다시 신청하면 앞의 것을 덮어쓴다. 성공하면 null. */
+    fun submitRequest(uid: String, group: RallyGroup, rawName: String, rawNote: String?, now: Long = System.currentTimeMillis()): String? {
+        val body = RallyRoles.encodeRequest(group, rawName, rawNote, now) ?: return "게임 캐릭터명을 입력해 주세요"
+        val (c, t) = call("PUT", "repRequests/$uid", JSONObject(body).toString())
+        return if (c in 200..299) null else explain(c, t)
+    }
+
+    /** 내 신청. 없으면 값이 null이고 오류도 없다. */
+    fun myRequest(uid: String): Reply<RepRequest?> {
+        val (c, t) = call("GET", "repRequests/$uid")
+        if (c !in 200..299) return Reply(null, explain(c, t))
+        return Reply(RallyRoles.decodeRequest(uid, parseMap(t)), null)
+    }
+
+    fun cancelRequest(uid: String): String? = delete("repRequests/$uid")
+
+    /** 개발자: 기다리는 신청 목록. */
+    fun listRequests(): Reply<List<RepRequest>> {
+        val (c, t) = call("GET", "repRequests")
+        return if (c in 200..299) Reply(RallyRoles.decodeRequests(parseMap(t)), null) else Reply(null, explain(c, t))
+    }
+
+    /** 개발자: 신청을 승인한다. 그 기기를 신청한 소속의 연맹 대표로 명단에 올리고 신청을 지운다. 성공하면 null. */
+    fun approveRequest(req: RepRequest, now: Long = System.currentTimeMillis()): String? {
+        val (c, t) = call("PUT", "admins/${req.uid}", JSONObject(RallyRoles.approveRecord(req, now)).toString())
+        if (c !in 200..299) return explain(c, t)
+        delete("repRequests/${req.uid}") // 신청이 남아도 권한에는 영향이 없다
+        return null
+    }
+
+    /** 개발자: 신청을 거절한다. [rawReason]은 신청자 화면에 보일 한 줄. 성공하면 null. */
+    fun rejectRequest(uid: String, rawReason: String?): String? {
+        val (c, t) = call("PUT", "repRequests/$uid/status", JSONObject.quote(RallyRoles.REJECTED))
+        if (c !in 200..299) return explain(c, t)
+        val reason = RallyRoles.cleanNote(rawReason)
+        if (reason.isNotEmpty()) call("PUT", "repRequests/$uid/reason", JSONObject.quote(reason))
+        return null
+    }
+
+    /** Firebase REST의 "이 값과 같은 것만" 조회. 서버 규칙의 색인(.indexOn)이 있어야 한다. */
+    private fun equalTo(child: String, value: String): String =
+        "orderBy=" + java.net.URLEncoder.encode("\"$child\"", "UTF-8") + "&equalTo=" + java.net.URLEncoder.encode(JSONObject.quote(value), "UTF-8")
 
     // ---- 내부 ----
 
@@ -148,8 +233,9 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         else -> "서버 오류 $code"
     }
 
-    private fun call(method: String, path: String, body: String? = null): Pair<Int, String> = try {
-        val c = URL(FirebaseAuthCodec.withAuth("$dbUrl/$path.json", auth.token())).openConnection() as HttpURLConnection
+    private fun call(method: String, path: String, body: String? = null, query: String = ""): Pair<Int, String> = try {
+        val target = "$dbUrl/$path.json" + if (query.isEmpty()) "" else "?$query"
+        val c = URL(FirebaseAuthCodec.withAuth(target, auth.token())).openConnection() as HttpURLConnection
         c.requestMethod = method
         c.connectTimeout = 4000; c.readTimeout = 4000
         if (body != null) {

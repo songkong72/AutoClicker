@@ -6,7 +6,7 @@
       ".read": "auth != null",
       "$room": {
         ".read": "auth != null",
-        ".write": "auth != null && $room.length >= 1 && $room.length <= 40 && (root.child('owners').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())",
+        ".write": "auth != null && $room.length >= 1 && $room.length <= 40 && (root.child('owners').child(auth.uid).exists() || (root.child('admins').child(auth.uid).exists() && (!root.child('admins').child(auth.uid).child('group').exists() || $room.beginsWith(root.child('admins').child(auth.uid).child('group').val() + '-'))))",
         "teams": {
           "$i": {
             ".validate": "$i.matches(/^[0-9]{1,2}$/)",
@@ -83,10 +83,13 @@
       }
     },
     "admins": {
-      ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
+      ".read": "auth != null && (root.child('owners').child(auth.uid).exists() || (root.child('admins').child(auth.uid).child('rep').val() == true && query.orderByChild == 'group' && query.equalTo == root.child('admins').child(auth.uid).child('group').val()))",
+      ".indexOn": [
+        "group"
+      ],
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",
-        ".write": "auth != null && (root.child('owners').child(auth.uid).exists() || (auth.uid == $uid && !data.exists() && newData.child('code').exists() && root.child('adminCodes').child(newData.child('code').val()).child('usedBy').val() == auth.uid))",
+        ".write": "auth != null && (root.child('owners').child(auth.uid).exists() || (auth.uid == $uid && !data.exists() && newData.child('code').exists() && root.child('adminCodes').child(newData.child('code').val()).child('usedBy').val() == auth.uid && newData.child('group').val() == root.child('adminCodes').child(newData.child('code').val()).child('group').val() && newData.child('rep').val() == root.child('adminCodes').child(newData.child('code').val()).child('rep').val()) || (root.child('admins').child(auth.uid).child('rep').val() == true && auth.uid != $uid && data.exists() && !newData.exists() && data.child('group').val() == root.child('admins').child(auth.uid).child('group').val() && data.child('rep').val() != true))",
         ".validate": "newData.hasChild('registeredAt')",
         "code": {
           ".validate": "newData.isString() && newData.val().matches(/^AD-[2-9A-HJ-NP-Z]{8}$/)"
@@ -105,15 +108,25 @@
           ".write": "auth != null && auth.uid == $uid && data.parent().exists()",
           ".validate": "newData.isString() && newData.val().length <= 20"
         },
+        "group": {
+          ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 15"
+        },
+        "rep": {
+          ".validate": "newData.isBoolean()"
+        },
         "$other": {
           ".validate": false
         }
       }
     },
     "adminCodes": {
-      ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
+      ".read": "auth != null && (root.child('owners').child(auth.uid).exists() || (root.child('admins').child(auth.uid).child('rep').val() == true && query.orderByChild == 'by' && query.equalTo == auth.uid))",
+      ".indexOn": [
+        "by"
+      ],
       "$code": {
-        ".write": "auth != null && root.child('owners').child(auth.uid).exists()",
+        ".read": "auth != null && data.child('usedBy').val() == auth.uid",
+        ".write": "auth != null && (root.child('owners').child(auth.uid).exists() || (root.child('admins').child(auth.uid).child('rep').val() == true && !data.exists() && newData.child('by').val() == auth.uid && newData.child('group').val() == root.child('admins').child(auth.uid).child('group').val() && !newData.child('rep').exists() && !newData.child('usedBy').exists()) || (root.child('admins').child(auth.uid).child('rep').val() == true && data.exists() && !newData.exists() && data.child('by').val() == auth.uid))",
         "name": {
           ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
         },
@@ -126,6 +139,44 @@
         "usedBy": {
           ".write": "auth != null && !data.exists() && newData.val() == auth.uid && root.child('adminCodes').child($code).child('expiresAt').val() > now",
           ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "group": {
+          ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 15"
+        },
+        "rep": {
+          ".validate": "newData.isBoolean()"
+        },
+        "by": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "repRequests": {
+      ".read": "auth != null && root.child('owners').child(auth.uid).exists()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || root.child('owners').child(auth.uid).exists())",
+        ".write": "auth != null && (root.child('owners').child(auth.uid).exists() || (auth.uid == $uid && (!newData.exists() || (newData.child('status').val() == 'pending' && !root.child('admins').child(auth.uid).exists()))))",
+        ".validate": "newData.hasChildren(['group', 'name', 'createdAt', 'status'])",
+        "group": {
+          ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 15"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
+        },
+        "note": {
+          ".validate": "newData.isString() && newData.val().length <= 60"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "status": {
+          ".validate": "newData.val() == 'pending' || newData.val() == 'rejected'"
+        },
+        "reason": {
+          ".validate": "newData.isString() && newData.val().length <= 60"
         },
         "$other": {
           ".validate": false
