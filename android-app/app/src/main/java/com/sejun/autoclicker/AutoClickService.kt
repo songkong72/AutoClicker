@@ -176,10 +176,9 @@ class AutoClickService : AccessibilityService() {
     fun refreshMemberIcons() {
         val control = controlView ?: return
         val member = PreferencesHelper.hasAccess(this)
-        val bearUnlocked = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("bear_mode_unlocked", false)
         control.findViewById<ImageButton>(R.id.btnRally)?.visibility = if (member) View.VISIBLE else View.GONE
-        // 모드 버튼(헌터·순서 클릭)은 숨은 기능이다: 인증하고, 집결 패널 제목을 5번 연달아 눌러 개방한 폰에서만 보인다.
-        val modeAllowed = member && bearUnlocked
+        // 모드 버튼(헌터·순서 클릭)은 숨은 기능이다: 지휘관 화면이고, 집결 패널 제목을 5번 연달아 눌러 개방한 폰에서만 보인다.
+        val modeAllowed = hunterAllowed()
         control.findViewById<ImageButton>(R.id.btnBearMode)?.visibility = if (modeAllowed) View.VISIBLE else View.GONE
         if (!modeAllowed) {
             if (HunterModeManager.isHunterModeEnabled) toggleBearMode()
@@ -187,8 +186,9 @@ class AutoClickService : AccessibilityService() {
         }
     }
 
+    /** 숨은 모드(헌터·순서 클릭)를 쓸 수 있는지: 지금 지휘관 화면이고, 이 폰에서 개방해 둔 경우만. 집결장 화면에서는 숨긴다. */
     private fun hunterAllowed(): Boolean =
-        PreferencesHelper.hasAccess(this) &&
+        PreferencesHelper.hasAccess(this) && PreferencesHelper.isAdminMode(this) &&
             getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("bear_mode_unlocked", false)
 
     /** 모드 목록과 순서 클릭 화면. 헌터는 이 서비스에 있고, 목록에서 켜고 끄는 것만 넘겨받는다. */
@@ -226,6 +226,8 @@ class AutoClickService : AccessibilityService() {
 
     /** 숨은 곰 사냥 모드를 개방한다. 이미 열려 있으면 안내만 한다. 새 집결 팝업과 옛 대화창 양쪽에서 쓴다. */
     fun unlockBearMode() {
+        // 지휘관 화면에서만 열린다. 집결장 화면에서는 제목을 눌러도 아무 일도 없다(숨은 기능이라 안내도 하지 않는다).
+        if (!PreferencesHelper.isAdminMode(this)) return
         val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
         if (!prefs.getBoolean("bear_mode_unlocked", false)) {
             prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
