@@ -7,7 +7,7 @@ import android.content.SharedPreferences
  * 서버에는 방 이름을 "서버-연맹-방번호"(예: 2000-WBI-1111)로 저장하고, 화면에는 방 번호만 보인다.
  * 연맹은 대문자와 소문자를 구분한다(WBI와 wbi는 다른 소속). 적은 글자를 바꾸지 않는다.
  */
-internal data class RallyGroup(val server: String, val alliance: String) {
+data class RallyGroup(val server: String, val alliance: String) {
     /** 이 소속의 방들이 서버에서 갖는 이름의 앞부분. 연맹에는 "-"를 못 쓰게 해서 다른 소속과 섞이지 않는다. */
     val prefix: String get() = "$server-$alliance-"
 
