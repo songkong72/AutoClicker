@@ -21,6 +21,12 @@ class RallyPanelFormatTest {
     @Test fun 제외된_군단은_계산에서도_표시에서도_빠진다() =
         assertEquals(listOf("먼저 클릭", "18초 뒤", ""), RallyPanelFormat.lagLabels(listOf(t(51.0), t(33.0), t(60.0, 0, true))))
 
+    @Test fun 조를_쓰는_방은_같은_조_안에서만_견준다() {
+        // 1군(10초)·2군(30초)은 1조, 3군(50초)은 2조. 혼자인 3군은 "먼저 클릭".
+        assertEquals(listOf("20초 뒤", "먼저 클릭", "먼저 클릭"), RallyPanelFormat.lagLabelsByWave(listOf(t(10.0), t(30.0), t(50.0)), listOf(1, 1, 2)))
+        assertEquals(listOf("먼저 클릭", "5초 뒤", "먼저 클릭", "10초 뒤"), RallyPanelFormat.lagLabelsByWave(listOf(t(40.0), t(35.0), t(40.0), t(30.0)), listOf(1, 1, 2, 2)))
+    }
+
     @Test fun 전부_제외면_모두_빈칸() =
         assertEquals(listOf("", ""), RallyPanelFormat.lagLabels(listOf(t(51.0, 0, true), t(33.0, 0, true))))
 

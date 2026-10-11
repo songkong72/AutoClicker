@@ -632,8 +632,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         rowsHeadRight.text = if (editable) "행군 시간 · 위에서부터 차례로 클릭" else "행군 시간 · 클릭까지 남은 시간"
         // 머리글 줄을 보일지는 render()에서 정한다(편집 중에는 여기에 "+ 군단 추가"가 놓인다).
         // 내 줄에는 이 폰의 "내 보정"(내 기기)도 더한다. 다른 집결장 폰의 보정은 방 데이터에 없어 알 수 없다.
-        // 조의 도착 간격도 누르는 시각을 늦추므로 함께 더한다.
-        val lags = RallyPanelFormat.lagLabels(list.map { LagInput(it.marchSec, it.adminAdjustMs + Math.round(it.delaySec * 1000.0).toInt() + (if (it.isMine) correctionShownMs else 0), it.excluded) })
+        // 조를 쓰는 방에서는 같은 조 안에서만 견준다(조 사이의 차이는 머리띠의 "N분 뒤 도착"이 말한다).
+        val lagInputs = list.map { LagInput(it.marchSec, it.adminAdjustMs + (if (it.isMine) correctionShownMs else 0), it.excluded) }
+        val lags = if (waveMode) RallyPanelFormat.lagLabelsByWave(lagInputs, list.map { it.wave }) else RallyPanelFormat.lagLabels(lagInputs)
         val gray = Color.parseColor("#A9B4C7")
         // "50초" 아래에 작은 회색 글씨("먼저", "+20초")
         fun twoLine(main: String, sub: String): CharSequence =

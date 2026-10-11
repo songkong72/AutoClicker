@@ -45,4 +45,16 @@ internal object RallyPanelFormat {
             }
         }
     }
+
+    /**
+     * 조를 쓰는 방: 같은 조 안에서만 견준다. 조마다 가장 먼저 누르는 군단이 "먼저 클릭"이고 나머지는 그 군단보다 몇 초 뒤인지.
+     * 조 사이의 차이는 조 머리띠의 "N분 뒤 도착"이 말해 주므로 여기에 섞지 않는다. [waves]는 [items]와 같은 순서의 조 번호.
+     */
+    fun lagLabelsByWave(items: List<LagInput>, waves: List<Int>): List<String> {
+        val out = MutableList(items.size) { "" }
+        items.indices.groupBy { waves.getOrElse(it) { 1 } }.values.forEach { idx ->
+            lagLabels(idx.map { items[it] }).forEachIndexed { k, label -> out[idx[k]] = label }
+        }
+        return out
+    }
 }
