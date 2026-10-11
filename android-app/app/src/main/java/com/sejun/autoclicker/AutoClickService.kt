@@ -232,9 +232,9 @@ class AutoClickService : AccessibilityService() {
         if (!prefs.getBoolean("bear_mode_unlocked", false)) {
             prefs.edit().putBoolean("bear_mode_unlocked", true).apply()
             controlView?.findViewById<android.widget.ImageButton>(R.id.btnBearMode)?.visibility = View.VISIBLE
-            showToast("🐻 숨은 모드가 열렸어요! 막대의 모드 버튼에서 헌터·순서 클릭을 고르세요")
+            showToast(T.x.hiddenOpened)
         } else {
-            showToast("🐻 숨은 모드는 이미 열려 있어요.")
+            showToast(T.x.hiddenAlready)
         }
     }
 
@@ -1684,13 +1684,13 @@ class AutoClickService : AccessibilityService() {
             HunterModeManager.resetSequence() // 켤 때마다 1번 부대부터
             showHunterFireButton()
             if (HunterModeManager.hasTargets) {
-                showToast("🐻 헌터 모드 켜짐 · 집결을 고른 뒤 🐻 발사 버튼을 누르세요 (위치를 다시 잡으려면 모드 버튼 길게 누르기)")
+                showToast(T.x.hunterOnToast)
             } else {
-                showToast("🐻 먼저 쓸 부대와 출정 버튼 위치를 잡아 저장해 주세요")
+                showToast(T.x.hunterNeedPos)
                 showBearSetupUi()
             }
         } else {
-            showToast("🐻 헌터 모드 종료!")
+            showToast(T.x.hunterOff)
             hideBearSetupUi()
             hideHunterFireButton()
         }
@@ -1730,14 +1730,14 @@ class AutoClickService : AccessibilityService() {
                     orientation = android.widget.LinearLayout.HORIZONTAL
                     gravity = android.view.Gravity.CENTER_VERTICAL
                     addView(android.widget.TextView(ctx).apply {
-                        text = "헌터 위치 잡기"
+                        text = T.x.hunterSetupTitle
                         setTextColor(Color.parseColor("#F1F5F9"))
                         textSize = 16f
                         typeface = android.graphics.Typeface.DEFAULT_BOLD
                     }, android.widget.LinearLayout.LayoutParams(0, wrap, 1f))
                     addView(android.widget.TextView(ctx).apply {
                         text = "✕"
-                        contentDescription = "닫기"
+                        contentDescription = T.s.close
                         setTextColor(Color.parseColor("#CBD5E1"))
                         textSize = 13f
                         gravity = android.view.Gravity.CENTER
@@ -1747,7 +1747,7 @@ class AutoClickService : AccessibilityService() {
                 }, android.widget.LinearLayout.LayoutParams(match, px(32)).apply { topMargin = px(6) })
 
                 addView(android.widget.TextView(ctx).apply {
-                    text = "과녁 → 출정 버튼 위에\n동그라미 1, 2, 3… → 쓸 부대 깃발 위에 번호 순서대로 놓고 저장\n(누를 때마다 1번부터 차례로 출정)"
+                    text = T.x.hunterSetupHelp
                     setTextColor(Color.parseColor("#A9B4C7"))
                     textSize = 12f
                 }, android.widget.LinearLayout.LayoutParams(match, wrap).apply { topMargin = px(8) })
@@ -1756,7 +1756,7 @@ class AutoClickService : AccessibilityService() {
                     orientation = android.widget.LinearLayout.HORIZONTAL
                     gravity = android.view.Gravity.CENTER_VERTICAL
                     addView(android.widget.TextView(ctx).apply {
-                        text = "부대 수"
+                        text = T.x.troopCount
                         setTextColor(Color.parseColor("#F1F5F9"))
                         textSize = 14f
                         typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -1774,7 +1774,7 @@ class AutoClickService : AccessibilityService() {
                             syncTroopMarkers()
                         }
                     }
-                    addView(stepButton("−", "부대 줄이기", -1), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
+                    addView(stepButton("−", T.x.troopFewer, -1), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
                     val countText = android.widget.TextView(ctx).apply {
                         setTextColor(Color.parseColor("#F1F5F9"))
                         textSize = 16f
@@ -1783,11 +1783,11 @@ class AutoClickService : AccessibilityService() {
                     }
                     troopCountLabel = countText
                     addView(countText, android.widget.LinearLayout.LayoutParams(px(56), wrap))
-                    addView(stepButton("+", "부대 늘리기", 1), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
+                    addView(stepButton("+", T.x.troopMore, 1), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
                 }, android.widget.LinearLayout.LayoutParams(match, px(44)).apply { topMargin = px(12) })
 
                 addView(android.widget.TextView(ctx).apply {
-                    text = "헌터 위치 저장"
+                    text = T.x.hunterSave
                     setTextColor(Color.WHITE)
                     textSize = 15f
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -1797,7 +1797,7 @@ class AutoClickService : AccessibilityService() {
                         val points = troopMarkers.map { centerOnScreen(it) }
                         val dispatch = centerOnScreen(targetView)
                         if (points.isEmpty() || points.any { it == null } || dispatch == null) {
-                            showToast("⚠ 위치를 읽지 못했어요. 과녁과 부대 표시가 보이는지 확인하세요")
+                            showToast(T.x.hunterReadFailed)
                             return@setOnClickListener
                         }
                         HunterModeManager.troops = points.map { TroopPoint(it!!.first, it.second) }
@@ -1910,7 +1910,7 @@ class AutoClickService : AccessibilityService() {
             // 저장해 둔 부대 위치가 있으면 그 자리에서 시작한다(다시 열 때마다 기본 자리로 돌아가 보이던 문제).
             HunterModeManager.troops.getOrNull(i)?.let { saved -> placeCenterAt(marker, lp, saved.x, saved.y) }
         }
-        troopCountLabel?.text = "${troopCountSetting}개"
+        troopCountLabel?.text = T.a.countN(troopCountSetting)
     }
 
     private fun hideBearSetupUi() {

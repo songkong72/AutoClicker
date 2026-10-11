@@ -32,23 +32,23 @@ internal object ClickSequences {
     /** 아직 쓰지 않은 "순서 1", "순서 2"… 중 첫 이름. */
     fun defaultName(existing: List<ClickSequence>): String {
         for (n in 1..MAX_SETS + 1) {
-            val candidate = "순서 $n"
+            val candidate = T.x.seqName(n)
             if (existing.none { it.name == candidate }) return candidate
         }
-        return "순서"
+        return T.x.seqWord
     }
 
     /** 목록의 한 줄 설명. 예: "4곳 · 0.5초 간격" */
-    fun summary(seq: ClickSequence): String = "${seq.points.size}곳 · ${ClickSummary.seconds(seq.gapMs)}초 간격"
+    fun summary(seq: ClickSequence): String = T.x.seqSummary(seq.points.size, ClickSummary.seconds(seq.gapMs))
 
     /** 쉬는 시간 표시. 예: "0.5초" */
-    fun gapLabel(ms: Long): String = "${ClickSummary.seconds(ms)}초"
+    fun gapLabel(ms: Long): String = T.a.secs(ClickSummary.seconds(ms))
 
     /** 실행 버튼의 평소 글자. */
-    fun readyLabel(count: Int): String = "순서\n${count}곳"
+    fun readyLabel(count: Int): String = T.x.readyLabel(count)
 
     /** 실행 중 글자: 지금 누르는 자리(0부터)와 전체. 누르면 멈춘다. */
-    fun runningLabel(index: Int, count: Int): String = "${index + 1} / $count\n멈춤"
+    fun runningLabel(index: Int, count: Int): String = T.x.runningLabel(index + 1, count)
 
     /** [index] 자리의 묶음을 바꾼다. 없는 자리면 맨 뒤에 더한다(가득 찼으면 그대로). */
     fun saved(list: List<ClickSequence>, index: Int, seq: ClickSequence): List<ClickSequence> = when {

@@ -53,7 +53,7 @@ object HunterModeManager {
             .putInt("dispatchCX", dispatchX).putInt("dispatchCY", dispatchY)
             .apply()
         nextTroop = 0
-        Toast.makeText(service, "🐻 헌터 위치 저장 완료! (부대 ${troops.size}개)", Toast.LENGTH_SHORT).show()
+        Toast.makeText(service, T.x.hunterSaved(troops.size), Toast.LENGTH_SHORT).show()
     }
 
     /** 헌터 모드를 끈다. */
@@ -66,7 +66,7 @@ object HunterModeManager {
     fun fire(service: AutoClickService, repeatCount: Int, beforeTap: () -> Unit = {}, afterTap: () -> Unit = {}): Boolean {
         val now = System.currentTimeMillis()
         if (!hasTargets) {
-            Toast.makeText(service, "🐻 먼저 헌터 위치를 저장해 주세요 (모드 목록에서 헌터 옆 연필)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(service, T.x.hunterSaveFirst, Toast.LENGTH_SHORT).show()
             return false
         }
         if (!HunterFirePolicy.allow(hasTargets, repeatCount, now, lastFireMs)) return false
@@ -80,7 +80,7 @@ object HunterModeManager {
         main.postDelayed({ tap(service, troop.x.toFloat(), troop.y.toFloat()) }, SETTLE_MS)
         main.postDelayed({
             tap(service, dispatchX.toFloat(), dispatchY.toFloat())
-            val label = if (list.size > 1) "🐻 ${idx + 1}/${list.size}번 부대 출정!" else "🐻 헌터 발사!"
+            val label = if (list.size > 1) T.x.hunterMarchN(idx + 1, list.size) else T.x.hunterFire
             Toast.makeText(service, label, Toast.LENGTH_SHORT).show()
         }, SETTLE_MS + GAP_MS)
         main.postDelayed({ afterTap() }, SETTLE_MS + GAP_MS + 500L)

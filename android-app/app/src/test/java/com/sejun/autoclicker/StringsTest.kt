@@ -52,6 +52,38 @@ class StringsTest {
         assertEquals("군단 3개 · 배정 2/3", RoomChooser.summaryFromLine("1111 · 군단 3개 (배정 2)"))
     }
 
+    private fun plainMore(s: MoreStr): Map<String, String> = MoreStr::class.java.methods
+        .filter { it.parameterCount == 0 && it.returnType == String::class.java }
+        .associate { it.name to it.invoke(s) as String }
+
+    @Test fun `지휘관 창과 보내는 글의 영어 표에도 한글이 남아 있지 않다`() {
+        assertEquals(emptySet<String>(), plainMore(MoreEn).filter { hangul.containsMatchIn(it.value) }.keys)
+        assertTrue(plainMore(MoreEn).size > 100)
+        listOf(MoreEn.leaderInvite("me@x.com", "AC-ABC123", "\n" + MoreEn.shareLine("2000", "WBI")), MoreEn.commanderInvite(MoreEn.whoRep, "", "AD-12345678", MoreEn.ttlDay),
+            MoreEn.roomShare("", "1111"), MoreEn.approveBody("Moon", "2000 · WBI", ""), MoreEn.detailTeam(1, "Team 1", "Moon", "10", true), MoreEn.seqSaved("A", 3), MoreEn.hunterMarchN(1, 3))
+            .forEach { assertFalse(it, hangul.containsMatchIn(it)) }
+    }
+
+    @Test fun `영어로 보낸 초대 글도 한국어로 보낸 초대 글도 읽는다`() {
+        val en = MoreEn.leaderInvite("me@x.com", "AC-ABC123", "\n" + MoreEn.shareLine("2000", "WBI") + MoreEn.inviteRoomLine("1111"))
+        val ko = MoreKo.leaderInvite("me@x.com", "AC-ABC123", "\n" + MoreKo.shareLine("2000", "WBI") + MoreKo.inviteRoomLine("1111"))
+        for (text in listOf(en, ko)) {
+            val parsed = InviteText.parse(text)!!
+            assertEquals("me@x.com", parsed.id)
+            assertEquals("AC-ABC123", parsed.code)
+            assertEquals(RallyGroup.of("2000", "WBI"), parsed.group)
+        }
+        // 지휘관 코드 초대 글의 소속 줄도 어느 언어든 읽는다
+        assertEquals(RallyGroup.of("2000", "wbi"), InviteText.groupIn(MoreEn.shareLine("2000", "wbi")))
+    }
+
+    @Test fun `기간 이름은 언어를 따른다`() {
+        assertEquals("24시간", CodeTtl.DAY.label)
+        T.set(StrEn)
+        assertEquals("24 hours", CodeTtl.DAY.label)
+        assertSame(MoreEn, T.x)
+    }
+
     @Test fun `한국어 표는 전과 같은 글자다`() {
         assertEquals("지휘관 시작 대기 중", StrKo.waitingStart)
         assertEquals("2조 행군 중", StrKo.waveStage(2, 2))

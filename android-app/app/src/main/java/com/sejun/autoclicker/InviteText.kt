@@ -8,12 +8,14 @@ package com.sejun.autoclicker
 data class InviteText(val id: String, val code: String, val group: RallyGroup?) {
     companion object {
         private val ID = Regex("""(?m)^\s*ID:[ \t]*(\S.*?)\s*$""")
-        private val CODE = Regex("""집결장 코드:[ \t]*(AC-[A-Za-z0-9]+)""")
+        // 보내는 폰의 언어에 따라 말머리가 한국어일 수도 영어일 수도 있다(MoreKo·MoreEn의 leaderInvite, shareLine). 둘 다 읽는다.
+        private val CODE = Regex("""(?:집결장 코드|Rally leader code):[ \t]*(AC-[A-Za-z0-9]+)""")
         private val GROUP = Regex("""소속:[ \t]*(\d+)[ \t]*서버[ \t]*·[ \t]*([^\s()]+)""")
+        private val GROUP_EN = Regex("""Group:[ \t]*Server[ \t]*(\d+)[ \t]*·[ \t]*([^\s()]+)""")
 
         /** 글에 적힌 소속. 없거나 모양이 틀리면 null. */
         fun groupIn(text: String?): RallyGroup? =
-            GROUP.find(text.orEmpty())?.let { RallyGroup.of(it.groupValues[1], it.groupValues[2]) }
+            (GROUP.find(text.orEmpty()) ?: GROUP_EN.find(text.orEmpty()))?.let { RallyGroup.of(it.groupValues[1], it.groupValues[2]) }
 
         /** 초대 글이면 그 내용을, ID나 집결장 코드가 없으면 null을 돌려준다. */
         fun parse(text: String?): InviteText? {

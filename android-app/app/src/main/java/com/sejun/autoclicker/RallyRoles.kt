@@ -76,15 +76,15 @@ internal object RallyRoles {
         val rep = currentRep(req, admins)
         if (rep != null) {
             val seen = AdminRoster.activityText(rep.lastSeen, rep.appVersion, now).substringBefore(" · ")
-            return "지금 대표: ${rep.name.ifEmpty { "이름 없음" }} · 마지막 접속 $seen. 승인하면 대표가 바뀌어요."
+            return T.x.currentRepWarn(rep.name.ifEmpty { T.x.noName }, seen)
         }
         val same = all.count { it.pending && it.group == req.group }
-        return if (same > 1) "같은 연맹에서 신청이 ${same}건이에요. 한 명만 대표가 돼요." else null
+        return if (same > 1) T.x.sameRequests(same) else null
     }
 
     /** 연맹 대표가 지휘관 코드를 더 만들어도 되는지: 지금 지휘관(대표 포함)과 대기 중인 코드를 합쳐 [MAX_COMMANDERS] 미만일 때. */
     fun canAddCommander(commanders: Int, pendingCodes: Int): Boolean = commanders + pendingCodes < MAX_COMMANDERS
 
     /** 화면에 보일 소속. 모양이 틀리거나 비었으면 "소속 없음". */
-    fun groupLabel(groupId: String): String = RallyGroup.fromId(groupId)?.label ?: "소속 없음"
+    fun groupLabel(groupId: String): String = RallyGroup.fromId(groupId)?.label ?: T.x.noGroup
 }

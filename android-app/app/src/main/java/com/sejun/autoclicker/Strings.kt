@@ -26,6 +26,9 @@ internal object T {
     /** 앱 화면(첫 화면·창·게임 위 막대)의 글자 표. [s]와 같은 언어를 따른다. */
     val a: AppStr get() = if (s === StrEn) AppEn else AppKo
 
+    /** 지휘관·대표 창, 보내는 글, 숨은 모드의 글자 표. */
+    val x: MoreStr get() = if (s === StrEn) MoreEn else MoreKo
+
     /** 테스트용: 언어를 직접 고른다. */
     fun set(str: Str) { s = str }
 }

@@ -154,12 +154,12 @@ internal class SequenceClickController(
             addView(label(title, 15f, titleColor, bold = true))
             if (!sub.isNullOrEmpty()) addView(label(sub, 12f, SUB))
         }, lp(0, WRAP, 1f))
-        if (on) addView(label("켜짐", 12f, SKY_TEXT, bold = true), LinearLayout.LayoutParams(WRAP, WRAP).apply { rightMargin = px(8) })
+        if (on) addView(label(T.x.on, 12f, SKY_TEXT, bold = true), LinearLayout.LayoutParams(WRAP, WRAP).apply { rightMargin = px(8) })
         if (onPencil != null) {
             addView(ImageView(service).apply {
                 setImageResource(R.drawable.ic_rp_edit)
                 setColorFilter(Color.parseColor("#CBD5E1"))
-                contentDescription = "$title 고치기"
+                contentDescription = T.x.editDesc(title)
                 background = round("#2A3447", 18)
                 setPadding(px(9), px(9), px(9), px(9))
                 setOnClickListener { vibrate(20); onPencil() }
@@ -175,10 +175,10 @@ internal class SequenceClickController(
         ensureLoaded()
         val box = LinearLayout(service)
         // 어느 빌드가 폰에 깔려 있는지 바로 알 수 있게 버전을 함께 보여 준다.
-        box.addView(caption("모드 고르기 · ${BuildConfig.VERSION_NAME}"))
+        box.addView(caption(T.x.chooseMode(BuildConfig.VERSION_NAME)))
         if (hunterAllowed()) {
-            val sub = if (HunterModeManager.hasTargets) "부대 ${HunterModeManager.troops.size}개" else "위치 저장 전"
-            box.addView(row(GREEN, "헌터", sub, on = hunterOn(), onPencil = { hidePopup(); editHunter() }) { hidePopup(); selectHunter() })
+            val sub = if (HunterModeManager.hasTargets) T.x.troopsN(HunterModeManager.troops.size) else T.x.beforeSave
+            box.addView(row(GREEN, T.x.hunter, sub, on = hunterOn(), onPencil = { hidePopup(); editHunter() }) { hidePopup(); selectHunter() })
             box.addDivider()
         }
         sets.forEachIndexed { i, seq ->
@@ -187,7 +187,7 @@ internal class SequenceClickController(
             })
         }
         if (ClickSequences.canAdd(sets)) {
-            box.addView(label("+ 새 순서 만들기", 14f, SKY_TEXT, bold = true).apply {
+            box.addView(label(T.x.newSeq, 14f, SKY_TEXT, bold = true).apply {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(px(12), 0, px(12), 0)
                 background = GradientDrawable().apply {
@@ -197,10 +197,10 @@ internal class SequenceClickController(
                 setOnClickListener { vibrate(20); hidePopup(); openSetup(-1) }
             }, lp(MATCH, px(48), top = px(4)))
         } else {
-            box.addView(caption("순서는 ${ClickSequences.MAX_SETS}개까지 저장할 수 있어요"))
+            box.addView(caption(T.x.seqLimit(ClickSequences.MAX_SETS)))
         }
         box.addDivider()
-        box.addView(row("#475569", "끄기", null, on = false, titleColor = SUB) { hidePopup(); turnOff() })
+        box.addView(row("#475569", T.x.off, null, on = false, titleColor = SUB) { hidePopup(); turnOff() })
         showPopup(box)
     }
 
@@ -217,10 +217,10 @@ internal class SequenceClickController(
         val box = LinearLayout(service)
         box.addView(label(seq.name, 16f, INK, bold = true).apply { setPadding(px(8), px(6), px(8), 0) })
         box.addView(label(ClickSequences.summary(seq), 12f, SUB).apply { setPadding(px(8), 0, px(8), px(6)) })
-        box.addView(actionRow("자리 다시 잡기") { hidePopup(); openSetup(index) }, lp(MATCH, px(48), top = px(6)))
-        box.addView(actionRow("이름 바꾸기") { hidePopup(); openSetup(index, focusName = true) }, lp(MATCH, px(48), top = px(6)))
-        box.addView(actionRow("삭제", "#F87171") { showDeleteConfirm(index) }, lp(MATCH, px(48), top = px(6)))
-        box.addView(label("닫기", 14f, SUB, bold = true).apply {
+        box.addView(actionRow(T.x.reposition) { hidePopup(); openSetup(index) }, lp(MATCH, px(48), top = px(6)))
+        box.addView(actionRow(T.x.renameSeq) { hidePopup(); openSetup(index, focusName = true) }, lp(MATCH, px(48), top = px(6)))
+        box.addView(actionRow(T.a.delete, "#F87171") { showDeleteConfirm(index) }, lp(MATCH, px(48), top = px(6)))
+        box.addView(label(T.s.close, 14f, SUB, bold = true).apply {
             gravity = Gravity.CENTER
             setOnClickListener { hidePopup() }
         }, lp(MATCH, px(44), top = px(2)))
@@ -230,16 +230,16 @@ internal class SequenceClickController(
     private fun showDeleteConfirm(index: Int) {
         val seq = sets.getOrNull(index) ?: return
         val box = LinearLayout(service)
-        box.addView(label("\"${seq.name}\"을(를) 지울까요?", 15f, INK, bold = true).apply { setPadding(px(8), px(6), px(8), 0) })
-        box.addView(label("저장한 자리 ${seq.points.size}곳이 함께 지워져요.", 12f, SUB).apply { setPadding(px(8), px(4), px(8), px(6)) })
+        box.addView(label(T.x.deleteSeqQ(seq.name), 15f, INK, bold = true).apply { setPadding(px(8), px(6), px(8), 0) })
+        box.addView(label(T.x.deleteSeqBody(seq.points.size), 12f, SUB).apply { setPadding(px(8), px(4), px(8), px(6)) })
         box.addView(LinearLayout(service).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(label("취소", 14f, INK, bold = true).apply {
+            addView(label(T.s.cancel, 14f, INK, bold = true).apply {
                 gravity = Gravity.CENTER
                 background = round("#2A3447", 12)
                 setOnClickListener { hidePopup() }
             }, LinearLayout.LayoutParams(0, px(44), 1f).apply { rightMargin = px(8) })
-            addView(label("삭제", 14f, "#FFFFFF", bold = true).apply {
+            addView(label(T.a.delete, 14f, "#FFFFFF", bold = true).apply {
                 gravity = Gravity.CENTER
                 background = round("#DC2626", 12)
                 setOnClickListener { vibrate(30); hidePopup(); delete(index) }
@@ -257,7 +257,7 @@ internal class SequenceClickController(
         }
         sets = ClickSequences.removed(sets, index)
         persist()
-        toast("\"${seq.name}\" 순서를 지웠어요")
+        toast(T.x.seqDeleted(seq.name))
     }
 
     // ---------- 모드 켜고 끄기 ----------
@@ -283,7 +283,7 @@ internal class SequenceClickController(
         showRunButton()
         updateRunLabel()
         onModeChanged()
-        if (!quiet) toast("\"${seq.name}\" 순서 켜짐 · 하늘색 버튼을 누르면 1번부터 눌러요")
+        if (!quiet) toast(T.x.seqOn(seq.name))
     }
 
     /** 순서 클릭을 끈다(실행 중이면 멈춘다). 헌터는 건드리지 않는다. */
@@ -369,9 +369,9 @@ internal class SequenceClickController(
             addView(LinearLayout(service).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                addView(label(if (existing != null) "순서 고치기" else "새 순서 만들기", 16f, INK, bold = true), lp(0, WRAP, 1f))
+                addView(label(if (existing != null) T.x.editSeq else T.x.newSeqTitle, 16f, INK, bold = true), lp(0, WRAP, 1f))
                 addView(label("✕", 13f, "#CBD5E1").apply {
-                    contentDescription = "닫기"
+                    contentDescription = T.s.close
                     gravity = Gravity.CENTER
                     background = round("#2A3447", 15)
                     setOnClickListener { closeSetup() }
@@ -381,20 +381,20 @@ internal class SequenceClickController(
             addView(LinearLayout(service).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                addView(label("이름", 14f, INK, bold = true), LinearLayout.LayoutParams(WRAP, WRAP).apply { rightMargin = px(10) })
+                addView(label(T.x.nameWord, 14f, INK, bold = true), LinearLayout.LayoutParams(WRAP, WRAP).apply { rightMargin = px(10) })
                 addView(nameInput, LinearLayout.LayoutParams(0, px(44), 1f))
             }, lp(MATCH, px(44), top = px(10)))
 
-            addView(label("동그라미 1, 2, 3…을 누를 자리에 번호 순서대로 놓고 저장", 12f, SUB), lp(MATCH, WRAP, top = px(8)))
+            addView(label(T.x.seqHelp, 12f, SUB), lp(MATCH, WRAP, top = px(8)))
 
-            val (countRow, countValue) = stepperRow("자리 수", "자리 줄이기", "자리 늘리기") { delta ->
+            val (countRow, countValue) = stepperRow(T.x.posCount, T.x.posFewer, T.x.posMore) { delta ->
                 setupCount = ClickSequences.clampCount(setupCount + delta)
                 syncMarkers(null)
             }
             countLabel = countValue
             addView(countRow, lp(MATCH, px(44), top = px(10)))
 
-            val (gapRow, gapValue) = stepperRow("자리 사이 쉬는 시간", "쉬는 시간 줄이기", "쉬는 시간 늘리기") { delta ->
+            val (gapRow, gapValue) = stepperRow(T.x.gapTitle, T.x.gapShorter, T.x.gapLonger) { delta ->
                 setupGap = ClickSequences.clampGap(setupGap + delta * ClickSequences.GAP_STEP_MS)
                 gapLabel?.text = ClickSequences.gapLabel(setupGap)
             }
@@ -402,7 +402,7 @@ internal class SequenceClickController(
             gapValue.text = ClickSequences.gapLabel(setupGap)
             addView(gapRow, lp(MATCH, px(44), top = px(10)))
 
-            addView(label("저장", 15f, "#FFFFFF", bold = true).apply {
+            addView(label(T.a.save, 15f, "#FFFFFF", bold = true).apply {
                 gravity = Gravity.CENTER
                 background = round("#3B82F6", 14)
                 setOnClickListener { vibrate(30); saveSetup(nameInput.text?.toString()) }
@@ -470,7 +470,7 @@ internal class SequenceClickController(
             markers.add(marker)
             saved?.getOrNull(i)?.let { placeCenterAt(marker, params, it.x, it.y) }
         }
-        countLabel?.text = "${setupCount}개"
+        countLabel?.text = T.a.countN(setupCount)
     }
 
     /** 떠 있는 표시의 가운데가 화면 좌표 ([cx], [cy])에 오도록 옮긴다. 아직 그려지지 않았으면 잠깐 뒤에 다시 해 본다. */
@@ -498,14 +498,14 @@ internal class SequenceClickController(
     private fun saveSetup(typedName: String?) {
         val points = markers.map { centerOnScreen(it) }
         if (points.isEmpty() || points.any { it == null }) {
-            toast("⚠ 자리를 읽지 못했어요. 번호 동그라미가 보이는지 확인하세요")
+            toast(T.x.posReadFailed)
             return
         }
         val old = sets.getOrNull(editingIndex)
         val name = ClickSequences.cleanName(typedName).ifEmpty { old?.name ?: ClickSequences.defaultName(sets) }
         val seq = ClickSequence(name, points.filterNotNull(), setupGap)
         if (old == null && !ClickSequences.canAdd(sets)) {
-            toast("순서는 ${ClickSequences.MAX_SETS}개까지 저장할 수 있어요")
+            toast(T.x.seqLimit(ClickSequences.MAX_SETS))
             return
         }
         sets = ClickSequences.saved(sets, editingIndex, seq)
@@ -513,7 +513,7 @@ internal class SequenceClickController(
         val index = if (old != null) editingIndex else sets.size - 1
         closeSetup()
         activate(index, quiet = true)
-        toast("✓ \"$name\" 저장 (${seq.points.size}곳) · 하늘색 버튼을 누르면 1번부터 눌러요")
+        toast(T.x.seqSaved(name, seq.points.size))
     }
 
     private fun closeSetup() {

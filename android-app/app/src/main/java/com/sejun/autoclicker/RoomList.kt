@@ -7,9 +7,9 @@ internal data class RoomOverview(val code: String, val teamCount: Int, val assig
 internal object RoomList {
 
     fun runLabel(run: String): String = when (run) {
-        "IDLE" -> "대기 중"
-        "RUNNING" -> "진행 중"
-        "CANCELLED" -> "취소됨"
+        "IDLE" -> T.x.runIdle
+        "RUNNING" -> T.x.runRunning
+        "CANCELLED" -> T.x.runCancelled
         else -> run
     }
 
@@ -32,21 +32,20 @@ internal object RoomList {
         T.a.pickLine(o.code, o.teamCount, o.assigned) + (if (o.run == "RUNNING") PICK_RUNNING else "")
 
     fun line(o: RoomOverview): String =
-        "${o.code} · 군단 ${o.teamCount}개 (배정 ${o.assigned}) · ${runLabel(o.run)} · 명단 ${o.members}명"
+        T.x.roomLine(o.code, o.teamCount, o.assigned, runLabel(o.run), o.members)
 
     /** 방 하나의 자세한 내용(읽기 전용). 군단별 집결장과 행군시간, 명단의 이름들. */
     fun detail(code: String, room: Map<*, *>, members: Map<*, *>?): String {
         val doc = RallyRoomCodec.decode(room.entries.associate { it.key.toString() to it.value })
         val names = members?.values.orEmpty().mapNotNull { (it as? Map<*, *>)?.get("name") as? String }.sorted()
         return buildString {
-            append("방 $code\n")
-            append("상태 ${runLabel(doc.run)} · 준비 ${num(doc.prepSec)}초 · 대기 ${num(doc.waitSec)}초\n\n군단\n")
-            if (doc.teams.isEmpty()) append("(없음)\n")
+            append(T.x.detailHead(code, runLabel(doc.run), num(doc.prepSec), num(doc.waitSec)))
+            if (doc.teams.isEmpty()) append(T.x.noneParen)
             doc.teams.forEachIndexed { i, t ->
-                val leader = if (t.leaderId.isNotEmpty() && t.leaderName.isNotEmpty()) t.leaderName else "미배정"
-                append("${i + 1}. ${t.name} · 집결장 $leader · 행군 ${num(t.marchSec)}초${if (t.excluded) " · 제외" else ""}\n")
+                val leader = if (t.leaderId.isNotEmpty() && t.leaderName.isNotEmpty()) t.leaderName else T.s.unassigned
+                append(T.x.detailTeam(i + 1, T.s.teamName(t.name), leader, num(t.marchSec), t.excluded))
             }
-            append("\n명단 ${names.size}명")
+            append(T.x.membersN(names.size))
             if (names.isNotEmpty()) append(": ${names.joinToString(", ")}")
         }
     }

@@ -25,7 +25,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
     /** 이 기기의 서버 ID. */
     fun uid(): Reply<String> {
         val id = try { auth.uid() } catch (e: Exception) { null }
-        return if (id != null && AdminRoster.isValidUid(id)) Reply(id, null) else Reply(null, "기기 ID를 받지 못했어요. 인터넷 연결을 확인해 주세요")
+        return if (id != null && AdminRoster.isValidUid(id)) Reply(id, null) else Reply(null, T.x.noDeviceIdNet)
     }
 
     fun isOwner(uid: String): Check = exists("owners/$uid")
@@ -51,7 +51,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         rawName: String, ttl: CodeTtl = CodeTtl.DAY, now: Long = System.currentTimeMillis(),
         group: String = "", rep: Boolean = false, by: String = ""
     ): Reply<String> {
-        val body = AdminRoster.encodeCode(rawName, now, ttl.ms, group, rep, by) ?: return Reply(null, "이름표를 입력해 주세요")
+        val body = AdminRoster.encodeCode(rawName, now, ttl.ms, group, rep, by) ?: return Reply(null, T.x.labelRequired)
         val newCode = AdminRoster.newCode()
         val (code, text) = call("PUT", "adminCodes/$newCode", JSONObject(body).toString())
         return if (code in 200..299) Reply(newCode, null) else Reply(null, explain(code, text))
@@ -62,7 +62,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
     /** 지휘관의 이름표를 고친다. 성공하면 null, 실패하면 이유. 개발자만 된다. */
     fun renameAdmin(uid: String, rawName: String): String? {
         val name = AdminRoster.cleanName(rawName)
-        if (name.isEmpty()) return "이름표를 입력해 주세요"
+        if (name.isEmpty()) return T.x.labelRequired
         val (code, text) = call("PUT", "admins/$uid/name", JSONObject.quote(name))
         return if (code in 200..299) null else explain(code, text)
     }
@@ -108,7 +108,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
 
     /** 개발자 전용: 방 하나와 그 방의 명단을 서버에서 지운다. 성공하면 null, 실패하면 이유. 규칙에서 개발자(owners)와 지휘관만 방을 쓸 수 있고, 지우기는 개발자 화면에서만 연다. */
     fun deleteRoom(room: String): String? {
-        if (room.isEmpty() || room.any { it in "./#$[]" }) return "방 번호가 올바르지 않아요"
+        if (room.isEmpty() || room.any { it in "./#$[]" }) return T.x.badRoom
         delete("rallyMembers/$room")?.let { return it }
         return delete("rallyRooms/$room")
     }
@@ -123,11 +123,11 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
 
     /** 코드로 지휘관이 된다. 성공하면 null, 실패하면 이유. 코드를 먼저 내 것으로 잡고(먼저 쓴 사람만 성공), 그다음 명단에 올린다. */
     fun redeem(rawCode: String, now: Long = System.currentTimeMillis()): String? {
-        val code = AdminRoster.normalizeCode(rawCode) ?: return "지휘관 코드 모양이 맞지 않아요 (AD-로 시작하는 10자)"
+        val code = AdminRoster.normalizeCode(rawCode) ?: return T.x.badCode
         val me = uid()
         val uid = me.value ?: return me.error
         val (c1, t1) = call("PUT", "adminCodes/$code/usedBy", JSONObject.quote(uid))
-        if (c1 !in 200..299) return if (c1 == 401 || c1 == 403) "코드가 없거나, 이미 쓰였거나, 기한(24시간)이 지났어요" else explain(c1, t1)
+        if (c1 !in 200..299) return if (c1 == 401 || c1 == 403) T.x.codeUnusable else explain(c1, t1)
         // 코드에 적힌 소속과 대표 여부를 읽어 그대로 등록한다(서버 규칙이 똑같은지 본다). 읽지 못하면(옛 규칙) 소속 없이 등록한다.
         val made = parseMap(call("GET", "adminCodes/$code").let { (c, t) -> if (c in 200..299) t else "" })
         val group = (made?.get("group") as? String).orEmpty()
@@ -170,7 +170,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
 
     /** 연맹 대표를 신청한다. 한 기기에 신청 하나라, 다시 신청하면 앞의 것을 덮어쓴다. 성공하면 null. */
     fun submitRequest(uid: String, group: RallyGroup, rawName: String, rawNote: String?, now: Long = System.currentTimeMillis()): String? {
-        val body = RallyRoles.encodeRequest(group, rawName, rawNote, now) ?: return "게임 캐릭터명을 입력해 주세요"
+        val body = RallyRoles.encodeRequest(group, rawName, rawNote, now) ?: return T.x.gameNameRequired
         val (c, t) = call("PUT", "repRequests/$uid", JSONObject(body).toString())
         return if (c in 200..299) null else explain(c, t)
     }
@@ -197,7 +197,7 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
         // 대표는 연맹마다 한 명: 예전 대표는 일반 지휘관으로 내린다(지휘관 권한과 소속은 그대로)
         if (oldRepUid != null) {
             val (c2, t2) = call("PUT", "admins/$oldRepUid/rep", "false")
-            if (c2 !in 200..299) return "새 대표는 정했지만 예전 대표를 내리지 못했어요. 지휘관 관리에서 확인해 주세요. (${explain(c2, t2)})"
+            if (c2 !in 200..299) return T.x.demoteFailed(explain(c2, t2))
         }
         delete("repRequests/${req.uid}") // 신청이 남아도 권한에는 영향이 없다
         return null
@@ -233,9 +233,9 @@ internal class AdminServer(private val dbUrl: String, private val auth: Firebase
     }
 
     private fun explain(code: Int, text: String): String = when (code) {
-        401, 403 -> "서버가 허락하지 않았어요 (개발자 등록이나 서버 규칙을 확인해 주세요)"
-        0 -> text.take(80).ifEmpty { "서버에 연결하지 못했어요" }
-        else -> "서버 오류 $code"
+        401, 403 -> T.x.notAllowed
+        0 -> text.take(80).ifEmpty { T.x.noConnection }
+        else -> T.x.serverError(code)
     }
 
     private fun call(method: String, path: String, body: String? = null, query: String = ""): Pair<Int, String> = try {

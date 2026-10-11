@@ -587,7 +587,7 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             val groupLine = group()?.let { it.shareLine + "\n" }.orEmpty()
-            TextShare.sheet(this, "방 번호 보내기", "방 번호", "[오토클리커 Pro 집결 방]\n${groupLine}집결 방 번호: $code\n(앱 > 집결 방에서 소속을 먼저 정한 뒤 방 선택)")
+            TextShare.sheet(this, T.x.roomShareTitle, T.x.roomNumber, T.x.roomShare(groupLine, code))
         }
     }
 
@@ -1183,7 +1183,7 @@ class MainActivity : AppCompatActivity() {
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
         )
 
-        val shareTitle = "집결장 코드"
+        val shareTitle = T.x.leaderCodeTitle
         var shareMsg = ""
         // 코드를 만든 뒤에만 보이는 것들: 코드와 보낼 내용 미리보기, 보내기 버튼들
         val afterMade = mutableListOf<View>()
@@ -1223,8 +1223,8 @@ class MainActivity : AppCompatActivity() {
             }
             // 방 번호를 따로 한 번 더 보내지 않아도 되게, 지금 방이 있으면 같은 메시지에 넣는다
             val room = roomPrefs().getString("cloud_room_number", "") ?: ""
-            val roomLine = "\n" + codeGroup.shareLine + if (room.isEmpty()) "" else "\n집결 방 번호: $room (인증 후 방 선택에서 고르기)"
-            shareMsg = "[오토클리커 Pro 집결장 초대]\nID: $memberId\n집결장 코드: $code\n이 글을 통째로 복사한 뒤 앱에서 \"인증하기\"를 누르면 저절로 채워져요. 이 코드는 아래 소속에서만 맞아요.$roomLine"
+            val roomLine = "\n" + codeGroup.shareLine + if (room.isEmpty()) "" else T.x.inviteRoomLine(room)
+            shareMsg = T.x.leaderInvite(memberId, code, roomLine)
             tvCode.text = code
             tvPreview.text = shareMsg
             afterMade.forEach { it.visibility = View.VISIBLE }

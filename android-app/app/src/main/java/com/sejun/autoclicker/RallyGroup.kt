@@ -21,7 +21,7 @@ data class RallyGroup(val server: String, val alliance: String) {
     val label: String get() = "$server · $alliance"
 
     /** 보내는 글에 넣는 한 줄. 예: "소속: 2000 서버 · WBI" */
-    val shareLine: String get() = "소속: $server 서버 · $alliance"
+    val shareLine: String get() = T.x.shareLine(server, alliance)
 
     companion object {
         const val MAX_SERVER = 6

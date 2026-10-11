@@ -21,10 +21,13 @@ internal data class AdminEntry(
 )
 
 /** 지휘관 코드를 쓸 수 있는 기간. 만들 때 고른다. */
-internal enum class CodeTtl(val label: String, val ms: Long) {
-    HOUR("1시간", 60L * 60 * 1000),
-    DAY("24시간", 24L * 60 * 60 * 1000),
-    WEEK("7일", 7L * 24 * 60 * 60 * 1000)
+internal enum class CodeTtl(val ms: Long) {
+    HOUR(60L * 60 * 1000),
+    DAY(24L * 60 * 60 * 1000),
+    WEEK(7L * 24 * 60 * 60 * 1000);
+
+    /** 화면과 안내 글에 보일 이름("24시간"). 폰의 언어를 따른다. */
+    val label: String get() = when (this) { HOUR -> T.x.ttlHour; DAY -> T.x.ttlDay; WEEK -> T.x.ttlWeek }
 }
 
 /** 개발자가 발급한 지휘관 코드(adminCodes/{코드}). [name]은 개발자가 붙인 이름표다. */
@@ -123,18 +126,18 @@ internal object AdminRoster {
 
     /** 카카오톡으로 보낼 안내 문구 한 사람 몫. 코드에 소속이 묶여 있으면 그 소속과 대표 여부를 함께 적는다. */
     fun shareMessage(code: String, ttl: CodeTtl, group: String = "", rep: Boolean = false): String {
-        val who = if (rep) "연맹 대표" else "지휘관"
+        val who = if (rep) T.x.whoRep else T.s.commander
         val groupLine = RallyGroup.fromId(group)?.let { "\n${it.shareLine}" }.orEmpty()
-        return "[오토클리커 Pro $who 초대]$groupLine\n지휘관 코드: $code\n앱의 인증 화면 → 지휘관 로그인에서 이 코드를 입력하세요. 만든 지 ${ttl.label} 안에 한 번만 쓸 수 있어요."
+        return T.x.commanderInvite(who, groupLine, code, ttl.label)
     }
 
     /** (이름, 코드) 여러 쌍을 사람별 안내 문구로 이어 붙인다. */
     fun batchShare(items: List<Pair<String, String>>, ttl: CodeTtl, group: String = "", rep: Boolean = false): String =
-        items.joinToString("\n\n────────\n\n") { (name, code) -> "${name}님께\n" + shareMessage(code, ttl, group, rep) }
+        items.joinToString("\n\n────────\n\n") { (name, code) -> T.x.dear(name) + shareMessage(code, ttl, group, rep) }
 
     /** 목록에 보일 이름: 저장된 이름표, 없으면 등록에 쓴 코드의 이름표, 그것도 없으면 "직접 등록". */
     fun labelOf(a: AdminEntry, codes: List<AdminCode>): String =
-        a.name.takeIf { it.isNotEmpty() } ?: codes.firstOrNull { it.code == a.code }?.name?.takeIf { it.isNotEmpty() } ?: "직접 등록"
+        a.name.takeIf { it.isNotEmpty() } ?: codes.firstOrNull { it.code == a.code }?.name?.takeIf { it.isNotEmpty() } ?: T.x.directReg
 
     /** 이름이 아직 저장되지 않은 지휘관에게, 등록에 쓴 코드의 이름표를 복사할 목록(uid → 이름). 코드를 정리하기 전에 쓴다. */
     fun nameBackfill(admins: List<AdminEntry>, codes: List<AdminCode>): Map<String, String> {
@@ -156,16 +159,16 @@ internal object AdminRoster {
 
     /** "5분 전 · v1.0.57" 같은 접속 안내. 접속 기록이나 버전이 없으면 그렇게 적는다. */
     fun activityText(lastSeen: Long, appVersion: String, nowMs: Long): String {
-        val seen = if (lastSeen <= 0L) "접속 기록 없음" else {
+        val seen = if (lastSeen <= 0L) T.x.noSeen else {
             val diff = (nowMs - lastSeen).coerceAtLeast(0L)
             when {
-                diff < 60_000L -> "방금 전"
-                diff < 3_600_000L -> "${diff / 60_000L}분 전"
-                diff < 86_400_000L -> "${diff / 3_600_000L}시간 전"
-                else -> "${diff / 86_400_000L}일 전"
+                diff < 60_000L -> T.x.justAgo
+                diff < 3_600_000L -> T.s.minAgo(diff / 60_000L)
+                diff < 86_400_000L -> T.s.hourAgo(diff / 3_600_000L)
+                else -> T.s.dayAgo(diff / 86_400_000L)
             }
         }
-        val ver = if (appVersion.isBlank()) "버전 알 수 없음" else "v$appVersion"
+        val ver = if (appVersion.isBlank()) T.x.verUnknown else "v$appVersion"
         return "$seen · $ver"
     }
 
@@ -182,11 +185,11 @@ internal object AdminRoster {
     fun exportText(admins: List<AdminEntry>, codes: List<AdminCode>, nowMs: Long): String {
         val pending = codes.filter { !it.used && nowMs < it.expiresAt }
         return buildString {
-            append("등록된 지휘관 ${admins.size}명\n")
+            append(T.x.exportHead(admins.size))
             admins.forEachIndexed { i, a ->
                 append("${i + 1}. ${labelOf(a, codes)} · ID …${a.uid.takeLast(6)}\n")
             }
-            append("\n대기 중인 코드 ${pending.size}개\n")
+            append(T.x.exportPending(pending.size))
             pending.forEach { append("${it.code} · ${it.name}\n") }
         }.trimEnd()
     }
