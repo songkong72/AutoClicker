@@ -61,6 +61,7 @@
 - `RallyPickPopup.kt`(방 선택·배정 팝업), `RallyInputPopup.kt`(숫자 입력).
 - 앱 화면: `MainActivity.kt`, `RoleSwitch.kt`, 하단 시트 `SheetDialog.kt`, `InputSheet.kt`, 지휘관 관리 `AdminRosterUi.kt`, 공유 `TextShare.kt`.
 - 서버 규칙: `database.rules.next.json`(콘솔에 붙여 넣어 게시하는 쪽). 설명과 게시 기록은 `docs/관리자-서버-설정.md`. `firebase.json`은 아직 옛 파일 `database.rules.json`을 가리키므로 `firebase deploy`로 규칙을 올리지 않는다.
+- 앱 안의 사용 설명서: `assets/manual.html`(`ManualActivity.kt`가 보여 준다). 화면 글자나 정해 둔 규칙을 바꾸면 설명서도 함께 고친다. 숨은 기능과 개발자 전용 창은 적지 않는다.
 - 할 일과 폰 확인 목록: `docs/할일.md`.
 - 테스트: `android-app/app/src/test/java/com/sejun/autoclicker/` (화면 없는 계산·규칙은 테스트를 함께 추가).
 

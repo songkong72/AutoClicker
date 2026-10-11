@@ -133,6 +133,22 @@ class RallyWavesTest {
         assertEquals(HeroKind.ARRIVED, done.hero.kind)
     }
 
+    @Test fun `내 군단이 먼저 닿아도 뒤 조가 가는 중이면 전원 도착이 아니다`() {
+        // 지휘관이 1군(1조)을 맡았을 때: 1조가 닿은 뒤(360초)에는 다음 조를 이어서 본다.
+        val admin = RallyScreenModel.build(state(split, RallyRunState.RUNNING, 400.0, myTeamId = "t1"))
+        assertEquals(HeroKind.OVERVIEW, admin.hero.kind)
+        assertEquals("2조 행군 중", admin.hero.label)
+        assertEquals(20.0, admin.hero.remainingSec!!, 1e-9)
+        // 집결장: "내 군단 도착"과 남은 조.
+        val leader = RallyScreenModel.build(state(split, RallyRunState.RUNNING, 400.0, myTeamId = "t1", admin = false))
+        assertEquals(HeroKind.ARRIVED, leader.hero.kind)
+        assertEquals("내 군단 도착", leader.hero.label)
+        assertEquals("2조 행군 중 0:20", leader.hero.note)
+        // 마지막 조까지 닿으면 그때 전원 도착.
+        val done = RallyScreenModel.build(state(split, RallyRunState.RUNNING, 481.0, myTeamId = "t1"))
+        assertEquals("전원 도착", done.hero.label)
+    }
+
     @Test fun `집결장의 큰 숫자는 내 군단 기준 그대로다`() {
         val m = RallyScreenModel.build(state(split, RallyRunState.RUNNING, 70.0, myTeamId = "t5", admin = false))
         // 5군(30초, 2조): 누르는 때 = 15 + (45 - 30) + 60 = 90초

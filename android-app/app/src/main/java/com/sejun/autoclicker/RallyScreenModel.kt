@@ -199,7 +199,7 @@ object RallyScreenModel {
             HeroModel(HeroKind.EXCLUDED, "이번 작전에서 제외됐어요", null, "지휘관이 다시 포함하면 참여할 수 있어요", 0.0)
         run == RallyRunState.IDLE ->
             HeroModel(HeroKind.IDLE, "지휘관 시작 대기 중", null, "시작 후 ${Math.ceil(my.clickAtSec).toInt()}초에 내 집결 클릭", 0.0)
-        else -> runningHero(state, my)
+        else -> runningHero(state, my, plan, waves)
     }
 
     /**
@@ -235,7 +235,7 @@ object RallyScreenModel {
         return HeroModel(HeroKind.OVERVIEW, "${next.wave}조 $stage", arrive - e, "${next.wave}조 도착까지$after", progress, (next.phase ?: 0).coerceIn(0, 2))
     }
 
-    private fun runningHero(state: RallyRoomState, my: RallyTeamPlan): HeroModel {
+    private fun runningHero(state: RallyRoomState, my: RallyTeamPlan, plan: RallyPlan, waves: List<WaveModel>): HeroModel {
         val e = state.elapsedSec
         return when (RallySchedule.phaseAt(my, e)) {
             RallyPhase.BEFORE_CLICK -> {
@@ -253,9 +253,24 @@ object RallyScreenModel {
                 HeroKind.MARCHING, "행군 중", my.arriveAtSec - e, "성 도착까지",
                 if (my.marchSec <= 0.0) 1.0 else ((e - my.departAtSec) / my.marchSec).coerceIn(0.0, 1.0)
             )
-            RallyPhase.ARRIVED -> HeroModel(HeroKind.ARRIVED, "전원 도착", null, "실패했다면 바로 재집결하세요", 1.0)
+            RallyPhase.ARRIVED -> {
+                // 내 군단은 닿았어도 뒤 조(또는 보정으로 늦은 군단)가 아직 가는 중이면 "전원 도착"이 아니다.
+                // 지휘관은 다음에 도착할 조를 이어서 보고, 집결장은 "내 군단 도착"과 함께 남은 조를 본다.
+                val next = waveHero(waves, e)
+                when {
+                    state.isAdmin && next != null -> next
+                    next != null -> HeroModel(HeroKind.ARRIVED, MY_ARRIVED, null, next.subLabel, 1.0,
+                        note = "${next.label} ${formatMmSs(next.remainingSec ?: 0.0)}")
+                    plan.arriveAtSec > e -> HeroModel(HeroKind.ARRIVED, MY_ARRIVED, null, "전원 도착까지", 1.0,
+                        note = "전원 도착까지 ${formatMmSs(plan.arriveAtSec - e)}")
+                    else -> HeroModel(HeroKind.ARRIVED, "전원 도착", null, "실패했다면 바로 재집결하세요", 1.0)
+                }
+            }
         }
     }
+
+    /** 내 군단만 먼저 닿았을 때의 단계 이름(알약에서도 같은 글자를 쓴다). */
+    const val MY_ARRIVED = "내 군단 도착"
 
     /**
      * 군단 이름(번호) 순서로 보여 준다. 행군시간을 고치거나 제외해도 줄이 움직이지 않는다.

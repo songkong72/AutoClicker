@@ -134,6 +134,7 @@ class MainActivity : AppCompatActivity() {
         // 연타 설정 바꾸기: 앱의 다른 창처럼 밝은 아래 창으로 연다(값은 게임 위 설정 창과 같은 곳에 저장한다)
         binding.cardClickSettings.setOnClickListener { showClickSettingsSheet() }
 
+        binding.btnManual.setOnClickListener { ManualActivity.open(this) }
         // 상단 지휘관 설정 아이콘
         binding.btnAdminIcon.setOnClickListener {
             // 이미 지휘관이면 로그인 창을 다시 띄우지 않고 관리 메뉴를 연다. 일반 화면 미리보기에서는 일반 사용자처럼 로그인 창을 보여 준다.
@@ -967,6 +968,7 @@ class MainActivity : AppCompatActivity() {
                 add(MenuSheet.Item("우리 연맹 지휘관", "대표 전용") { AdminRosterUi(this@MainActivity, adminServer()).showMyAlliance() })
             }
             if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add(MenuSheet.Item("집결장으로 전환") { switchToLeader() }) // 위쪽 전환 버튼이 없을 때만
+            add(MenuSheet.Item("사용 설명서") { ManualActivity.open(this@MainActivity) })
             // "일반 화면으로 전환"은 두지 않는다: 위쪽 막대의 "일반 화면" 칸이 같은 일을 한다.
         }
         MenuSheet(this, "지휘관", items).show()

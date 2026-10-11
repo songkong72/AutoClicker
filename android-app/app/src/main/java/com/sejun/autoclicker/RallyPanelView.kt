@@ -875,7 +875,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         HeroKind.WAIT_CLICK -> "클릭 대기"
         HeroKind.GATHERING -> "집결 중"
         HeroKind.MARCHING -> "행군 중"
-        HeroKind.ARRIVED -> "전원 도착"
+        HeroKind.ARRIVED -> if (h.label == RallyScreenModel.MY_ARRIVED) h.label else "전원 도착"
         HeroKind.CANCELLED -> "작전 취소"
         HeroKind.EXCLUDED -> "참여 안 함"
         HeroKind.OVERVIEW -> h.label

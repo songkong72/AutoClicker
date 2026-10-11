@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오토클리커 Pro 사용 설명서</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F3F5; --card:#FFFFFF; --ink:#16181D; --sub:#5B6270; --line:#E2E8F0;
+  --blue:#1F3FA6; --blue-soft:#EAF0FF; --soft:#F1F5F9;
+  --wait:#B45309; --panel:#121A2C; --panel2:#18223A; --panel-line:#2E3B5A; --panel-ink:#F1F5F9; --panel-sub:#A9B4C7;
+  --y:#FBBF24; --b:#3B82F6; --p:#A78BFA; --t:#2DD4BF;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:sans-serif; font-size:16px; line-height:1.65; word-break:keep-all; overflow-wrap:anywhere}
+a{color:var(--blue); text-decoration:none}
+.wrap{max-width:640px; margin:0 auto; padding:0 16px 48px}
+
+/* 맨 위 */
+.top{padding:22px 0 6px}
+.top h1{margin:0; font-size:24px; line-height:1.3}
+.top p{margin:6px 0 0; color:var(--sub); font-size:14px}
+
+/* 붙어 다니는 차례 */
+.nav{position:sticky; top:0; z-index:5; background:var(--bg); margin:0 -16px; padding:8px 16px; border-bottom:1px solid var(--line); display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch}
+.nav a{flex:0 0 auto; height:36px; padding:0 14px; border-radius:18px; background:var(--card); border:1px solid var(--line); color:var(--ink); font-size:14px; font-weight:700; display:flex; align-items:center; white-space:nowrap}
+
+/* 역할 고르기 */
+.roles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px}
+.role{display:block; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; color:var(--ink)}
+.role b{display:block; font-size:16px}
+.role span{display:block; font-size:13px; color:var(--sub); line-height:1.45; margin-top:2px}
+.role i{display:block; font-style:normal; font-size:13px; font-weight:700; color:var(--blue); margin-top:8px}
+
+section{scroll-margin-top:60px; margin-top:28px}
+h2{margin:0 0 4px; font-size:20px; line-height:1.35; display:flex; align-items:center; gap:8px}
+h2 .n{flex:0 0 auto; width:28px; height:28px; border-radius:9px; background:var(--blue); color:#fff; font-size:14px; display:flex; align-items:center; justify-content:center}
+h3{margin:18px 0 6px; font-size:16px}
+.lead{margin:0 0 10px; color:var(--sub); font-size:14px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-top:10px}
+.card > :first-child{margin-top:0}
+.card > :last-child{margin-bottom:0}
+p{margin:8px 0}
+ul{margin:8px 0; padding-left:20px}
+li{margin:4px 0}
+b.k{background:var(--soft); border-radius:6px; padding:1px 6px; font-weight:700; white-space:nowrap}
+.who{display:inline-block; font-size:12px; font-weight:700; border-radius:6px; padding:0 6px; margin-right:4px; background:var(--blue-soft); color:var(--blue); white-space:nowrap}
+
+/* 순서 */
+ol.steps{list-style:none; margin:8px 0; padding:0; counter-reset:s}
+ol.steps li{counter-increment:s; position:relative; padding:0 0 12px 40px; margin:0}
+ol.steps li:last-child{padding-bottom:0}
+ol.steps li::before{content:counter(s); position:absolute; left:0; top:1px; width:26px; height:26px; border-radius:13px; background:var(--blue-soft); color:var(--blue); font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center}
+ol.steps li::after{content:""; position:absolute; left:12.5px; top:30px; bottom:2px; width:1px; background:var(--line)}
+ol.steps li:last-child::after{display:none}
+
+.tip, .warn{border-radius:12px; padding:10px 12px; font-size:14px; margin-top:10px}
+.tip{background:var(--blue-soft)}
+.warn{background:var(--soft); border:1px solid var(--line)}
+.warn b:first-child{color:var(--wait)}
+
+/* 표 */
+.tbl{overflow-x:auto; margin-top:10px; border:1px solid var(--line); border-radius:12px; background:var(--card)}
+table{border-collapse:collapse; width:100%; font-size:14px}
+th,td{padding:9px 10px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{background:var(--soft); font-size:13px; white-space:nowrap}
+td.c, th.c{text-align:center; white-space:nowrap}
+
+/* 그림: 집결 패널 흉내 (항상 어두운 바탕) */
+.fig{background:var(--panel); color:var(--panel-ink); border-radius:18px; padding:14px; margin-top:10px; font-size:13px; line-height:1.4}
+.fig .cap{color:var(--panel-sub); font-size:12px; margin-bottom:8px}
+.fig .box{background:var(--panel2); border:1px solid var(--panel-line); border-radius:12px; overflow:hidden}
+.fig .box + .box{margin-top:8px}
+.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#222E4B; border-bottom:1px solid var(--panel-line)}
+.fig .tag{background:#F1F5F9; color:#121A2C; font-weight:700; border-radius:7px; padding:1px 8px}
+.fig .grow{flex:1; color:var(--panel-sub); font-size:12px}
+.fig .row{display:flex; align-items:center; gap:8px; padding:9px 10px}
+.fig .row + .row{border-top:1px solid #2A3653}
+.fig .row b{font-size:15px}
+.fig .row .who2{flex:1; color:#CBD5E1}
+.fig .row .t{text-align:right; font-weight:700}
+.fig .row .t small{display:block; font-weight:400; color:var(--panel-sub); font-size:11px}
+.fig .me{background:#2F5FE3; border-radius:9px; padding:0 7px; font-size:11px; font-weight:700}
+.phases{display:flex; gap:6px; margin-top:4px}
+.phases div{flex:1; border-radius:10px; padding:8px 4px; text-align:center; font-weight:700; font-size:13px; color:#121A2C}
+.phases small{display:block; font-weight:400; font-size:11px}
+.bar{display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:10px}
+.bar i{display:block; height:100%}
+.legend{display:flex; justify-content:space-between; color:var(--panel-sub); font-size:11px; margin-top:4px}
+.calc{display:grid; grid-template-columns:auto 1fr auto; gap:6px 10px; align-items:center; margin-top:10px}
+.calc .l{font-weight:700}
+.calc .tr{height:10px; border-radius:5px; background:#2A3653; position:relative; overflow:hidden}
+.calc .tr i{position:absolute; top:0; bottom:0; border-radius:5px}
+.calc .r{color:var(--panel-sub); font-size:12px; white-space:nowrap}
+
+.up{display:inline-block; margin-top:12px; font-size:13px; font-weight:700}
+.foot{margin-top:32px; color:var(--sub); font-size:12px; text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="top">
+
+<div class="top">
+  <h1>오토클리커 Pro 사용 설명서</h1>
+  <p>여러 군단이 성에 <b>같은 순간에 도착</b>하도록, 각자의 폰이 정해진 때에 집결 버튼을 대신 눌러 줍니다.</p>
+</div>
+
+<div class="nav">
+  <a href="#ready">처음 준비</a>
+  <a href="#general">일반 연타</a>
+  <a href="#rally">집결이란</a>
+  <a href="#leader">집결장</a>
+  <a href="#commander">지휘관</a>
+  <a href="#waves">조 나누기</a>
+  <a href="#rep">연맹 대표</a>
+  <a href="#group">소속</a>
+  <a href="#faq">안 될 때</a>
+</div>
+
+<div class="roles">
+  <a class="role" href="#general"><b>일반</b><span>혼자 연타만 씁니다. 인증이 필요 없습니다.</span><i>일반 연타 보기 ›</i></a>
+  <a class="role" href="#leader"><b>집결장</b><span>내 군단을 맡아 집결에 참여합니다.</span><i>집결장 보기 ›</i></a>
+  <a class="role" href="#commander"><b>지휘관</b><span>방을 만들고 집결을 시작합니다.</span><i>지휘관 보기 ›</i></a>
+  <a class="role" href="#rep"><b>연맹 대표</b><span>우리 연맹의 지휘관을 정합니다.</span><i>연맹 대표 보기 ›</i></a>
+</div>
+
+<div class="tbl">
+<table>
+  <tr><th>할 수 있는 일</th><th class="c">일반</th><th class="c">집결장</th><th class="c">지휘관</th><th class="c">대표</th></tr>
+  <tr><td>일반 연타</td><td class="c">O</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>방에 들어가 집결 화면 보기</td><td class="c">-</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>내 군단의 행군 시간 고치기</td><td class="c">-</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>방 만들기, 군단 편집과 배정</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>집결 시작과 취소</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>집결장 코드 발급</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>우리 연맹 지휘관 정하기</td><td class="c">-</td><td class="c">-</td><td class="c">-</td><td class="c">O</td></tr>
+</table>
+</div>
+
+<!-- 1 -->
+<section id="ready">
+  <h2><span class="n">1</span>처음 준비</h2>
+  <p class="lead">앱이 게임 화면을 대신 누르려면 허용이 한 번 필요합니다. 모든 역할이 똑같이 합니다.</p>
+  <div class="card">
+    <ol class="steps">
+      <li>앱 첫 화면의 <b class="k">화면 터치 허용</b> 카드에서 <b class="k">켜기</b>를 누릅니다.</li>
+      <li>안내를 읽고 동의하면 폰의 <b>접근성</b> 설정이 열립니다.</li>
+      <li>목록에서 <b>오토클리커</b>를 찾아 스위치를 켭니다.</li>
+      <li>앱으로 돌아와 <b class="k">화면 터치 허용됨</b>이 보이면 끝입니다.</li>
+    </ol>
+    <div class="tip">폰을 껐다 켜거나 앱을 업데이트하면 스위치가 꺼질 수 있습니다. 버튼이 반응하지 않으면 접근성에서 <b>껐다가 다시 켜</b> 주세요.</div>
+  </div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<!-- 2 -->
+<section id="general">
+  <h2><span class="n">2</span>일반 연타</h2>
+  <p class="lead">정한 자리를 일정한 간격으로 계속 눌러 줍니다. 인증 없이 누구나 씁니다.</p>
+  <div class="card">
+    <ol class="steps">
+      <li><b class="k">일반 연타 모드</b> 카드를 눌러 <b>연타 설정</b>을 엽니다.</li>
+      <li><b>클릭 주기</b>를 고릅니다(0.1초, 0.2초, 0.5초, 1.0초 또는 직접 입력).</li>
+      <li><b>반복 조건</b>을 고릅니다: <b class="k">무한</b> 계속, <b class="k">횟수</b> 정한 번수만큼, <b class="k">시간</b> 정한 시간만큼.</li>
+      <li><b class="k">적용</b>을 누르고 <b class="k">오토클리커 띄우기</b>를 누릅니다.</li>
+      <li>게임 위에 뜬 <b>과녁</b>을 누르고 싶은 자리로 끌어다 놓습니다.</li>
+      <li>막대의 <b>▶</b>를 누르면 연타가 시작되고, 다시 누르면 멈춥니다.</li>
+    </ol>
+    <div class="warn"><b>급하게 멈추기</b> · 연타 중에 폰의 <b>볼륨 키</b>를 누르면 바로 멈춥니다.</div>
+  </div>
+  <h3>게임 위에 뜨는 막대</h3>
+  <div class="tbl">
+  <table>
+    <tr><th>버튼</th><th>하는 일</th></tr>
+    <tr><td>▶ / ■</td><td>연타 시작과 정지</td></tr>
+    <tr><td>과녁 보이기</td><td>과녁을 숨기거나 보입니다. <b>길게 누르면</b> 과녁이 화면 가운데로 돌아옵니다.</td></tr>
+    <tr><td>깃발</td><td>집결 화면(집결 패널)을 열고 닫습니다.</td></tr>
+    <tr><td>톱니</td><td>게임 안에서 연타 설정을 바꿉니다.</td></tr>
+    <tr><td>시계</td><td>초까지 보이는 시계를 띄웁니다.</td></tr>
+    <tr><td>✕</td><td>막대와 과녁을 모두 닫습니다.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<!-- 3 -->
+<section id="rally">
+  <h2><span class="n">3</span>집결이란</h2>
+  <p class="lead">군단마다 성까지 가는 시간(행군 시간)이 다릅니다. 멀리 있는 군단이 먼저, 가까운 군단이 나중에 눌러야 같이 도착합니다. 그 계산과 클릭을 앱이 합니다.</p>
+
+  <div class="fig">
+    <div class="cap">한 군단이 거치는 4단계 · 화면의 색도 이 색입니다</div>
+    <div class="phases">
+      <div style="background:var(--y)">대기<small>클릭 전</small></div>
+      <div style="background:var(--b);color:#fff">집결<small>모이는 중</small></div>
+      <div style="background:var(--p)">행군<small>성으로 이동</small></div>
+      <div style="background:var(--t)">도착<small>끝</small></div>
+    </div>
+    <div class="calc">
+      <div class="cap" style="grid-column:1/-1;margin:10px 0 0">예: 이동 준비 15초, 행군 1군 10초 · 2군 30초 · 3군 50초</div>
+      <div class="l">3군</div><div class="tr"><i style="left:0;width:15%;background:var(--y)"></i><i style="left:15%;width:35%;background:var(--b)"></i><i style="left:50%;width:50%;background:var(--p)"></i></div><div class="r">15초 뒤 클릭</div>
+      <div class="l">2군</div><div class="tr"><i style="left:0;width:35%;background:var(--y)"></i><i style="left:35%;width:35%;background:var(--b)"></i><i style="left:70%;width:30%;background:var(--p)"></i></div><div class="r">35초 뒤 클릭</div>
+      <div class="l">1군</div><div class="tr"><i style="left:0;width:55%;background:var(--y)"></i><i style="left:55%;width:35%;background:var(--b)"></i><i style="left:90%;width:10%;background:var(--p)"></i></div><div class="r">55초 뒤 클릭</div>
+    </div>
+    <div class="legend"><span>집결 시작</span><span>모두 같은 순간에 도착 →</span></div>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>말</th><th>뜻</th></tr>
+    <tr><td><b>행군 시간</b></td><td>집결이 출발해서 성에 닿기까지 걸리는 시간. 게임에 보이는 값을 그대로 넣습니다.</td></tr>
+    <tr><td><b>집결 대기</b></td><td>집결 버튼을 누른 뒤 출발까지 기다리는 시간. 게임에서 고른 값(3분·5분·10분)과 같아야 합니다.</td></tr>
+    <tr><td><b>이동 준비</b></td><td>시작 신호를 받고 집결 버튼이 있는 화면으로 갈 여유 시간. 모든 군단에 똑같이 더해집니다.</td></tr>
+    <tr><td><b>보정</b></td><td>폰이나 군단이 조금 늦거나 빠를 때 0.5초씩 당기고 미루는 값(−는 더 일찍, +는 더 늦게).</td></tr>
+    <tr><td><b>방</b></td><td>같은 성에 함께 도착할 군단들이 모이는 곳. 계산은 방 안의 군단끼리만 합니다.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<!-- 4 -->
+<section id="leader">
+  <h2><span class="n">4</span>집결장</h2>
+  <p class="lead">지휘관에게 코드를 받아 인증하고, 방에 들어가 내 군단을 맡습니다.</p>
+
+  <h3>처음 한 번: 인증하고 방에 들어가기</h3>
+  <div class="card">
+    <ol class="steps">
+      <li><span class="who">집결장</span>지휘관에게 내 <b>ID</b>를 알려 줍니다. 이메일이든 닉네임이든 됩니다.</li>
+      <li><span class="who">지휘관</span>코드를 만들어 카카오톡으로 보내 줍니다. 글에 ID, 집결장 코드, 소속, 방 번호가 들어 있습니다.</li>
+      <li><span class="who">집결장</span>받은 글을 <b>통째로 복사</b>한 뒤 앱 첫 화면의 <b class="k">인증하기</b>를 누릅니다. 칸이 저절로 채워져 있으니 확인하고 버튼을 누릅니다.</li>
+      <li>첫 화면 <b class="k">집결 방</b> 카드의 <b class="k">방 선택</b>에서 지휘관이 알려 준 방을 고릅니다.</li>
+      <li>게임 <b>캐릭터명</b>을 적습니다. 지휘관의 명단에 이 이름이 올라갑니다.</li>
+      <li><span class="who">지휘관</span>나를 군단에 배정합니다. 배정되면 내 줄에 <b class="k">나</b> 표시가 붙습니다.</li>
+    </ol>
+    <div class="tip">집결장 코드는 <b>AC-</b> 뒤에 6자리이고, <b>ID와 소속에 묶여</b> 있습니다. 받은 ID 그대로 적어야 맞고, 인증하면 소속이 지휘관의 소속으로 잠깁니다.</div>
+  </div>
+
+  <h3>집결 전에: 클릭 위치 저장</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>앱 아래의 <b class="k">집결 화면 열기</b>를 누르고 게임으로 갑니다.</li>
+      <li>게임에서 <b>집결 버튼이 보이는 화면</b>까지 갑니다.</li>
+      <li><b>과녁</b>을 집결 버튼 위로 끌어다 놓습니다.</li>
+      <li>집결 화면 아래의 <b class="k">내 기기 ▾</b>를 펴고 <b class="k">위치 저장</b>을 누릅니다. <b class="k">✓ 위치 저장됨</b>이 보이면 됩니다.</li>
+      <li>내 군단 줄의 <b>행군 시간</b>을 게임에 보이는 값과 같게 맞춥니다(−/+ 는 1초씩, 숫자를 누르면 직접 입력).</li>
+    </ol>
+    <div class="warn"><b>꼭 확인</b> · 노란 글씨 "클릭 위치를 먼저 저장하세요"나 "캐릭터명을 먼저 등록하세요"가 보이면 그 글씨를 누르세요. 바로 그 입력으로 갑니다.</div>
+  </div>
+
+  <h3>집결이 시작되면</h3>
+  <div class="card">
+    <ul>
+      <li>지휘관이 시작하면 큰 숫자가 <b>내 클릭까지 남은 시간</b>을 셉니다.</li>
+      <li>그 사이에 게임에서 <b>집결 버튼이 보이는 화면</b>에 가 있어야 합니다. 앱은 저장해 둔 자리를 누를 뿐입니다.</li>
+      <li>숫자가 0이 되면 앱이 대신 누릅니다. 누른 뒤에는 "✓ 클릭함"과 시각이 보입니다.</li>
+      <li>화면이 좁으면 위의 <b>–</b>를 눌러 알약 모양으로 접습니다. 남은 시간은 계속 보입니다.</li>
+    </ul>
+  </div>
+
+  <h3>내 기기 줄</h3>
+  <div class="tbl">
+  <table>
+    <tr><th>칸</th><th>하는 일</th></tr>
+    <tr><td>방</td><td>다른 방으로 옮깁니다.</td></tr>
+    <tr><td>캐릭터명</td><td>명단에 보이는 내 이름을 바꿉니다.</td></tr>
+    <tr><td>보정 −/+</td><td>내 폰의 클릭을 0.5초씩 당기거나 미룹니다(−5초 ~ +5초). 숫자를 누르면 직접 입력.</td></tr>
+    <tr><td>위치 저장</td><td>지금 과녁 자리를 집결 클릭 자리로 저장합니다.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<!-- 5 -->
+<section id="commander">
+  <h2><span class="n">5</span>지휘관</h2>
+  <p class="lead">방을 만들고, 군단을 짜고, 집결을 시작합니다. 집결장에게 코드를 만들어 줍니다.</p>
+
+  <h3>지휘관 되기</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>연맹 대표에게 <b>지휘관 코드</b>(<b>AD-</b> 뒤에 8자)를 받습니다.</li>
+      <li>앱 첫 화면 오른쪽 위의 <b>열쇠</b>를 눌러 <b class="k">지휘관 로그인</b>을 엽니다.</li>
+      <li>코드를 적고 확인을 누릅니다. 위쪽에 <b class="k">집결장</b> / <b class="k">지휘관</b> 탭이 생깁니다.</li>
+      <li>다음부터는 코드 없이 <b class="k">지휘관</b> 탭만 누르면 됩니다.</li>
+    </ol>
+    <div class="tip">지휘관 코드는 <b>한 번만</b> 쓸 수 있고 기한이 있습니다(대표가 만든 코드는 24시간). 소속은 코드에 들어 있어 자동으로 정해지고 바꿀 수 없습니다.</div>
+  </div>
+
+  <h3>방 만들고 군단 짜기</h3>
+  <div class="card">
+    <ol class="steps">
+      <li><b class="k">방 선택</b> → <b class="k">+ 새 방 만들기</b>로 방을 만듭니다. 방은 소속마다 10개까지입니다.</li>
+      <li><b class="k">번호 공유</b>로 방 번호를 집결장들에게 알립니다.</li>
+      <li><b class="k">집결 화면 열기</b> → 집결 화면 위의 <b>연필</b>을 눌러 편집을 엽니다.</li>
+      <li><b class="k">+ 군단 추가</b>로 군단을 만듭니다(방마다 10개까지).</li>
+      <li>군단 줄을 눌러 펼친 뒤 <b>맡을 사람</b>을 고르고 <b>행군 시간</b>을 넣습니다.</li>
+      <li>아래 <b>방 설정</b>에서 <b>집결 대기</b>(3분·5분·10분)와 <b>이동 준비</b>(1초씩)를 정합니다.</li>
+      <li><b class="k">완료</b>를 눌러 편집을 닫습니다. 값은 누르는 즉시 저장되어 모두에게 전달됩니다.</li>
+    </ol>
+  </div>
+
+  <div class="fig">
+    <div class="cap">편집 화면의 군단 줄</div>
+    <div class="box">
+      <div class="row"><b>1군</b><span class="who2">문 <span class="me">나</span></span><span class="t">10초<small>20초 뒤</small></span></div>
+      <div class="row"><b>2군</b><span class="who2">앵그리버드</span><span class="t">30초<small>먼저 클릭</small></span></div>
+      <div class="row"><b>3군</b><span class="who2" style="color:var(--y)">미배정</span><span class="t">50초</span></div>
+    </div>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>보이는 것</th><th>뜻</th></tr>
+    <tr><td>파란 체크</td><td>이번 집결에 참여합니다. 눌러서 빼면 <b>제외</b>가 되고 줄이 얇아집니다. 순서는 그대로입니다.</td></tr>
+    <tr><td>큰 숫자(10초)</td><td>그 군단의 행군 시간.</td></tr>
+    <tr><td>작은 글씨</td><td>가장 먼저 누르는 군단보다 몇 초 뒤에 누르는지.</td></tr>
+    <tr><td>노란 "미배정"</td><td>맡은 사람이 없습니다. 그 군단은 누를 폰이 없어 출발하지 않습니다.</td></tr>
+    <tr><td>군단 보정</td><td>펼친 줄에서 그 군단만 0.5초씩 당기거나 미룹니다(−5초 ~ +5초).</td></tr>
+    <tr><td>"N군 삭제"</td><td>펼친 줄 맨 아래. 한 번 더 눌러야 지워집니다.</td></tr>
+  </table>
+  </div>
+
+  <h3>집결 시작과 취소</h3>
+  <div class="card">
+    <ul>
+      <li><b class="k">집결 시작</b>을 누르면 모든 폰이 동시에 세기 시작합니다. 시작은 한 번이면 됩니다.</li>
+      <li>참여 군단 중 미배정이 있으면 물어봅니다: <b>미배정 제외하고 시작</b> / <b>그대로 시작</b> / 취소.</li>
+      <li>진행 중에는 같은 자리가 <b class="k">집결 취소</b>로 바뀝니다. 취소하면 아직 누르지 않은 폰은 누르지 않습니다.</li>
+      <li>도착하거나 취소한 뒤에는 <b class="k">다시 집결</b>이 됩니다. 설정을 다시 넣을 필요가 없습니다.</li>
+      <li>진행 중에는 군단과 시간을 고칠 수 없습니다.</li>
+    </ul>
+    <div class="warn"><b>잘못 누름 방지</b> · 취소 직후 1.5초 동안은 같은 자리의 "다시 집결"이 눌리지 않습니다.</div>
+  </div>
+
+  <h3>집결장 코드 만들어 주기</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>집결장에게 <b>ID</b>를 받습니다.</li>
+      <li><b class="k">집결 방</b> 카드의 <b class="k">관리</b> → <b class="k">집결장 코드 발급</b>을 엽니다.</li>
+      <li>ID를 적고 <b class="k">집결장 코드 만들기</b>를 누릅니다.</li>
+      <li>만들어진 글을 카카오톡으로 보냅니다. 받은 사람은 통째로 복사해서 인증합니다.</li>
+    </ol>
+    <div class="warn"><b>알아 둘 것</b> · 집결장 코드는 기한이 없고 <b>회수할 수 없습니다</b>. 내보낼 때는 군단 배정에서 빼 주세요.</div>
+  </div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<!-- 6 -->
+<section id="waves">
+  <h2><span class="n">6</span>조 나누기 <span class="who">지휘관</span></h2>
+  <p class="lead">군단을 조로 묶어 <b>시간 차이를 두고</b> 도착시킵니다. 같은 조는 같이 도착하고, 2조부터는 "1조보다 몇 초 뒤"에 도착합니다.</p>
+
+  <div class="fig">
+    <div class="cap">조를 쓰는 방의 편집 화면</div>
+    <div class="box">
+      <div class="band"><span class="tag">1조</span><span class="grow">군단 2개</span><span>먼저 도착 (기준)</span></div>
+      <div class="row"><b>1군</b><span class="who2">문</span><span class="t">10초</span></div>
+      <div class="row"><b>2군</b><span class="who2">앵그리버드</span><span class="t">30초</span></div>
+    </div>
+    <div class="box">
+      <div class="band"><span class="tag">2조</span><span class="grow">군단 1개</span><span>− &nbsp;<b>2분 뒤 도착</b>&nbsp; +</span></div>
+      <div class="row"><b>3군</b><span class="who2">달구지</span><span class="t">50초</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <ol class="steps">
+      <li>편집을 열고 <b class="k">조 나누기</b>를 누르면 번호 순으로 <b>2개씩 · 3개씩 · 5개씩</b> 묶습니다. <b>모두 1조로</b>를 고르면 조가 없어집니다.</li>
+      <li>한 군단만 옮기려면 그 줄을 펼쳐 <b class="k">1조</b> ~ <b class="k">5조</b> 중에서 고릅니다.</li>
+      <li>조 머리띠의 <b>−/+</b> 로 도착 간격을 정합니다. <b>10초씩</b>, 0초부터 10분까지. 값을 누르면 직접 입력합니다.</li>
+      <li><b class="k">집결 시작</b>은 한 번만 누릅니다. 뒤 조의 폰은 그만큼 늦게 누릅니다.</li>
+    </ol>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>정해 둔 것</th><th>값</th></tr>
+    <tr><td>조의 수</td><td>1조 ~ 5조. 한 조의 군단 수는 자유(방 전체 10개까지).</td></tr>
+    <tr><td>도착 간격의 기준</td><td>항상 <b>1조</b>. "2분 뒤 도착"은 1조보다 2분 뒤입니다.</td></tr>
+    <tr><td>행군 시간</td><td>건드리지 않습니다. 게임에 보이는 값 그대로 둡니다.</td></tr>
+    <tr><td>큰 숫자</td><td>군단이 없는 지휘관: 다음에 도착할 조. 집결장: 내 군단 기준.</td></tr>
+    <tr><td>모두 1조일 때</td><td>조 머리띠가 보이지 않습니다.</td></tr>
+  </table>
+  </div>
+  <div class="warn"><b>꼭 확인</b> · 조를 쓰려면 지휘관과 집결장 <b>모두 최신 버전</b>이어야 합니다. 옛 버전 폰은 도착 간격을 몰라 일찍 누릅니다.</div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<!-- 7 -->
+<section id="rep">
+  <h2><span class="n">7</span>연맹 대표</h2>
+  <p class="lead">연맹마다 한 명입니다. 지휘관이 하는 일 전부에 더해, 우리 연맹의 지휘관을 정하고 뺍니다.</p>
+
+  <h3>대표 신청하기</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>첫 화면 오른쪽 위 <b>열쇠</b> → <b class="k">지휘관 로그인</b> → <b class="k">우리 연맹 대표 신청하기</b>.</li>
+      <li>서버 번호, 연맹, 게임 캐릭터명을 적습니다. 한마디(60자까지, 예: WBI 맹주입니다)를 붙일 수 있습니다.</li>
+      <li><b class="k">신청하기</b>를 누르면 첫 화면에 "승인을 기다리는 중"이 보입니다. 여기서 취소할 수 있습니다.</li>
+      <li>승인된 뒤 신청 창을 다시 열면 지휘관 화면으로 바뀝니다.</li>
+    </ol>
+    <div class="tip">승인 알림은 오지 않습니다. 가끔 열어서 확인해 주세요. 한 폰에서 신청은 하나만 됩니다.</div>
+  </div>
+
+  <h3>우리 연맹 지휘관 정하기</h3>
+  <div class="card">
+    <ol class="steps">
+      <li><b class="k">관리</b> → <b class="k">우리 연맹 지휘관</b>을 엽니다.</li>
+      <li><b class="k">+ 지휘관 코드 만들기</b>에서 이름표를 적고 코드를 만들어 보냅니다.</li>
+      <li>받은 사람이 <b>24시간 안에</b> 지휘관 로그인 창에 코드를 넣으면 지휘관이 됩니다.</li>
+      <li>뺄 때는 명단에서 <b class="k">삭제</b>를 누릅니다. 그 폰은 다음에 앱을 열 때 집결장 화면으로 돌아갑니다.</li>
+    </ol>
+  </div>
+  <div class="tbl">
+  <table>
+    <tr><th>정해 둔 것</th><th>값</th></tr>
+    <tr><td>한 연맹의 지휘관</td><td>대표를 포함해 5명까지.</td></tr>
+    <tr><td>대표가 다루는 범위</td><td>자기 연맹만. 다른 연맹은 보이지 않습니다.</td></tr>
+    <tr><td>지휘관이 지휘관을 정하기</td><td>안 됩니다. 대표만 정합니다.</td></tr>
+    <tr><td>대표가 바뀔 때</td><td>같은 연맹의 다른 사람이 대표 신청을 하고 승인되면 바뀝니다. 예전 대표는 일반 지휘관이 됩니다.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<!-- 8 -->
+<section id="group">
+  <h2><span class="n">8</span>소속 (서버 · 연맹)</h2>
+  <p class="lead">방은 소속 아래에 있습니다. 소속이 같은 사람끼리만 같은 방에서 만납니다. 화면에는 <b class="k">2000 · WBI</b>처럼 보입니다.</p>
+  <div class="card">
+    <ul>
+      <li>서버 번호는 숫자 6자리까지, 연맹은 글자와 숫자 8자까지.</li>
+      <li><b>연맹은 대문자와 소문자를 구분합니다.</b> WBI와 wbi는 서로 다른 소속입니다.</li>
+      <li>방 번호는 소속마다 따로입니다. 다른 연맹이 같은 번호를 써도 겹치지 않습니다.</li>
+      <li>소속을 바꾸면 들어와 있던 방에서 나옵니다.</li>
+    </ul>
+  </div>
+  <div class="tbl">
+  <table>
+    <tr><th>역할</th><th>소속이 정해지는 방법</th></tr>
+    <tr><td>집결장</td><td>초대 글을 복사해서 인증하면 그 글의 소속으로 정해지고 잠깁니다. 다른 연맹으로 가려면 그 연맹 지휘관에게 새 코드를 받습니다.</td></tr>
+    <tr><td>지휘관, 대표</td><td>받은 지휘관 코드에 들어 있습니다. 자물쇠가 붙고 바꿀 수 없습니다.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<!-- 9 -->
+<section id="faq">
+  <h2><span class="n">9</span>안 될 때</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>이럴 때</th><th>이렇게</th></tr>
+    <tr><td>버튼을 눌러도 게임이 눌리지 않는다</td><td>접근성에서 오토클리커를 <b>껐다가 다시 켭니다</b>. <a href="#ready">처음 준비 보기</a></td></tr>
+    <tr><td>"집결장 코드로 인증한 뒤에 쓸 수 있어요"</td><td>아직 인증 전입니다. <a href="#leader">집결장 보기</a></td></tr>
+    <tr><td>코드가 맞지 않는다고 나온다</td><td>ID를 받은 그대로 적었는지, 연맹의 대문자·소문자가 같은지 봅니다. 예전 방식 코드는 받지 않으니 새로 받습니다.</td></tr>
+    <tr><td>방 목록에 우리 방이 없다</td><td>소속(서버·연맹)이 지휘관과 같은지 봅니다. <a href="#group">소속 보기</a></td></tr>
+    <tr><td>내 이름이 지휘관 명단에 없다</td><td>방에 들어갔는지, 캐릭터명을 적었는지 봅니다. 그래도 없으면 방을 나갔다 다시 들어갑니다.</td></tr>
+    <tr><td>시간이 됐는데 누르지 않았다</td><td>클릭 위치를 저장했는지, 군단에 배정됐는지(내 줄에 "나"), 제외되지 않았는지 봅니다.</td></tr>
+    <tr><td>남들보다 조금 늦거나 빠르다</td><td><b>내 기기</b>의 보정을 0.5초씩 맞춥니다. −는 더 일찍, +는 더 늦게.</td></tr>
+    <tr><td>"집결 시작"이 흐리다</td><td>참여하는 군단이 없습니다. 아래 빨간 글씨가 이유를 알려 줍니다.</td></tr>
+    <tr><td>조를 골랐는데 1조로 돌아온다</td><td>"조를 저장하지 못했어요"가 뜨면 서버 설정이 아직 준비되지 않은 것입니다. 앱을 만든 사람에게 알려 주세요.</td></tr>
+    <tr><td>연결 점이 주황이나 빨강이다</td><td>초록은 실시간, 주황은 1초마다 확인, 빨강은 끊김입니다. 인터넷을 확인합니다.</td></tr>
+    <tr><td>앱을 지우고 다시 깔았다</td><td>지휘관과 대표는 새 코드를 받아 다시 등록해야 합니다. 업데이트(덮어 설치)는 그대로 유지됩니다.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 맨 위로</a>
+</section>
+
+<div class="foot">오토클리커 Pro 사용 설명서</div>
+</div>
+</body>
+</html>
