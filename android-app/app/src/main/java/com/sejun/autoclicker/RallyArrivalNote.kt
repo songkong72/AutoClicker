@@ -14,6 +14,6 @@ object RallyArrivalNote {
         val a = arriveWallMs ?: return ""
         val f = SimpleDateFormat("HH:mm:ss", Locale.US).apply { timeZone = zone }
         val clock = f.format(Date(a))
-        return if (nowMs < a) "도착 예정 $clock" else "$clock 도착"
+        return if (nowMs < a) T.s.eta(clock) else T.s.arrivedAt(clock)
     }
 }

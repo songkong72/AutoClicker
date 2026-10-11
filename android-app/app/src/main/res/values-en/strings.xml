@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 영어. 여기에 없는 글자는 기본(한국어) values/strings.xml의 것이 보인다. 코드에서 만드는 글자는 Strings.kt의 StrEn. -->
+<resources>
+    <string name="rp_phase_wait">Wait</string>
+    <string name="rp_phase_rally">Rally</string>
+    <string name="rp_phase_march">March</string>
+    <string name="rp_phase_arrive">Arrive</string>
+    <string name="rp_minimize">Minimize</string>
+    <string name="rp_close">Close</string>
+    <string name="rp_teams">Teams</string>
+    <string name="rp_rows_head">March time · taps in order from the top</string>
+    <string name="rp_add_team">+ Add team</string>
+    <string name="rp_setup">Room settings ▾</string>
+    <string name="rp_rally_wait">Rally time</string>
+    <string name="rp_prep">Prep time</string>
+    <string name="rp_wait_3">3 min</string>
+    <string name="rp_wait_5">5 min</string>
+    <string name="rp_wait_10">10 min</string>
+    <string name="rp_my_device">My device ▾</string>
+    <string name="rp_save_pos">Save position</string>
+    <string name="rp_more">More</string>
+    <string name="rp_start">Start rally</string>
+    <string name="rp_cancel_rally">Cancel rally</string>
+    <string name="rp_me">Me</string>
+    <string name="rp_march_time">March time</string>
+    <string name="rp_offset_step">Offset · 0.5s steps</string>
+</resources>

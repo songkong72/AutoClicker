@@ -194,17 +194,17 @@ class RallyRoomSync(
 
     /** 내 기기 아래에 늘 보이는, 시간 확인에 필요한 줄만. 나머지 진단은 [deviceDetailText]에서 펼쳐 본다. */
     override fun devicePositionText(): String = listOfNotNull(
-        myAdminAdjustMs().let { a -> if (a == 0) null else "지휘관 보정 ${RallyInputParse.formatCorrection(a)} (내 보정에 더해 적용)" },
+        myAdminAdjustMs().let { a -> if (a == 0) null else T.s.adminOffsetNote(RallyInputParse.formatCorrection(a)) },
         lastDiag.ifEmpty { null },
-        if (streaming) null else "수신 방식: 1초 확인 (실시간보다 최대 1초 늦을 수 있음)"
+        if (streaming) null else T.s.pollingNote
     ).joinToString("\n")
 
     /** "자세히"를 눌렀을 때만 보이는 진단 줄(기기 ID·배정, 저장 위치, 탭 결과, 수신 방식, 멈춤 기록). */
     override fun deviceDetailText(): String = listOfNotNull(
-        "기기 ID …${memberId.takeLast(4)} · 배정: " + (myTeamId.let { id -> doc.teams.firstOrNull { it.id == id }?.name ?: "아직 없음" }),
+        T.s.deviceLine(memberId.takeLast(4), myTeamId.let { id -> doc.teams.firstOrNull { it.id == id }?.name?.let { n -> T.s.teamName(n) } ?: T.s.noneYet }),
         positionText(),
         clickResult.ifEmpty { null },
-        "수신 방식: " + (if (streaming) "실시간" else "1초 확인"),
+        T.s.syncMode(streaming),
         MainThreadWatchdog.lastStall.ifEmpty { null }
     ).joinToString("\n")
     override fun roomCode(): String = room
@@ -340,7 +340,7 @@ class RallyRoomSync(
 
     override fun loadAllRooms(onLoaded: (List<Pair<String, String>>?, String) -> Unit) {
         val a = auth
-        if (a == null) { onLoaded(null, "로그인이 필요해요"); return }
+        if (a == null) { onLoaded(null, T.s.needLogin); return }
         Thread {
             val r = AdminServer(dbUrl, a).loadRoomsOnly(group)
             val ok = r.error == null
@@ -426,8 +426,8 @@ class RallyRoomSync(
             c.outputStream.use { it.write(JSONObject(RallyRoomCodec.encode(seedDoc())).toString().toByteArray()) }
             val code = c.responseCode
             if (code == 401 || code == 403) auth?.invalidate()
-            if (code in 200..299) null else "서버가 거절했어요 ($code)"
-        } catch (e: Exception) { "인터넷 연결을 확인해 주세요" }
+            if (code in 200..299) null else T.s.serverRefused(code)
+        } catch (e: Exception) { T.s.checkInternet }
 
         fun roomExists(dbUrl: String, auth: FirebaseAuthClient?, room: String): Boolean? = try {
             val url = FirebaseAuthCodec.withAuth("$dbUrl/rallyRooms/$room/run.json", auth?.token())
@@ -440,7 +440,7 @@ class RallyRoomSync(
         } catch (e: Exception) { null }
 
         fun registerMember(dbUrl: String, auth: FirebaseAuthClient?, room: String, memberId: String, rawName: String): String? {
-            val body = RallyRoster.encode(memberId, rawName) ?: return "캐릭터명이 비어 있어요"
+            val body = RallyRoster.encode(memberId, rawName) ?: return T.s.nameEmpty
             return try {
                 val url = FirebaseAuthCodec.withAuth("$dbUrl/rallyMembers/$room/$memberId.json", auth?.token())
                 val c = URL(url).openConnection() as HttpURLConnection
@@ -543,7 +543,7 @@ class RallyRoomSync(
         val task = Runnable {
             val actual = if (startAtMs == null) 0.0 else (SystemClock.elapsedRealtime() - startAtMs) / 1000.0
             val wall = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
-            lastDiag = "마지막 집결: 신호 수신 ${"%.3f".format(actual)}초 뒤 클릭(목표 ${"%.2f".format(mine.clickAtSec)}초 ${totalMs}ms 보정) · $wall"
+            lastDiag = T.s.lastDiag("%.3f".format(actual), "%.2f".format(mine.clickAtSec), totalMs.toInt(), wall)
             clickWallMs = System.currentTimeMillis()
             clickResult = ""
             onClickDue()

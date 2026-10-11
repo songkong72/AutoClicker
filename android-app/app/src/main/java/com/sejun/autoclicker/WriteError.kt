@@ -5,23 +5,23 @@ internal object WriteError {
     fun explain(message: String?): String {
         val m = message.orEmpty()
         return if (m.contains("401") || m.contains("403"))
-            "서버가 방 수정을 거절했어요. 이 기기가 지휘관 명단에 있는지, 서버 규칙이 맞는지 확인해 주세요"
-        else "서버에 저장하지 못했어요: " + m.take(60).ifEmpty { "알 수 없는 오류" }
+            T.s.rejected
+        else T.s.saveFailed(m.take(60).ifEmpty { T.s.unknownError })
     }
 
     /** 조(도착 간격)를 쓰는 방을 저장하지 못했을 때: 거절이면 새 서버 규칙을 게시하지 않은 경우가 대부분이다. */
     fun explainWaves(message: String?): String {
         val m = message.orEmpty()
         return if (m.contains("401") || m.contains("403"))
-            "조를 저장하지 못했어요. 서버 규칙을 새로 게시해야 조를 쓸 수 있어요 (Firebase 콘솔 → 규칙)"
+            T.s.wavesRejected
         else explain(message)
     }
 
     /** 집결 시작을 서버에 쓰지 못했을 때: 아무도 시작하지 않았다는 것과 다시 누르라는 것을 알린다. */
-    fun explainStart(message: String?): String = "집결을 시작하지 못했어요. 다시 눌러 주세요 · " + explain(message)
+    fun explainStart(message: String?): String = T.s.startFailed(explain(message))
 
     /** 취소를 서버에 쓰지 못했을 때: 이 폰은 멈췄지만 다른 폰은 계속 갈 수 있다는 것을 알린다. */
-    fun explainCancel(message: String?): String = "취소를 서버에 전하지 못했어요. 다른 폰은 아직 진행 중일 수 있어요 · " + explain(message)
+    fun explainCancel(message: String?): String = T.s.cancelFailed(explain(message))
 }
 
 /** 몇 번까지 다시 해 보고, 끝내 실패하면 마지막 오류를 돌려준다(성공하면 null). */

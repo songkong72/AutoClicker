@@ -51,7 +51,7 @@
             android:gravity="center"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
-            android:text="나"
+            android:text="@string/rp_me"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -165,7 +165,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="행군 시간"
+                android:text="@string/rp_march_time"
                 android:textColor="#8190A8"
                 android:textSize="12sp" />
 
@@ -218,7 +218,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="보정 · 0.5초씩"
+                android:text="@string/rp_offset_step"
                 android:textColor="#8190A8"
                 android:textSize="12sp" />
 

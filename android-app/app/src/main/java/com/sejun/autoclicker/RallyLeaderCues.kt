@@ -30,7 +30,7 @@ object RallyClickNote {
     fun text(clickWallMs: Long?, zone: TimeZone = TimeZone.getDefault()): String {
         val ms = clickWallMs ?: return ""
         val f = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).apply { timeZone = zone }
-        return "✓ 클릭함 " + f.format(Date(ms))
+        return T.s.clicked(f.format(Date(ms)))
     }
 }
 

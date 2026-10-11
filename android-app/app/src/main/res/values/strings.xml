@@ -24,4 +24,29 @@
 
     <string name="btn_start_service">🚀 플로팅 오토클리커 시작하기</string>
     <string name="btn_stop_service">⏹ 오토클리커 종료하기</string>
+
+    <!-- 집결 패널의 고정 글자. 코드에서 만드는 글자는 Strings.kt(StrKo/StrEn)에 있다. -->
+    <string name="rp_phase_wait">대기</string>
+    <string name="rp_phase_rally">집결</string>
+    <string name="rp_phase_march">행군</string>
+    <string name="rp_phase_arrive">도착</string>
+    <string name="rp_minimize">작게</string>
+    <string name="rp_close">닫기</string>
+    <string name="rp_teams">군단</string>
+    <string name="rp_rows_head">행군 시간 · 위에서부터 차례로 클릭</string>
+    <string name="rp_add_team">+ 군단 추가</string>
+    <string name="rp_setup">방 설정 ▾</string>
+    <string name="rp_rally_wait">집결 대기</string>
+    <string name="rp_prep">이동 준비</string>
+    <string name="rp_wait_3">3분</string>
+    <string name="rp_wait_5">5분</string>
+    <string name="rp_wait_10">10분</string>
+    <string name="rp_my_device">내 기기 ▾</string>
+    <string name="rp_save_pos">위치 저장</string>
+    <string name="rp_more">자세히</string>
+    <string name="rp_start">집결 시작</string>
+    <string name="rp_cancel_rally">집결 취소</string>
+    <string name="rp_me">나</string>
+    <string name="rp_march_time">행군 시간</string>
+    <string name="rp_offset_step">보정 · 0.5초씩</string>
 </resources>

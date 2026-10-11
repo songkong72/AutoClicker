@@ -9,15 +9,15 @@ internal object RallyChangeNote {
 
     /** 표시에 쓸 이름: 캐릭터명이 있으면 그것, 없으면 기기 ID 끝 4자리. */
     fun label(characterName: String, memberId: String): String =
-        characterName.trim().ifEmpty { "지휘관 …" + memberId.takeLast(4) }.take(MAX_LABEL)
+        characterName.trim().ifEmpty { T.s.commanderFallback(memberId.takeLast(4)) }.take(MAX_LABEL)
 
     fun stamp(doc: RallyRoomDoc, label: String, nowMs: Long): RallyRoomDoc = doc.copy(lastBy = label, lastAt = nowMs)
 
     /** 패널에 보이는 한 줄. 아직 아무도 바꾸지 않았으면 빈 문자열. */
     fun text(doc: RallyRoomDoc, myLabel: String, nowMs: Long): String {
         if (doc.lastAt <= 0L || doc.lastBy.isEmpty()) return ""
-        val who = if (doc.lastBy == myLabel) "나" else doc.lastBy
-        return "마지막 변경: $who · ${ago(nowMs - doc.lastAt)}"
+        val who = if (doc.lastBy == myLabel) T.s.me else doc.lastBy
+        return T.s.lastChange(who, ago(nowMs - doc.lastAt))
     }
 
     /** 내가 마지막으로 본 변경([prevAt]) 뒤에 다른 지휘관이 바꾼 것이 도착했는가. */
@@ -25,9 +25,9 @@ internal object RallyChangeNote {
         doc.lastAt > prevAt && doc.lastAt > 0L && doc.lastBy.isNotEmpty() && doc.lastBy != myLabel
 
     private fun ago(ms: Long): String = when {
-        ms < 60_000L -> "방금"
-        ms < 3_600_000L -> "${ms / 60_000L}분 전"
-        ms < 86_400_000L -> "${ms / 3_600_000L}시간 전"
-        else -> "${ms / 86_400_000L}일 전"
+        ms < 60_000L -> T.s.justNow
+        ms < 3_600_000L -> T.s.minAgo(ms / 60_000L)
+        ms < 86_400_000L -> T.s.hourAgo(ms / 3_600_000L)
+        else -> T.s.dayAgo(ms / 86_400_000L)
     }
 }

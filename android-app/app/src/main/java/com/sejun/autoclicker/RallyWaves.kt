@@ -30,18 +30,15 @@ object RallyWaves {
         val total = Math.round(Math.max(0.0, sec)).toInt()
         val m = total / 60
         val s = total % 60
-        return when {
-            m == 0 -> "${s}초"
-            s == 0 -> "${m}분"
-            else -> "${m}분 ${s}초"
+        return T.s.span(m, s)분 ${s}초"
         }
     }
 
     /** 조 제목 줄의 값: "먼저 도착", "같이 도착", "1분 뒤 도착" */
     fun delayLabel(wave: Int, delaySec: Double): String = when {
-        wave <= 1 -> "먼저 도착"
-        delaySec <= 0.0 -> "같이 도착"
-        else -> "${span(delaySec)} 뒤 도착"
+        wave <= 1 -> T.s.arrivesFirst
+        delaySec <= 0.0 -> T.s.arrivesTogether
+        else -> T.s.arrivesAfter(span(delaySec))
     }
 
     /**

@@ -103,7 +103,7 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
         head.addView(titleView, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         head.addView(android.widget.ImageView(context).apply {
             setImageResource(R.drawable.ic_rp_close); scaleType = android.widget.ImageView.ScaleType.CENTER
-            contentDescription = "닫기"
+            contentDescription = T.s.close
             setOnClickListener { dismiss() }
         }, LinearLayout.LayoutParams(dp(44), dp(44)).apply { rightMargin = -dp(10) })
         card.addView(head)
@@ -138,7 +138,7 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
             }
             // 현재 방을 고른 상태에서는 옮길 곳이 없으니 버튼을 흐리게 둔다
             val canMove = chosen != selected
-            moveBtn.text = if (canMove) "$chosen 방으로 $moveLabel" else "옮길 방을 골라 주세요"
+            moveBtn.text = if (canMove) T.s.moveTo(chosen, moveLabel) else T.s.pickRoomFirst
             moveBtn.alpha = if (canMove) 1f else 0.4f
         }
         val itemHeight = dp(60)
@@ -161,9 +161,9 @@ class RallyPickPopup(private val context: Context, private val wm: WindowManager
             first.addView(TextView(context).apply {
                 text = code; setTextColor(color("#F1F5F9")); textSize = 18f; setTypeface(null, android.graphics.Typeface.BOLD)
             })
-            if (code == selected) first.addView(badge("현재", "#CBD5E1", "#26324A"),
+            if (code == selected) first.addView(badge(T.s.badgeCurrent, "#CBD5E1", "#26324A"),
                 LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(20)).apply { leftMargin = dp(8) })
-            if (running) first.addView(badge("집결 중", "#FBBF24", "#29FBBF24"),
+            if (running) first.addView(badge(T.s.badgeRunning, "#FBBF24", "#29FBBF24"),
                 LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(20)).apply { leftMargin = dp(8) })
             texts.addView(first)
             if (detail.isNotEmpty()) texts.addView(TextView(context).apply {

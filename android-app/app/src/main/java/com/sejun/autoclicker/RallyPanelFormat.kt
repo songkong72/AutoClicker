@@ -31,14 +31,14 @@ internal object RallyPanelFormat {
 
     /** 접힌 방 설정 한 줄의 값: "집결 대기 5분 · 이동 준비 15초" */
     fun setupSummary(waitSec: Double, prepSec: Double): String =
-        "집결 대기 ${sec(waitSec / 60.0)}분 · 이동 준비 ${sec(prepSec)}초"
+        T.s.setupSummary(sec(waitSec / 60.0), sec(prepSec))
 
     /**
      * 시작이 막힌 이유(지금은 "참여 군단이 없어요" 하나) 뒤에 어떻게 푸는지를 붙인다.
      * 편집 중이면 체크박스가 보이니 체크하라고, 아니면 연필부터 누르라고 알린다.
      */
     fun blockedNote(reason: String, editing: Boolean): String =
-        reason + " · " + (if (editing) "참여할 군단을 체크하세요" else "위의 연필을 눌러 군단을 체크하세요")
+        reason + " · " + (if (editing) T.s.blockedHintEditing else T.s.blockedHintView)
 
     /**
      * 접힌 "내 기기" 한 줄 요약: "위치 저장됨 · 방 0001 · 문".
@@ -46,10 +46,10 @@ internal object RallyPanelFormat {
      * 빠진 것(클릭 위치·방·캐릭터명)은 "없음"으로 드러내 무엇을 해야 하는지 알 수 있게 한다.
      */
     fun deviceSummary(characterName: String, room: String, correctionText: String, positionSaved: Boolean): String = listOfNotNull(
-        if (positionSaved) "위치 저장됨" else "위치 없음",
-        if (room.isBlank()) "방 없음" else "방 $room",
-        characterName.ifBlank { "캐릭터명 없음" },
-        if (correctionText == "0초") null else "보정 $correctionText"
+        if (positionSaved) T.s.posSaved else T.s.posNone,
+        if (room.isBlank()) T.s.roomNone else T.s.room(room),
+        characterName.ifBlank { T.s.nameNone },
+        if (correctionText == T.s.sec("0")) null else T.s.correction(correctionText)
     ).joinToString(" · ")
 
     /**
@@ -67,7 +67,7 @@ internal object RallyPanelFormat {
             if (i.excluded) ""
             else {
                 val d = Math.round((click(i) - first) * 10) / 10.0
-                if (d <= 0.0) "먼저 클릭" else sec(d) + "초 뒤"
+                if (d <= 0.0) T.s.clickFirst else T.s.secLater(sec(d))
             }
         }
     }

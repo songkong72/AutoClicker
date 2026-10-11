@@ -60,12 +60,12 @@ class RallyInputPopup(private val context: Context, private val wm: WindowManage
         }
         fun submit() {
             if (onOk(input.text.toString())) dismiss()
-            else { error.text = errorText ?: "0 ~ ${RallyInputParse.MAX_MARCH_SEC.toInt()} 사이 숫자를 입력해 주세요"; error.visibility = View.VISIBLE }
+            else { error.text = errorText ?: T.s.rangeError(RallyInputParse.MAX_MARCH_SEC.toInt()); error.visibility = View.VISIBLE }
         }
         val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val lp = { m: Int -> LinearLayout.LayoutParams(0, dp(44), 1f).apply { marginStart = m } }
-        row.addView(button("취소", "#334155", "#E2E8F0") { dismiss() }, lp(0))
-        row.addView(button("확인", "#2563EB", "#FFFFFF") { submit() }, lp(dp(8)))
+        row.addView(button(T.s.cancel, "#334155", "#E2E8F0") { dismiss() }, lp(0))
+        row.addView(button(T.s.ok, "#2563EB", "#FFFFFF") { submit() }, lp(dp(8)))
         card.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
         input.setOnEditorActionListener { _, _, _ -> submit(); true }
 

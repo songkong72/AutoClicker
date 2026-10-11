@@ -107,17 +107,18 @@ class RallyPanelHost(
 
     fun show() {
         if (panel != null) return
+        T.use(context) // 폰(또는 이 앱)의 언어에 맞춘 글자 표를 고른다
         val view = RallyPanelView(context, object : RallyPanelView.Callbacks {
             override fun onStart() {
                 // 참여 군단 중 맡은 사람이 없는 군단이 있으면 한 번 물어본다(그 군단은 클릭할 폰이 없다)
                 val missing = stateSource.current().teams.filter { !it.excluded && it.leaderId.isBlank() }
                 if (missing.isEmpty() || !stateSource.isAdmin) { stateSource.onStart(); refresh(); return }
-                pick.show("${missing.joinToString("·") { it.name }}이(가) 미배정이에요", emptyList(),
-                    "맡은 사람이 없어 이 군단은 클릭하지 않아요. 어떻게 할까요?",
+                pick.show(T.s.unassignedTitle(missing.joinToString("·") { T.s.teamName(it.name) }), emptyList(),
+                    T.s.unassignedBody,
                     listOf(
-                        RallyPickPopup.Item("미배정 제외하고 시작", "#93C5FD") { stateSource.onStartExcludingUnassigned(); refresh() },
-                        RallyPickPopup.Item("그대로 시작") { stateSource.onStart(); refresh() },
-                        RallyPickPopup.Item("취소", "#94A3B8") { }
+                        RallyPickPopup.Item(T.s.startWithoutUnassigned, "#93C5FD") { stateSource.onStartExcludingUnassigned(); refresh() },
+                        RallyPickPopup.Item(T.s.startAnyway) { stateSource.onStart(); refresh() },
+                        RallyPickPopup.Item(T.s.cancel, "#94A3B8") { }
                     ))
             }
             override fun onStop() { stateSource.onStop(); refresh() }
@@ -126,7 +127,7 @@ class RallyPanelHost(
                 // 집결 진행 중에는 ✕를 한 번 더 눌러야 패널이 꺼진다(카운트다운이 갑자기 사라지는 실수 방지)
                 val running = stateSource.current().runState == RallyRunState.RUNNING
                 if (closeGuard.onTap(running, SystemClock.elapsedRealtime())) hide()
-                else Toast.makeText(context, "집결이 진행 중이에요. 패널을 끄려면 ✕를 한 번 더 누르세요", Toast.LENGTH_SHORT).show()
+                else Toast.makeText(context, T.s.closeGuardToast, Toast.LENGTH_SHORT).show()
             }
             override fun onTitleTap() { if (secretTap.tap(System.currentTimeMillis())) onSecretUnlock() } // 제목 5번 연타: 숨은 기능
             override fun onMarchDelta(teamId: String, deltaSec: Double) { stateSource.onMarchDelta(teamId, deltaSec); refresh() }
@@ -136,14 +137,14 @@ class RallyPanelHost(
             override fun onEditRoom(current: String) { showRoomPicker(current) }
             override fun onEditMarch(teamId: String, currentSec: Double) {
                 val shown = if (currentSec % 1.0 == 0.0) currentSec.toInt().toString() else currentSec.toString()
-                input.show("행군시간(초)", shown) { text ->
+                input.show(T.s.askMarch, shown) { text ->
                     val sec = RallyInputParse.marchSeconds(text) ?: return@show false
                     stateSource.onSetMarch(teamId, sec); refresh(); true
                 }
             }
             override fun onAddTeam() { stateSource.onAddTeam(); refresh() }
             override fun onEditPrep(currentSec: Double) {
-                input.show("이동 준비 시간(초)", currentSec.toInt().toString()) { text ->
+                input.show(T.s.askPrep, currentSec.toInt().toString()) { text ->
                     val sec = RallyInputParse.marchSeconds(text) ?: return@show false
                     stateSource.onSetPrep(sec); refresh(); true
                 }
@@ -153,26 +154,26 @@ class RallyPanelHost(
             override fun onSetWave(teamId: String, wave: Int) { stateSource.onSetWave(teamId, wave); refresh() }
             override fun onSetWaveDelay(wave: Int, sec: Double) { stateSource.onSetWaveDelay(wave, sec); refresh() }
             override fun onEditWaveDelay(wave: Int, currentSec: Double) {
-                input.show("${wave}조 · 1조보다 몇 초 뒤에 도착할까요", currentSec.toInt().toString(),
-                    errorText = "0 ~ ${RallyWaves.MAX_DELAY_SEC.toInt()} 사이 숫자를 입력해 주세요 (예: 60)") { text ->
+                input.show(T.s.askWaveDelay(wave), currentSec.toInt().toString(),
+                    errorText = T.s.rangeErrorEx(RallyWaves.MAX_DELAY_SEC.toInt(), "60")) { text ->
                     val sec = RallyInputParse.marchSeconds(text)?.takeIf { it <= RallyWaves.MAX_DELAY_SEC } ?: return@show false
                     stateSource.onSetWaveDelay(wave, sec); refresh(); true
                 }
             }
             override fun onSplitWaves() {
-                pick.show("조 나누기", emptyList(), "군단 번호 순서대로 나눠요. 조마다 1조보다 몇 분 뒤에 도착할지 따로 정할 수 있어요.",
+                pick.show(T.s.splitTitle, emptyList(), T.s.splitBody,
                     listOf(
-                        RallyPickPopup.Item("2개씩") { stateSource.onSplitWaves(2); refresh() },
-                        RallyPickPopup.Item("3개씩") { stateSource.onSplitWaves(3); refresh() },
-                        RallyPickPopup.Item("5개씩") { stateSource.onSplitWaves(5); refresh() },
-                        RallyPickPopup.Item("모두 1조로 (조 없애기)", "#93C5FD") { stateSource.onSplitWaves(0); refresh() },
-                        RallyPickPopup.Item("닫기", "#94A3B8") { }
+                        RallyPickPopup.Item(T.s.perWave(2)) { stateSource.onSplitWaves(2); refresh() },
+                        RallyPickPopup.Item(T.s.perWave(3)) { stateSource.onSplitWaves(3); refresh() },
+                        RallyPickPopup.Item(T.s.perWave(5)) { stateSource.onSplitWaves(5); refresh() },
+                        RallyPickPopup.Item(T.s.allOneWave, "#93C5FD") { stateSource.onSplitWaves(0); refresh() },
+                        RallyPickPopup.Item(T.s.close, "#94A3B8") { }
                     ))
             }
             override fun onEditAdminAdjust(teamId: String, teamName: String, currentMs: Int) {
                 val shown = if (currentMs % 1000 == 0) (currentMs / 1000).toString() else (currentMs / 1000.0).toString()
-                input.show("$teamName 보정(초) · −는 더 일찍, +는 더 늦게", shown, signed = true,
-                    errorText = "−5 ~ +5 사이 숫자를 입력해 주세요 (예: -1.5)") { text ->
+                input.show(T.s.askTeamOffset(T.s.teamName(teamName)), shown, signed = true,
+                    errorText = T.s.offsetError) { text ->
                     val ms = RallyInputParse.correctionMs(text) ?: return@show false
                     stateSource.onSetAdminAdjust(teamId, ms); refresh(); true
                 }
@@ -183,8 +184,8 @@ class RallyPanelHost(
             override fun onSavePosition() { stateSource.onSavePosition(); refresh() }
             override fun onEditCorrection(currentMs: Int) {
                 val shown = if (currentMs % 1000 == 0) (currentMs / 1000).toString() else (currentMs / 1000.0).toString()
-                input.show("클릭 보정(초) · −는 더 일찍, +는 더 늦게", shown, signed = true,
-                    errorText = "−5 ~ +5 사이 숫자를 입력해 주세요 (예: -1.5)") { text ->
+                input.show(T.s.askMyOffset, shown, signed = true,
+                    errorText = T.s.offsetError) { text ->
                     val ms = RallyInputParse.correctionMs(text) ?: return@show false
                     stateSource.onSetCorrectionMs(ms); refresh(); true
                 }
@@ -233,33 +234,33 @@ class RallyPanelHost(
         val mine = RallyRoomHistory.load(prefs)
         val cached = RoomListCache.load(prefs)
         if (mine.isEmpty() && cached.isEmpty()) {
-            Toast.makeText(context, "들어갔던 방이 없어요. 앱 첫 화면에서 방을 만들거나 입장해 주세요", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, T.s.noRoomsToast, Toast.LENGTH_LONG).show()
             return
         }
         val onMove = { code: String -> handler.post { onSwitchRoom(code) }; Unit }
         // 열자마자 마지막으로 받은 서버 목록(없으면 이 기기의 입장 기록)을 보여 주고, 뒤에서 새로 받아 바꾼다.
-        if (cached.isNotEmpty()) pick.showSelect("방 선택 (${cached.size}개) · 불러오는 중…", cached, current, "이동", onMove)
-        else pick.showSelect("방 선택 · 불러오는 중…", mine.map { it to it }, current, "이동", onMove)
+        if (cached.isNotEmpty()) pick.showSelect(T.s.roomsLoading(cached.size), cached, current, T.s.move, onMove)
+        else pick.showSelect(T.s.roomsLoadingNone, mine.map { it to it }, current, T.s.move, onMove)
         stateSource.loadAllRooms { rooms, error ->
             if (panel == null) return@loadAllRooms
             if (rooms == null) {
                 // 서버 목록을 못 읽으면 남아 있던 목록이 그대로 보인다. 이유를 제목에 적어 둔다(규칙 게시 여부 확인용).
                 val shown = if (cached.isNotEmpty()) cached else mine.map { it to it }
-                pick.showSelect("방 선택 · 서버 방 목록을 불러오지 못했어요${if (error.isNotEmpty()) " ($error)" else ""}", shown, current, "이동", onMove)
+                pick.showSelect(T.s.roomsFailed(error), shown, current, T.s.move, onMove)
                 return@loadAllRooms
             }
             if (rooms.isEmpty()) return@loadAllRooms
             RoomListCache.save(prefs, rooms)
-            val title = "방 선택 (${rooms.size}개)"
+            val title = T.s.roomsTitle(rooms.size)
             // 저장해 둔 목록과 같으면 다시 그리지 않고 제목만 바꾼다(깜빡임·선택 풀림 방지)
             if (rooms == cached && pick.updateSelectTitle(title)) return@loadAllRooms
-            pick.showSelect(title, rooms, current, "이동", onMove)
+            pick.showSelect(title, rooms, current, T.s.move, onMove)
         }
     }
 
     private fun promptCharacterName(current: String) {
-        input.show("게임 캐릭터명 · 지휘관이 이 이름을 보고 군단을 배정해요", current, freeText = true,
-            errorText = "캐릭터명을 입력해 주세요 (최대 ${RallyRoster.MAX_NAME}자)") { text ->
+        input.show(T.s.askCharName, current, freeText = true,
+            errorText = T.s.charNameError(RallyRoster.MAX_NAME)) { text ->
             val name = RallyRoster.cleanName(text)
             if (name.isEmpty()) return@show false
             stateSource.onSetCharacterName(name); refresh(); true
@@ -269,18 +270,18 @@ class RallyPanelHost(
     /** 지휘관: 방에 등록한 사람 목록에서 이 군단을 맡을 사람을 고른다. 이미 다른 군단에 있는 사람을 고르면 그쪽에서 빠진다. */
     private fun showAssignPicker(teamId: String, teamName: String) {
         // 누르자마자 반응이 보이도록 먼저 "불러오는 중" 창을 띄우고, 결과가 오면 바꿔 그린다.
-        pick.show("$teamName 을(를) 맡을 사람", emptyList(), "명단을 불러오는 중…", listOf(RallyPickPopup.Item("닫기") { }))
+        pick.show(T.s.assignTitle(T.s.teamName(teamName)), emptyList(), T.s.rosterLoading, listOf(RallyPickPopup.Item(T.s.close) { }))
         stateSource.loadRoster { roster ->
             if (panel == null) return@loadRoster
             if (roster == null) {
                 // 토스트는 기기에 따라 안 보이므로 목록 창 안에 이유를 적는다.
-                pick.show("$teamName 을(를) 맡을 사람", emptyList(),
-                    "명단을 불러오지 못했어요. 인터넷 연결과 Firebase 규칙 게시(rallyMembers) 여부를 확인해 주세요\n(${stateSource.rosterError()})",
-                    listOf(RallyPickPopup.Item("닫기") { }))
+                pick.show(T.s.assignTitle(T.s.teamName(teamName)), emptyList(),
+                    T.s.rosterFailed(stateSource.rosterError()),
+                    listOf(RallyPickPopup.Item(T.s.close) { }))
                 return@loadRoster
             }
             val teams = stateSource.current().teams
-            val assignedTo = teams.filter { it.leaderId.isNotEmpty() }.associate { it.leaderId to it.name }
+            val assignedTo = teams.filter { it.leaderId.isNotEmpty() }.associate { it.leaderId to T.s.teamName(it.name) }
             val dupNames = roster.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
             val items = roster.map { m ->
                 // 같은 이름이 둘이면(앱을 다시 설치한 경우) 기기 ID 끝 4자리로 구별한다. 집결장 화면의 "내 기기"에 같은 값이 보인다.
@@ -291,11 +292,11 @@ class RallyPanelHost(
             }
             val footer = mutableListOf<RallyPickPopup.Item>()
             if (teams.firstOrNull { it.id == teamId }?.leaderId?.isNotEmpty() == true) {
-                footer += RallyPickPopup.Item("배정 해제", "#F87171") { stateSource.onUnassignLeader(teamId); refresh() }
+                footer += RallyPickPopup.Item(T.s.unassign, "#F87171") { stateSource.onUnassignLeader(teamId); refresh() }
             }
-            footer += RallyPickPopup.Item("닫기") { }
-            pick.show("$teamName 을(를) 맡을 사람", items,
-                "아직 등록한 사람이 없어요. 집결장이 앱에서 캐릭터명을 등록하면 여기에 나타나요", footer)
+            footer += RallyPickPopup.Item(T.s.close) { }
+            pick.show(T.s.assignTitle(T.s.teamName(teamName)), items,
+                T.s.rosterEmpty, footer)
         }
     }
 
@@ -334,6 +335,7 @@ class RallyPanelHost(
 
     private fun refresh() {
         val p = panel ?: return
+        T.use(context)
         val state = stateSource.current()
         // 집결이 시작되면 카운트다운만 보이는 알약으로 자동 접고, 끝나거나 취소되면 다시 펼친다.
         if (state.runState != lastRun) {
