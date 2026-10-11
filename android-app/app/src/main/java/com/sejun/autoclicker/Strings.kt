@@ -3,7 +3,7 @@ package com.sejun.autoclicker
 import android.content.Context
 
 /**
- * 화면에 보이는 글자를 한곳에 모은다(코드 안에서 만드는 글자용. 레이아웃의 고정 글자는 `res/values*/strings.xml`).
+ * 화면에 보이는 글자를 한곳에 모은다(코드 안에서 만드는 글자용. 레이아웃의 고정 글자는 `res/values/strings.xml`과 `res/values-en/strings.xml`).
  * 계산하는 쪽([RallyScreenModel] 등)은 안드로이드 없이 테스트하므로 리소스 대신 이 표를 쓴다.
  * 언어를 더하려면 [Str]를 구현한 표를 하나 더 만들고 [T.forLanguage]에 잇는다.
  * 기본은 한국어다: 번역이 없는 언어의 폰은 한국어로 보인다.
