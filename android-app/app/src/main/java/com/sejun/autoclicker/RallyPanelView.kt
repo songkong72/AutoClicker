@@ -519,7 +519,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         tag = "wavePills"
         orientation = LinearLayout.HORIZONTAL
         gravity = android.view.Gravity.CENTER_VERTICAL
-        setPadding(0, 0, 0, dpx(8))
+        setPadding(0, dpx(6), 0, dpx(8))
         addView(TextView(themed).apply {
             text = "조"
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
@@ -603,6 +603,34 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                     setTextColor(Color.parseColor(if (on) "#FFFFFF" else "#F1F5F9"))
                     setTypeface(null, if (on) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
                     setOnClickListener { if (!on) callbacks.onSetWave(r.id, w) }
+                }
+                // 삭제는 접기(▴) 옆이 아니라 펼친 부분의 맨 아래 오른쪽에 글자 버튼으로 둔다(접으려다 지우지 않게).
+                // 첫 탭은 "한 번 더 누르면 삭제"로 바뀌기만 하고, 3초 안에 한 번 더 눌러야 지운다.
+                var del = expand.findViewWithTag<TextView>("rowDelBottom")
+                if (del == null && editOpen) {
+                    del = TextView(themed).apply {
+                        tag = "rowDelBottom"
+                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+                        setTextColor(Color.parseColor("#F87171"))
+                        gravity = android.view.Gravity.CENTER
+                        maxLines = 1
+                        setBackgroundResource(R.drawable.bg_pill_outline)
+                        setPadding(dpx(14), 0, dpx(14), 0)
+                    }
+                    expand.addView(del, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dpx(36)).apply {
+                        gravity = android.view.Gravity.END
+                        topMargin = dpx(10)
+                    })
+                }
+                del?.visibility = if (editOpen) View.VISIBLE else View.GONE
+                if (del != null && editOpen) {
+                    val armed = deleteGuard.isArmed(r.id, android.os.SystemClock.elapsedRealtime())
+                    del.text = if (armed) "한 번 더 누르면 삭제" else "${r.name} 삭제"
+                    del.setTypeface(null, if (armed) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+                    del.setOnClickListener {
+                        if (deleteGuard.onTap(r.id, android.os.SystemClock.elapsedRealtime())) callbacks.onRemoveTeam(r.id)
+                        else lastRender?.invoke()
+                    }
                 }
             }
             v.findViewById<android.widget.ImageView>(R.id.rowDot).apply {
@@ -710,7 +738,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             v.findViewById<View>(R.id.rowAdjMinus).setOnClickListener { callbacks.onSetAdminAdjust(r.id, r.adminAdjustMs - ADJUST_STEP_MS) }
             v.findViewById<View>(R.id.rowAdjPlus).setOnClickListener { callbacks.onSetAdminAdjust(r.id, r.adminAdjustMs + ADJUST_STEP_MS) }
             v.findViewById<TextView>(R.id.rowDel).apply {
-                visibility = if (editOpen) View.VISIBLE else View.GONE
+                // 머리 줄의 빨간 ✕는 쓰지 않는다(접기 ▴ 바로 옆이라 헷갈렸다). 삭제는 펼친 부분 아래의 글자 버튼이 맡는다.
+                visibility = View.GONE
                 // 첫 탭은 빨간 ✕가 "삭제?"로 바뀌기만 하고, 3초 안에 한 번 더 눌러야 지운다
                 val armed = deleteGuard.isArmed(r.id, android.os.SystemClock.elapsedRealtime())
                 text = if (armed) "삭제?" else ""
