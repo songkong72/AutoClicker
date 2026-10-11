@@ -23,6 +23,11 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         const val VISIBLE_ROWS = 5
         /** 조 상자 사이의 간격(dp) */
         const val CARD_GAP_DP = 8
+        /** 방 설정을 접었을 때 목록에 더 주는 높이(dp): 군단 두 줄쯤 */
+        const val FOLDED_SETUP_BONUS_DP = 104
+        const val UI_PREFS = "rally_panel_ui"
+        const val KEY_SETUP_FOLDED = "setup_folded"
+        const val KEY_FOLDED_WAVES = "folded_waves"
         private const val SAVED_FLASH = "✓ 저장됨"
         val PHASE_COLORS = listOf("#FBBF24", "#3B82F6", "#A78BFA", "#2DD4BF")
         val PHASE_NAMES = listOf("대기", "집결", "행군", "도착")
@@ -96,7 +101,20 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     val rowsScrollView: View get() = rowsScroll
     private val adminBar = root.findViewById<View>(R.id.rallyAdminBar)
     /** 조 제목 줄 하나(목록 안, 그 조의 첫 군단 위). 조를 쓰는 방에서만 만든다. */
-    private class WaveHead(val root: LinearLayout, val name: TextView, val count: TextView, val minus: TextView, val value: TextView, val plus: TextView)
+    private class WaveHead(val root: LinearLayout, val arrow: android.widget.ImageView, val name: TextView, val count: TextView, val minus: TextView, val value: TextView, val plus: TextView)
+    /** 조 번호 → 그 조의 상자(머리띠 + 군단 줄). 접을 때 머리띠 아래를 숨긴다. */
+    private val waveCards = LinkedHashMap<Int, LinearLayout>()
+    /** 접기 상태는 이 폰에만 남긴다(다른 사람 화면은 그대로). */
+    private val uiPrefs = context.getSharedPreferences(UI_PREFS, Context.MODE_PRIVATE)
+    private var setupFolded = uiPrefs.getBoolean(KEY_SETUP_FOLDED, false)
+    private val foldedWaves: MutableSet<Int> = (uiPrefs.getString(KEY_FOLDED_WAVES, "") ?: "").split(',').mapNotNull { it.toIntOrNull() }.toMutableSet()
+    /** 방 설정 칸이 지금 화면에 나와 있는지(편집 중일 때만). */
+    private var setupShown = false
+    private fun toggleWave(wave: Int) {
+        if (!foldedWaves.remove(wave)) foldedWaves.add(wave)
+        uiPrefs.edit().putString(KEY_FOLDED_WAVES, foldedWaves.sorted().joinToString(",")).apply()
+        lastRender?.invoke()
+    }
     private val waveHeads = LinkedHashMap<Int, WaveHead>()
     /** 목록에 보이는 줄(조 머리띠와 군단 줄)을 위에서부터. 목록 높이(5줄)를 셀 때 쓴다. */
     private var lineViews: List<View> = emptyList()
@@ -130,15 +148,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     init {
         // 목록은 군단 5줄 높이까지만 보인다(얇은 제외 줄도 한 줄로 센다). 펼친 줄이 그보다 크면 그 줄은 다 보이게 한다.
         (root as RallyDragLayout).visibleListHeight = {
-            // 줄은 상자(조) 안에 들어 있다. 보이는 줄들이 걸친 상자 사이의 간격과 테두리도 높이에 더한다.
-            var sum = 0; var tallest = 0
-            lineViews.forEachIndexed { i, v ->
-                val h = v.measuredHeight
-                if (i < VISIBLE_ROWS) sum += h
-                if (h > tallest) tallest = h
-            }
-            val gaps = (lineCard.getOrNull(VISIBLE_ROWS - 1) ?: 0) * dpx(CARD_GAP_DP) + dpx(VISIBLE_ROWS)
-            if (lineViews.size > VISIBLE_ROWS) Math.max(sum + gaps, tallest) else 0
+            // 군단 줄만 5줄까지 센다(조 머리띠는 세지 않는다). 접힌 조의 줄은 보이지 않으니 빼고,
+            // 방 설정을 접어 두었으면 그만큼(군단 두 줄쯤) 목록을 더 길게 보여 준다.
+            val lines = lineViews.indices.filter { lineViews[it].visibility == View.VISIBLE }
+                .map { ListLine(lineViews[it].measuredHeight, lineViews[it] in rowViews, lineCard.getOrElse(it) { 0 }) }
+            val extra = if (setupShown && setupFolded) dpx(FOLDED_SETUP_BONUS_DP) else 0
+            if (lines.isEmpty()) 0 else RallyListHeight.limit(lines, VISIBLE_ROWS, dpx(CARD_GAP_DP), extra + dpx(VISIBLE_ROWS))
         }
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
@@ -172,6 +187,11 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             head.addView(splitBtn, at, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dpx(36)).apply { marginEnd = dpx(8) })
         }
         splitBtn.setOnClickListener { callbacks.onSplitWaves() }
+        root.findViewById<View>(R.id.rallySetupCap).setOnClickListener {
+            setupFolded = !setupFolded
+            uiPrefs.edit().putBoolean(KEY_SETUP_FOLDED, setupFolded).apply()
+            lastRender?.invoke()
+        }
         root.findViewById<View>(R.id.setPrep).setOnClickListener { callbacks.onEditPrep(prepShown) }
         // 이동 준비는 1초씩 줄이고 늘린다(0초 아래로는 내려가지 않는다)
         root.findViewById<View>(R.id.setPrepMinus).setOnClickListener { if (prepShown >= 1.0) callbacks.onSetPrep(prepShown - 1.0) }
@@ -412,7 +432,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             alpha = if (full) 0.45f else 1f
             isEnabled = !full
         }
-        val setupShown = showSetup == View.VISIBLE
+        setupShown = showSetup == View.VISIBLE
         // 조 나누기는 군단이 둘 이상일 때만 뜻이 있다
         splitBtn.visibility = if (setupShown && model.rows.size >= 2 && !isMinimized) View.VISIBLE else View.GONE
         rowsHeadLeft.text = if (setupShown) "군단 ${model.rows.size}/${RallyRoomEdit.MAX_TEAMS}" else "군단"
@@ -421,8 +441,19 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         prepShown = model.prepSec
         root.findViewById<View>(R.id.rallySettingsRow).visibility = showSetup
         root.findViewById<View>(R.id.rallyPrepRow).visibility = showSetup
-        root.findViewById<View>(R.id.rallySetupCap).visibility = showSetup
-        root.findViewById<View>(R.id.rallySetupCard).visibility = showSetup
+        // 방 설정: 펼치면 제목 줄 + 칸, 접으면 칸 모양의 한 줄에 값만("집결 대기 5분 · 이동 준비 15초").
+        root.findViewById<LinearLayout>(R.id.rallySetupCap).apply {
+            visibility = showSetup
+            if (setupFolded) { setBackgroundResource(R.drawable.bg_rally_card); minimumHeight = dpx(44); setPadding(dpx(12), 0, dpx(12), 0) }
+            else { background = null; minimumHeight = dpx(32); setPadding(dpx(4), 0, dpx(4), 0) }
+            contentDescription = if (setupFolded) "방 설정 펼치기" else "방 설정 접기"
+        }
+        root.findViewById<TextView>(R.id.rallySetupCapTitle).text = if (setupFolded) "▸ 방 설정" else "방 설정 ▾"
+        root.findViewById<TextView>(R.id.rallySetupCapSummary).apply {
+            visibility = if (setupFolded) View.VISIBLE else View.GONE
+            text = RallyPanelFormat.setupSummary(model.waitSec, model.prepSec)
+        }
+        root.findViewById<View>(R.id.rallySetupCard).visibility = if (setupFolded) View.GONE else showSetup
         root.findViewById<TextView>(R.id.setPrep).text = "${model.prepSec.toInt()}초"
         // 고른 집결 대기 시간은 파란 칩으로 채운다
         listOf(R.id.setWait3 to 180.0, R.id.setWait5 to 300.0, R.id.setWait10 to 600.0).forEach { (id, sec) ->
@@ -491,7 +522,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             gravity = android.view.Gravity.CENTER_VERTICAL
             minimumHeight = dpx(44)
             setBackgroundColor(Color.parseColor("#222E4B"))
-            setPadding(dpx(10), 0, dpx(8), 0)
+            setPadding(dpx(6), 0, dpx(8), 0)
         }
         val name = TextView(themed).apply {
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
@@ -517,12 +548,17 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             minHeight = dpx(36)
             setPadding(dpx(8), 0, dpx(8), 0)
         }
+        val arrow = android.widget.ImageView(themed).apply {
+            setImageResource(R.drawable.ic_rp_chevron)
+            scaleType = android.widget.ImageView.ScaleType.CENTER
+        }
+        row.addView(arrow, LinearLayout.LayoutParams(dpx(22), dpx(26)).apply { marginEnd = dpx(4) })
         row.addView(name, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dpx(26)))
         row.addView(count, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dpx(8) })
         row.addView(minus, LinearLayout.LayoutParams(dpx(34), dpx(34)))
         row.addView(value, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         row.addView(plus, LinearLayout.LayoutParams(dpx(34), dpx(34)))
-        return WaveHead(row, name, count, minus, value, plus)
+        return WaveHead(row, arrow, name, count, minus, value, plus)
     }
 
     /** 조 제목 줄의 글자. 편집 중에는 2조부터 −/+ 로 도착 간격을 고치고, 진행 중에는 그 조의 도착까지 남은 시간을 보여 준다. */
@@ -530,6 +566,12 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         val delay = m?.delaySec ?: 0.0
         h.name.text = "${wave}조"
         h.count.text = "군단 ${teamCount}개"
+        // 머리띠(화살표·조 딱지·군단 수 쪽)를 누르면 그 조를 접고 편다. −/+ 와 값은 저마다의 일을 한다.
+        val folded = wave in foldedWaves
+        h.arrow.rotation = if (folded) 0f else 90f
+        h.root.contentDescription = "${wave}조 " + (if (folded) "펼치기" else "접기")
+        h.root.setOnClickListener { toggleWave(wave) }
+        waveCards[wave]?.let { card -> for (i in 1 until card.childCount) card.getChildAt(i).visibility = if (folded) View.GONE else View.VISIBLE }
         val adjustable = editing && wave > 1
         h.minus.visibility = if (adjustable) View.VISIBLE else View.GONE
         h.plus.visibility = if (adjustable) View.VISIBLE else View.GONE
@@ -595,6 +637,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         if (sig != rowsSig || rowViews.size != list.size) {
             rows.removeAllViews()
             waveHeads.clear()
+            waveCards.clear()
             val inflater = LayoutInflater.from(themed)
             val made = ArrayList<View>()
             val lines = ArrayList<View>()
@@ -611,7 +654,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                         topMargin = if (rows.childCount == 0) 0 else dpx(CARD_GAP_DP)
                     })
                     if (waveMode) {
-                        val h = newWaveHead(); waveHeads[r.wave] = h
+                        val h = newWaveHead(); waveHeads[r.wave] = h; waveCards[r.wave] = box
                         box.addView(h.root); lines += h.root; cardOf += rows.childCount - 1
                         box.addView(newDivider())
                     }

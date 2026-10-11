@@ -3,9 +3,35 @@ package com.sejun.autoclicker
 /** 군단 한 줄의 시간차이 계산 입력: 행군시간, 지휘관 보정(ms), 제외 여부. */
 internal data class LagInput(val marchSec: Double, val adminAdjustMs: Int, val excluded: Boolean)
 
+/** 군단 목록의 한 줄(조 머리띠 또는 군단 줄): 높이(px), 군단 줄인지, 몇 번째 상자에 들어 있는지. 접혀서 안 보이는 줄은 넣지 않는다. */
+internal data class ListLine(val heightPx: Int, val isTeam: Boolean, val card: Int)
+
+/** 군단 목록이 한 번에 보여 줄 높이. 조 머리띠는 세지 않고 군단 줄만 센다. */
+internal object RallyListHeight {
+    /**
+     * 위에서부터 군단 [maxTeams]줄이 다 보이는 높이(px)를 돌려준다. 그 사이의 조 머리띠와 상자 사이 간격([gapPx])은 덤으로 들어간다.
+     * [extraPx]는 방 설정을 접어서 생긴 자리처럼 더 줄 수 있는 높이. 보이는 군단이 [maxTeams]줄 이하면 0(한도 없음).
+     * 어느 한 줄(펼친 군단 줄)이 그보다 크면 그 줄은 다 보이게 한다.
+     */
+    fun limit(lines: List<ListLine>, maxTeams: Int, gapPx: Int, extraPx: Int = 0): Int {
+        if (lines.count { it.isTeam } <= maxTeams) return 0
+        var teams = 0; var sum = 0; var lastCard = lines.first().card; var firstCard = lastCard
+        for (l in lines) {
+            sum += l.heightPx; lastCard = l.card
+            if (l.isTeam && ++teams == maxTeams) break
+        }
+        val gaps = (lastCard - firstCard) * gapPx
+        return Math.max(sum + gaps + extraPx, lines.maxOf { it.heightPx })
+    }
+}
+
 /** 패널에 보이는 초 단위 글자 모양(정수면 소수점 없이). */
 internal object RallyPanelFormat {
     fun sec(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
+
+    /** 접힌 방 설정 한 줄의 값: "집결 대기 5분 · 이동 준비 15초" */
+    fun setupSummary(waitSec: Double, prepSec: Double): String =
+        "집결 대기 ${sec(waitSec / 60.0)}분 · 이동 준비 ${sec(prepSec)}초"
 
     /**
      * 시작이 막힌 이유(지금은 "참여 군단이 없어요" 하나) 뒤에 어떻게 푸는지를 붙인다.

@@ -260,24 +260,49 @@
         </LinearLayout>
     </com.sejun.autoclicker.MaxHeightScrollView>
 
-    <TextView
+    <!-- 방 설정 제목 줄: 누르면 접고 편다. 접으면 칸 모양의 한 줄이 되고 오른쪽에 값이 보인다. -->
+    <LinearLayout
         android:id="@+id/rallySetupCap"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:minHeight="32dp"
+        android:orientation="horizontal"
         android:paddingStart="4dp"
-        android:text="방 설정"
-        android:textColor="#A9B4C7"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:visibility="gone" />
+        android:paddingEnd="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/rallySetupCapTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="방 설정 ▾"
+            android:textColor="#A9B4C7"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/rallySetupCapSummary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="start"
+            android:gravity="end"
+            android:maxLines="1"
+            android:textColor="#CBD5E1"
+            android:textSize="14sp"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <!-- 방 설정 칸: 집결 대기 · 이동 준비 -->
     <LinearLayout
         android:id="@+id/rallySetupCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="2dp"
         android:background="@drawable/bg_rally_card"
         android:orientation="vertical"
         android:paddingStart="12dp"
