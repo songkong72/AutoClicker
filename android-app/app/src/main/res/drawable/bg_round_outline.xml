@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 조 머리띠의 −/+ : 테두리만 있는 동그라미(칸 안 설정의 −/+ 와 다르게 보이게) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="#00000000" />
+    <stroke android:width="1.5dp" android:color="#6B7BA0" />
+</shape>

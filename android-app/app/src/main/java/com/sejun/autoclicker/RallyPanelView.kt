@@ -21,6 +21,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         const val START_GUARD_MS = 1500L
         /** 군단 목록이 한 번에 보여 주는 줄 수. 그보다 많으면 목록 안에서 스크롤한다. */
         const val VISIBLE_ROWS = 5
+        /** 조 상자 사이의 간격(dp) */
+        const val CARD_GAP_DP = 8
         private const val SAVED_FLASH = "✓ 저장됨"
         val PHASE_COLORS = listOf("#FBBF24", "#3B82F6", "#A78BFA", "#2DD4BF")
         val PHASE_NAMES = listOf("대기", "집결", "행군", "도착")
@@ -94,8 +96,16 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     val rowsScrollView: View get() = rowsScroll
     private val adminBar = root.findViewById<View>(R.id.rallyAdminBar)
     /** 조 제목 줄 하나(목록 안, 그 조의 첫 군단 위). 조를 쓰는 방에서만 만든다. */
-    private class WaveHead(val root: LinearLayout, val name: TextView, val minus: TextView, val value: TextView, val plus: TextView)
+    private class WaveHead(val root: LinearLayout, val name: TextView, val count: TextView, val minus: TextView, val value: TextView, val plus: TextView)
     private val waveHeads = LinkedHashMap<Int, WaveHead>()
+    /** 목록에 보이는 줄(조 머리띠와 군단 줄)을 위에서부터. 목록 높이(5줄)를 셀 때 쓴다. */
+    private var lineViews: List<View> = emptyList()
+    /** lineViews의 각 줄이 몇 번째 상자에 들어 있는지(상자 사이 간격을 높이에 더하려고). */
+    private var lineCard: List<Int> = emptyList()
+    private val statusCard = root.findViewById<LinearLayout>(R.id.rallyStatusCard)
+    private val heroRoom = root.findViewById<TextView>(R.id.rallyHeroRoom)
+    /** 방 번호를 상태 칸에 보여 주는 중인지(그때는 내 기기 줄의 요약에서 뺀다). */
+    private var roomInCard = false
     /** 목록의 군단 줄들(모델의 rows와 같은 순서). 조 제목 줄은 여기에 들어 있지 않다. */
     private var rowViews: List<View> = emptyList()
     /** 지금 목록에 놓인 줄들의 모양("h1rrrh2rr"). 달라지면 줄을 다시 만든다. */
@@ -109,7 +119,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         setTextColor(Color.parseColor("#F1F5F9"))
         gravity = android.view.Gravity.CENTER
         maxLines = 1
-        setBackgroundResource(R.drawable.bg_chip_soft)
+        setBackgroundResource(R.drawable.bg_chip_ctl)
         setPadding(dpx(12), 0, dpx(12), 0)
         visibility = View.GONE
     }
@@ -120,13 +130,15 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     init {
         // 목록은 군단 5줄 높이까지만 보인다(얇은 제외 줄도 한 줄로 센다). 펼친 줄이 그보다 크면 그 줄은 다 보이게 한다.
         (root as RallyDragLayout).visibleListHeight = {
+            // 줄은 상자(조) 안에 들어 있다. 보이는 줄들이 걸친 상자 사이의 간격과 테두리도 높이에 더한다.
             var sum = 0; var tallest = 0
-            for (i in 0 until rows.childCount) {
-                val h = rows.getChildAt(i).measuredHeight
+            lineViews.forEachIndexed { i, v ->
+                val h = v.measuredHeight
                 if (i < VISIBLE_ROWS) sum += h
                 if (h > tallest) tallest = h
             }
-            if (rows.childCount > VISIBLE_ROWS) Math.max(sum, tallest) else 0
+            val gaps = (lineCard.getOrNull(VISIBLE_ROWS - 1) ?: 0) * dpx(CARD_GAP_DP) + dpx(VISIBLE_ROWS)
+            if (lineViews.size > VISIBLE_ROWS) Math.max(sum + gaps, tallest) else 0
         }
         root.findViewById<View>(R.id.rallyMinimize).setOnClickListener { callbacks.onMinimize() }
         root.findViewById<View>(R.id.rallyClose).setOnClickListener { callbacks.onClose() }
@@ -258,7 +270,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             if (roomShown.isBlank()) "방 없음" else "방 $roomShown",
             charNameShown.ifBlank { "캐릭터명 없음" },
             if (correctionShownMs == 0) null else "보정 $corr"
-        ).joinToString(" · ")
+        ).drop(if (roomInCard) 1 else 0).joinToString(" · ")
     }
 
     /** "내 기기"의 현재 방 줄. */
@@ -333,22 +345,24 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             setPadding(padH, 0, padH, 0)
             if (editMode) setBackgroundResource(R.drawable.bg_edit_done) else background = null
         }
-        heroLabel.text = if (hero.note == null) hero.label else "${hero.label} · ${hero.note}"
-        // 큰 시간이 없는 화면(대기·취소 등)에서는 단계 이름을 알림 모양으로 보여 준다.
-        val dpr = root.resources.displayMetrics.density
-        if (hero.remainingSec == null && !isMinimized) {
-            heroLabel.setBackgroundResource(R.drawable.bg_status_pill)
-            heroLabel.setPadding((16 * dpr).toInt(), (6 * dpr).toInt(), (16 * dpr).toInt(), (6 * dpr).toInt())
-            heroLabel.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 17f)
+        heroLabel.text = heroText(hero)
+        // 큰 시간이 없는 화면(대기·취소 등)에서는 상태 칸의 첫 줄이 제목이 된다: 왼쪽에 "● 단계 이름", 오른쪽에 방.
+        val titled = hero.remainingSec == null && !isMinimized
+        if (titled) {
+            heroLabel.gravity = android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
+            heroLabel.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
             heroLabel.setTypeface(null, android.graphics.Typeface.BOLD)
             heroLabel.setTextColor(Color.parseColor("#F1F5F9"))
         } else {
-            heroLabel.background = null
-            heroLabel.setPadding(0, 0, 0, 0)
+            heroLabel.gravity = android.view.Gravity.CENTER
             heroLabel.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
             heroLabel.setTypeface(null, android.graphics.Typeface.NORMAL)
             heroLabel.setTextColor(Color.parseColor("#CBD5E1"))
         }
+        val showRoom = titled && roomShown.isNotBlank()
+        heroRoom.text = "방 $roomShown"
+        heroRoom.visibility = if (showRoom) View.VISIBLE else View.GONE
+        if (showRoom != roomInCard) { roomInCard = showRoom; showDeviceToggle() }
         // 대기 중에는 "전원 도착 예정" 총 소요 시간을 흐리게 보여준다
         // 조를 쓰는 방에서는 가장 먼저 닿는 조의 도착까지를 보여 준다.
         val previewTotal = hero.kind == HeroKind.IDLE && hero.remainingSec == null && model.previewSec > 0.0
@@ -407,12 +421,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         prepShown = model.prepSec
         root.findViewById<View>(R.id.rallySettingsRow).visibility = showSetup
         root.findViewById<View>(R.id.rallyPrepRow).visibility = showSetup
+        root.findViewById<View>(R.id.rallySetupCap).visibility = showSetup
+        root.findViewById<View>(R.id.rallySetupCard).visibility = showSetup
         root.findViewById<TextView>(R.id.setPrep).text = "${model.prepSec.toInt()}초"
         // 고른 집결 대기 시간은 파란 칩으로 채운다
         listOf(R.id.setWait3 to 180.0, R.id.setWait5 to 300.0, R.id.setWait10 to 600.0).forEach { (id, sec) ->
             val on = model.waitSec == sec
             root.findViewById<TextView>(id).apply {
-                setBackgroundResource(if (on) R.drawable.bg_chip_on else R.drawable.bg_chip_soft)
+                setBackgroundResource(if (on) R.drawable.bg_chip_on else R.drawable.bg_chip_ctl)
                 setTextColor(Color.parseColor(if (on) "#FFFFFF" else "#F1F5F9"))
                 setTypeface(null, if (on) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
             }
@@ -436,49 +452,84 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         blocked.setTextColor(Color.parseColor(if (model.startBlockedReason != null) "#F87171" else "#FBBF24"))
     }
 
-    /** 조 제목 줄을 코드로 만든다: [2조 ─────── − 1분 뒤 도착 +] */
+    /** 상태 칸 첫 줄의 글. 큰 시간이 없을 때는 앞에 색 점을 붙인다(대기는 노랑). */
+    private fun heroText(hero: HeroModel): CharSequence {
+        val text = if (hero.note == null) hero.label else "${hero.label} · ${hero.note}"
+        if (hero.remainingSec != null || isMinimized) return text
+        val dot = if (hero.kind == HeroKind.IDLE) Color.parseColor(PHASE_COLORS[0]) else heroColor(hero)
+        return android.text.SpannableString("●  $text").apply {
+            setSpan(android.text.style.ForegroundColorSpan(dot), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(android.text.style.RelativeSizeSpan(0.6f), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+    /** 군단 줄을 담는 상자 하나. 조를 쓰는 방에서는 조마다 하나, 아니면 목록 전체가 하나. */
+    private fun newCard(): LinearLayout = LinearLayout(themed).apply {
+        orientation = LinearLayout.VERTICAL
+        setBackgroundResource(R.drawable.bg_rally_card)
+        clipToOutline = true
+        setPadding(dpx(1), dpx(1), dpx(1), dpx(1))
+    }
+
+    private fun newDivider(): View = View(themed).apply {
+        setBackgroundColor(Color.parseColor("#2A3653"))
+        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpx(1))
+    }
+
+    /** 조 상자의 머리띠를 코드로 만든다: [2조] 군단 3개 ...... (−) 1분 뒤 도착 (+) */
     private fun newWaveHead(): WaveHead {
         fun small(t: String) = TextView(themed).apply {
             text = t
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 18f)
-            setTextColor(Color.parseColor("#CBD5E1"))
+            setTextColor(Color.parseColor("#F1F5F9"))
             gravity = android.view.Gravity.CENTER
-            setBackgroundResource(R.drawable.bg_chip_soft)
+            includeFontPadding = false
+            setBackgroundResource(R.drawable.bg_round_outline)
         }
         val row = LinearLayout(themed).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER_VERTICAL
-            minimumHeight = dpx(40)
-            setPadding(dpx(4), dpx(4), dpx(4), 0)
+            minimumHeight = dpx(44)
+            setBackgroundColor(Color.parseColor("#222E4B"))
+            setPadding(dpx(10), 0, dpx(8), 0)
         }
         val name = TextView(themed).apply {
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(Color.parseColor("#F1F5F9"))
+            setTextColor(Color.parseColor("#121A2C"))
+            gravity = android.view.Gravity.CENTER
             maxLines = 1
+            setBackgroundResource(R.drawable.bg_wave_tag)
+            setPadding(dpx(10), 0, dpx(10), 0)
         }
-        val line = View(themed).apply { setBackgroundColor(Color.parseColor("#2A3550")) }
+        val count = TextView(themed).apply {
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextColor(Color.parseColor("#A9B4C7"))
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
         val minus = small("−")
         val plus = small("+")
         val value = TextView(themed).apply {
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
             gravity = android.view.Gravity.CENTER
             maxLines = 1
-            minHeight = dpx(32)
+            minHeight = dpx(36)
             setPadding(dpx(8), 0, dpx(8), 0)
         }
-        row.addView(name, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        row.addView(line, LinearLayout.LayoutParams(0, dpx(1), 1f).apply { marginStart = dpx(8); marginEnd = dpx(8) })
-        row.addView(minus, LinearLayout.LayoutParams(dpx(36), dpx(36)))
+        row.addView(name, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dpx(26)))
+        row.addView(count, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dpx(8) })
+        row.addView(minus, LinearLayout.LayoutParams(dpx(34), dpx(34)))
         row.addView(value, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        row.addView(plus, LinearLayout.LayoutParams(dpx(36), dpx(36)))
-        return WaveHead(row, name, minus, value, plus)
+        row.addView(plus, LinearLayout.LayoutParams(dpx(34), dpx(34)))
+        return WaveHead(row, name, count, minus, value, plus)
     }
 
     /** 조 제목 줄의 글자. 편집 중에는 2조부터 −/+ 로 도착 간격을 고치고, 진행 중에는 그 조의 도착까지 남은 시간을 보여 준다. */
-    private fun bindWaveHead(h: WaveHead, wave: Int, m: WaveModel?, editing: Boolean) {
+    private fun bindWaveHead(h: WaveHead, wave: Int, m: WaveModel?, editing: Boolean, teamCount: Int) {
         val delay = m?.delaySec ?: 0.0
         h.name.text = "${wave}조"
+        h.count.text = "군단 ${teamCount}개"
         val adjustable = editing && wave > 1
         h.minus.visibility = if (adjustable) View.VISIBLE else View.GONE
         h.plus.visibility = if (adjustable) View.VISIBLE else View.GONE
@@ -492,7 +543,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         when {
             editing -> {
                 h.value.text = if (wave <= 1) "$label (기준)" else label
-                h.value.setTextColor(Color.parseColor(if (wave <= 1) "#A9B4C7" else "#FBBF24"))
+                // 노랑은 대기·미배정의 색이라 여기서는 쓰지 않는다: 값은 흰 굵은 글씨.
+                h.value.setTextColor(Color.parseColor(if (wave <= 1) "#CBD5E1" else "#F1F5F9"))
                 h.value.setTypeface(null, if (wave <= 1) android.graphics.Typeface.NORMAL else android.graphics.Typeface.BOLD)
             }
             remaining != null -> {
@@ -545,17 +597,36 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             waveHeads.clear()
             val inflater = LayoutInflater.from(themed)
             val made = ArrayList<View>()
+            val lines = ArrayList<View>()
+            val cardOf = ArrayList<Int>()
             var last = -1
+            var card: LinearLayout? = null
             for (r in list) {
-                if (waveMode && r.wave != last) { val h = newWaveHead(); waveHeads[r.wave] = h; rows.addView(h.root); last = r.wave }
-                val v = inflater.inflate(R.layout.item_rally_team_row, rows, false)
-                rows.addView(v)
-                made += v
+                // 조를 쓰는 방: 조마다 상자 하나(머리띠 + 군단 줄). 모두 1조인 방: 머리띠 없이 상자 하나.
+                var box = card
+                if (box == null || (waveMode && r.wave != last)) {
+                    box = newCard()
+                    card = box
+                    rows.addView(box, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        topMargin = if (rows.childCount == 0) 0 else dpx(CARD_GAP_DP)
+                    })
+                    if (waveMode) {
+                        val h = newWaveHead(); waveHeads[r.wave] = h
+                        box.addView(h.root); lines += h.root; cardOf += rows.childCount - 1
+                        box.addView(newDivider())
+                    }
+                    last = r.wave
+                } else box.addView(newDivider())
+                val v = inflater.inflate(R.layout.item_rally_team_row, box, false)
+                box.addView(v)
+                made += v; lines += v; cardOf += rows.childCount - 1
             }
             rowViews = made
+            lineViews = lines
+            lineCard = cardOf
             rowsSig = sig
         }
-        for ((wave, h) in waveHeads) bindWaveHead(h, wave, waves.firstOrNull { it.wave == wave }, editing)
+        for ((wave, h) in waveHeads) bindWaveHead(h, wave, waves.firstOrNull { it.wave == wave }, editing, list.count { it.wave == wave })
         if (expandedId != null && list.none { it.id == expandedId }) expandedId = null
         // 머리글: 숫자의 뜻을 한 번만 적는다. 편집 모드에서는 줄 자체가 설명이 되므로 숨겨 높이를 아낀다.
         rowsHeadRight.text = if (editable) "행군 시간 · 위에서부터 차례로 클릭" else "행군 시간 · 클릭까지 남은 시간"
@@ -581,7 +652,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             val open = editOpen || leaderOwn
             val toggleOpen = { expandedId = if (expandedId == r.id) null else r.id; deleteGuard.reset(); lastRender?.invoke(); Unit }
             when {
-                editOpen -> v.setBackgroundResource(R.drawable.bg_row_open)
+                // 상자 안이라 테두리 없이 한 단계 밝은 바탕만 깐다
+                editOpen -> v.setBackgroundColor(Color.parseColor("#1F2B48"))
                 r.isMine && !editing -> v.setBackgroundResource(R.drawable.bg_row_mine)
                 else -> v.background = null
             }
@@ -599,7 +671,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 pills?.visibility = if (editOpen) View.VISIBLE else View.GONE
                 if (pills != null && editOpen) for (w in 1..RallyWaves.MAX_WAVES) (pills.getChildAt(w) as? TextView)?.apply {
                     val on = r.wave == w
-                    setBackgroundResource(if (on) R.drawable.bg_chip_on else R.drawable.bg_chip_soft)
+                    setBackgroundResource(if (on) R.drawable.bg_chip_on else R.drawable.bg_chip_ctl)
                     setTextColor(Color.parseColor(if (on) "#FFFFFF" else "#F1F5F9"))
                     setTypeface(null, if (on) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
                     setOnClickListener { if (!on) callbacks.onSetWave(r.id, w) }
@@ -826,6 +898,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         rowsHead.visibility = if (min || rows.childCount == 0) View.GONE else View.VISIBLE
         root.findViewById<View>(R.id.phaseRow).visibility = hide
         root.findViewById<View>(R.id.devToggleRow).visibility = hide
+        root.findViewById<View>(R.id.devDivider).visibility = hide
+        // 알약에서는 상태 칸이 칸 모양(바탕·테두리·안쪽 여백)을 벗고 막대만 남긴다.
+        if (min) { statusCard.background = null; statusCard.setPadding(0, 0, 0, 0); heroRoom.visibility = View.GONE }
+        else { statusCard.setBackgroundResource(R.drawable.bg_rally_card); statusCard.setPadding(dpx(12), dpx(10), dpx(12), dpx(12)) }
         if (min) {
             deviceOpen = false
             showDeviceToggle()
@@ -833,6 +909,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             root.findViewById<View>(R.id.rallyAddTeam).visibility = View.GONE
             root.findViewById<View>(R.id.rallySettingsRow).visibility = View.GONE
             root.findViewById<View>(R.id.rallyPrepRow).visibility = View.GONE
+            root.findViewById<View>(R.id.rallySetupCap).visibility = View.GONE
+            root.findViewById<View>(R.id.rallySetupCard).visibility = View.GONE
             root.findViewById<View>(R.id.rallyEdit).visibility = View.GONE
             adminBar.visibility = View.GONE
             warning.visibility = View.GONE
@@ -880,7 +958,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             title.textSize = 20f
             connDot.background.mutate().setTint(connColor)
             heroLabel.visibility = View.VISIBLE
-            heroLabel.text = hero.label
+            heroLabel.text = heroText(hero)
             miniTime.visibility = View.GONE
             heroTime.visibility = if (heroTime.text.isEmpty()) View.GONE else View.VISIBLE
             bar.height = (6 * dp).toInt(); bar.topMargin = (6 * dp).toInt()
