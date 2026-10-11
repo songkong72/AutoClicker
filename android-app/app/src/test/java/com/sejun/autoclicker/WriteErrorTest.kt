@@ -58,4 +58,9 @@ class WriteErrorTest {
         assertEquals(3, n)
         assertEquals(2, pauses)
     }
+
+    @Test fun `조를 쓰다 거절되면 규칙 게시를 알려 준다`() {
+        assertTrue(WriteError.explainWaves("Server returned HTTP response code: 401").contains("서버 규칙을 새로 게시"))
+        assertEquals(WriteError.explain("timeout"), WriteError.explainWaves("timeout"))
+    }
 }

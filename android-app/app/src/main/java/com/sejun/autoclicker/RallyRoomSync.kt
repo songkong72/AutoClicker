@@ -479,15 +479,17 @@ class RallyRoomSync(
         holdRemote()
         apply(next)
         // 저장이 실패하면 화면에 틀린 값이 남지 않게 서버 내용을 다시 받아 되돌린다.
-        writeAsync(onFail = { holdRemoteUntil = 0L; pollOnce() }) { put(next) }
+        // 조를 쓰는 내용인데 서버가 거절하면, 새 서버 규칙을 아직 게시하지 않은 경우가 대부분이라 그렇게 알려 준다.
+        val usesWaves = next.teams.any { it.wave != 1 } || next.waveDelaySec.isNotEmpty()
+        writeAsync(onFail = { holdRemoteUntil = 0L; pollOnce() }, explain = { m -> if (usesWaves) WriteError.explainWaves(m) else WriteError.explain(m) }) { put(next) }
     }
 
     /** 서버 쓰기를 백그라운드에서 하고, 실패하면 이유를 화면에 알린다(조용히 되돌아가 보이지 않게). */
-    private fun writeAsync(onFail: () -> Unit = {}, block: () -> Unit) {
+    private fun writeAsync(onFail: () -> Unit = {}, explain: (String?) -> String = { WriteError.explain(it) }, block: () -> Unit) {
         Thread {
             try { block() } catch (e: Exception) {
                 dropTokenIf401(e)
-                val why = WriteError.explain(e.message)
+                val why = explain(e.message)
                 main.post { onWriteFailed(why) }
                 onFail()
             }
