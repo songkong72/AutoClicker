@@ -3,31 +3,45 @@ package com.sejun.autoclicker
 import android.content.Context
 
 /**
- * 화면에 보이는 글자를 한곳에 모은다(코드 안에서 만드는 글자용. 레이아웃의 고정 글자는 `res/values/strings.xml`과 `res/values-en/strings.xml`).
+ * 화면에 보이는 글자를 한곳에 모은다(코드 안에서 만드는 글자용. 레이아웃의 고정 글자는 `res/values/strings.xml`과 `res/values-en/strings.xml`, `values-zh`(간체), `values-b+zh+Hant`(번체)).
  * 계산하는 쪽([RallyScreenModel] 등)은 안드로이드 없이 테스트하므로 리소스 대신 이 표를 쓴다.
  * 언어를 더하려면 [Str]를 구현한 표를 하나 더 만들고 [T.forLanguage]에 잇는다.
+ * 중국어 번체 표([StrZhTw], [AppZhTw], [MoreZhTw])는 간체 표를 변환해 만든 것이다. 간체를 고치면 번체도 같은 뜻으로 고친다.
  * 기본은 한국어다: 번역이 없는 언어의 폰은 한국어로 보인다.
  */
 internal object T {
     @Volatile var s: Str = StrKo
         private set
 
-    fun forLanguage(lang: String?): Str = when (lang) {
+    /**
+     * 언어(와 중국어일 때 글자 종류)에 맞는 표.
+     * 중국어는 번체(글자 종류 Hant, 또는 지역이 대만·홍콩·마카오)와 간체(그 밖의 중국어)를 따로 둔다.
+     */
+    fun forLanguage(lang: String?, script: String? = null, region: String? = null): Str = when (lang) {
         "en" -> StrEn
+        "zh" -> if (isTraditional(script, region)) StrZhTw else StrZh
         else -> StrKo
+    }
+
+    /** 중국어 번체인가. 글자 종류가 적혀 있으면 그것을 따르고, 없으면 지역으로 본다. */
+    fun isTraditional(script: String?, region: String?): Boolean = when {
+        script.equals("Hant", ignoreCase = true) -> true
+        script.equals("Hans", ignoreCase = true) -> false
+        else -> region?.uppercase() in setOf("TW", "HK", "MO")
     }
 
     /** 폰(또는 이 앱)의 언어에 맞춘다. 화면을 그리기 직전에 부른다. */
     fun use(context: Context) {
-        val want = forLanguage(context.resources.configuration.locales[0]?.language)
+        val l = context.resources.configuration.locales[0]
+        val want = forLanguage(l?.language, l?.script, l?.country)
         if (want !== s) s = want
     }
 
     /** 앱 화면(첫 화면·창·게임 위 막대)의 글자 표. [s]와 같은 언어를 따른다. */
-    val a: AppStr get() = if (s === StrEn) AppEn else AppKo
+    val a: AppStr get() = when (s) { StrEn -> AppEn; StrZh -> AppZh; StrZhTw -> AppZhTw; else -> AppKo }
 
     /** 지휘관·대표 창, 보내는 글, 숨은 모드의 글자 표. */
-    val x: MoreStr get() = if (s === StrEn) MoreEn else MoreKo
+    val x: MoreStr get() = when (s) { StrEn -> MoreEn; StrZh -> MoreZh; StrZhTw -> MoreZhTw; else -> MoreKo }
 
     /** 테스트용: 언어를 직접 고른다. */
     fun set(str: Str) { s = str }
@@ -592,4 +606,372 @@ internal object StrEn : Str {
     override val nameEmpty = "The character name is empty"
     override fun lastDiag(actualSec: String, targetSec: String, offsetMs: Int, wall: String) =
         "Last rally: tapped ${actualSec}s after the signal (target ${targetSec}s, offset ${offsetMs}ms) · $wall"
+}
+
+internal object StrZh : Str {
+    private val teamNo = Regex("""^(\d+)군$""")
+
+    override fun sec(text: String) = "${text}秒"
+    override val secSuffixes = listOf("秒", "s", "초")
+    override fun span(min: Int, sec: Int) = when { min == 0 -> "${sec}秒"; sec == 0 -> "${min}分"; else -> "${min}分${sec}秒" }
+    override fun teamName(raw: String) = teamNo.matchEntire(raw)?.let { "${it.groupValues[1]}队" } ?: raw
+    override fun wave(n: Int) = "第${n}波"
+    override val waveWord = "波"
+    override fun teamCount(n: Int) = "${n}支队伍"
+    override val teams = "队伍"
+    override fun teamsOf(n: Int, max: Int) = "队伍 ${n}/${max}"
+    override val commander = "指挥官"
+    override val leader = "集结队长"
+    override val me = "我"
+    override val myTeamDesc = "我的队伍"
+    override val none = "无"
+    override val roomWord = "房间"
+    override fun room(code: String) = "房间 ${code}"
+    override val charName = "角色名"
+
+    override val phaseNames = listOf("等待", "集结", "行军", "到达")
+    override val beforeClick = "点击前"
+    override val gathering = "集结中"
+    override val marching = "行军中"
+    override val statusMarch = "行军"
+    override val statusArrived = "到达"
+    override val statusExcluded = "排除"
+    override val prepMove = "准备时间"
+    override val waitClick = "等待点击"
+
+    override val noTeamsJoining = "没有参加的队伍"
+    override fun untilWaveArrives(wave: Int) = "距第${wave}波到达"
+    override fun wavePlus(wave: Int, span: String) = "第${wave}波 +${span}"
+    override val cancelled = "行动已取消"
+    override val cancelledSub = "已预约的点击全部停止"
+    override val allArrived = "全员到达"
+    override val arrivedSub = "如果失败，请马上重新集结"
+    override val roomEmptyAdmin = "这个房间没有队伍"
+    override val roomEmptyAdminSub = "请确认房间号 · 新房间在应用首页创建"
+    override val roomEmptyLeader = "指挥官正在编排队伍"
+    override val roomEmptyLeaderSub = "房间里有了队伍就会显示在这里"
+    override val notJoining = "不参加"
+    override val notAssigned = "还没有给你分配队伍"
+    override val notAssignedSub = "指挥官分配队伍后就可以开始"
+    override val adminOut = "这次行动你不参加"
+    override val adminOutSub = "请在队伍列表中查看进度"
+    override val excluded = "这次行动你被排除了"
+    override val excludedSub = "指挥官重新加入后就可以参加"
+    override val waitingStart = "等待指挥官开始"
+    override fun myClickAt(sec: Int) = "开始后${sec}秒点击我的集结"
+    override val untilFirstClick = "距第一次集结点击"
+    override val untilAllDepart = "距全员出发"
+    override val untilAllArrive = "距全员到达"
+    override fun waveStage(wave: Int, phase: Int) = "第${wave}波 " + when (phase) { 0 -> "点击前"; 1 -> "集结中"; else -> "行军中" }
+    override fun nextWave(wave: Int, mmss: String) = " · 下一波 第${wave}波 ${mmss}"
+    override val goToRally = "请切换到集结画面"
+    override val untilMyClick = "距集结点击"
+    override val waitingClick = "等待点击中"
+    override fun untilDepartThenMarch(mmss: String) = "距出发 · 之后行军 ${mmss}"
+    override val untilCastle = "距到达城堡"
+    override fun allArriveIn(mmss: String) = "距全员到达 ${mmss}"
+    override val myArrived = "我的队伍已到达"
+    override val warnName = "请先登记角色名（点击输入）"
+    override val warnPosition = "请先保存点击位置（点击打开）"
+    override fun idleSub(sub: String, activeTeams: Int) = "${sub} · 参加队伍${activeTeams}支"
+    override fun offline(who: String) = "${who} 未连接"
+    override fun eta(clock: String) = "预计到达 ${clock}"
+    override fun arrivedAt(clock: String) = "${clock} 到达"
+    override fun clicked(time: String) = "✓ 已点击 ${time}"
+    override fun commanderFallback(last4: String) = "指挥官 …${last4}"
+    override fun lastChange(who: String, ago: String) = "最后修改：${who} · ${ago}"
+    override val justNow = "刚刚"
+    override fun minAgo(n: Long) = "${n}分钟前"
+    override fun hourAgo(n: Long) = "${n}小时前"
+    override fun dayAgo(n: Long) = "${n}天前"
+
+    override val clickFirst = "最先点击"
+    override fun secLater(text: String) = "${text}秒后"
+    override val arrivesFirst = "最先到达"
+    override val arrivesTogether = "同时到达"
+    override fun arrivesAfter(span: String) = "${span}后到达"
+    override fun base(label: String) = "${label}（基准）"
+    override fun untilArrive(mmss: String) = "距到达 ${mmss}"
+    override fun afterStart(mmss: String) = "开始后 ${mmss}"
+    override val rowsHeadEdit = "行军时间 · 从上到下依次点击"
+    override val rowsHeadRun = "行军时间 · 到本阶段结束"
+    override val unassigned = "未分配"
+    override val unassignedTapAssign = "未分配 · 点击分配"
+    override fun unassignedNote(names: String) = "${names} 未分配 · 没有负责人的队伍不会点击"
+    override val tapAgainToDelete = "再点一次删除"
+    override fun deleteTeam(name: String) = "删除${name}"
+    override val deleteQ = "删除？"
+    override val expand = "展开"
+    override val collapse = "收起"
+    override val splitWaves = "分波"
+    override val addTeam = "+ 添加队伍"
+    override fun maxTeams(n: Int) = "最多${n}支"
+
+    override val setup = "房间设置"
+    override val setupExpand = "展开房间设置"
+    override val setupCollapse = "收起房间设置"
+    override fun setupSummary(waitMin: String, prepSec: String) = "集结时间${waitMin}分 · 准备时间${prepSec}秒"
+    override val blockedHintEditing = "请勾选要参加的队伍"
+    override val blockedHintView = "点击上方的铅笔，勾选队伍"
+    override val myDevice = "我的设备"
+    override val posSaved = "位置已保存"
+    override val posNone = "没有位置"
+    override val roomNone = "没有房间"
+    override val nameNone = "没有角色名"
+    override fun correction(text: String) = "校正 ${text}"
+    override val savedFlash = "✓ 已保存"
+    override val saveAgain = "重新保存"
+    override val savePos = "保存位置"
+    override val register = "登记"
+    override val offsetStepNote = "校正 · 每次0.5秒"
+    override val done = "完成"
+    override val tapToExpand = "点击展开"
+    override val minimize = "缩小"
+    override val starting = "正在开始…"
+    override val regroup = "重新集结"
+    override val start = "开始集结"
+    override val miniCancelled = "行动取消"
+    override val miniAssignWait = "等待分配队伍"
+    override val miniBuilding = "编排队伍中"
+    override val miniStartWait = "等待开始"
+
+    override val close = "关闭"
+    override val cancel = "取消"
+    override val ok = "确定"
+    override val move = "移动"
+    override fun moveTo(room: String, action: String) = "${action}到房间 ${room}"
+    override val pickRoomFirst = "请选择要去的房间"
+    override val badgeCurrent = "当前"
+    override val badgeRunning = "集结中"
+    override fun rangeError(max: Int) = "请输入 0 ~ ${max} 之间的数字"
+    override fun rangeErrorEx(max: Int, example: String) = "请输入 0 ~ ${max} 之间的数字（例如 ${example}）"
+    override val offsetError = "请输入 −5 ~ +5 之间的数字（例如 -1.5）"
+    override fun unassignedTitle(names: String) = "${names} 还没有分配"
+    override val unassignedBody = "没有负责人的队伍不会点击。要怎么做？"
+    override val startWithoutUnassigned = "排除未分配后开始"
+    override val startAnyway = "直接开始"
+    override val closeGuardToast = "集结正在进行。要关闭面板请再点一次 ✕"
+    override val askMarch = "行军时间（秒）"
+    override val askPrep = "准备时间（秒）"
+    override fun askWaveDelay(wave: Int) = "第${wave}波 · 比第1波晚几秒到达"
+    override val splitTitle = "分波"
+    override val splitBody = "按队伍编号顺序分。每一波可以分别设定比第1波晚多久到达。"
+    override fun perWave(n: Int) = "每波${n}支"
+    override val allOneWave = "全部归入第1波（不分波）"
+    override fun askTeamOffset(team: String) = "${team} 校正（秒） · −更早，+更晚"
+    override val askMyOffset = "点击校正（秒） · −更早，+更晚"
+    override val noRoomsToast = "还没有进入过房间。请在应用首页创建或进入房间"
+    override fun roomsLoading(n: Int) = "选择房间（${n}个） · 加载中…"
+    override val roomsLoadingNone = "选择房间 · 加载中…"
+    override fun roomsFailed(error: String) = "选择房间 · 无法加载服务器上的房间列表" + (if (error.isNotEmpty()) " ($error)" else "")
+    override fun roomsTitle(n: Int) = "选择房间（${n}个）"
+    override val askCharName = "游戏角色名 · 指挥官会根据这个名字分配队伍"
+    override fun charNameError(max: Int) = "请输入角色名（最多${max}个字）"
+    override fun assignTitle(team: String) = "${team} 的负责人"
+    override val rosterLoading = "正在加载名单…"
+    override fun rosterFailed(error: String) = "无法加载名单。请检查网络连接，以及 Firebase 规则（rallyMembers）是否已发布\n($error)"
+    override val unassign = "取消分配"
+    override val rosterEmpty = "还没有人登记。集结队长在应用中登记角色名后会显示在这里"
+
+    override val rejected = "服务器拒绝了房间修改。请确认这台设备在指挥官名单中，并且服务器规则正确"
+    override fun saveFailed(message: String) = "无法保存到服务器：${message}"
+    override val unknownError = "未知错误"
+    override val wavesRejected = "无法保存分波。需要重新发布服务器规则才能使用分波（Firebase 控制台 → 规则）"
+    override fun startFailed(why: String) = "无法开始集结。请再点一次 · ${why}"
+    override fun cancelFailed(why: String) = "取消没有传到服务器。其他手机可能还在进行 · ${why}"
+    override fun adminOffsetNote(text: String) = "指挥官校正 ${text}（与我的校正相加）"
+    override val pollingNote = "接收方式：每1秒检查（最多比实时晚1秒）"
+    override fun deviceLine(last4: String, team: String) = "设备 ID …${last4} · 分配：${team}"
+    override val noneYet = "还没有"
+    override fun syncMode(live: Boolean) = "接收方式：" + (if (live) "实时" else "每1秒检查")
+    override val needLogin = "需要登录"
+    override fun serverRefused(code: Int) = "服务器拒绝了 (${code})"
+    override val checkInternet = "请检查网络连接"
+    override val nameEmpty = "角色名为空"
+    override fun lastDiag(actualSec: String, targetSec: String, offsetMs: Int, wall: String) =
+        "上次集结：收到信号${actualSec}秒后点击（目标${targetSec}秒，校正${offsetMs}ms） · ${wall}"
+}
+
+internal object StrZhTw : Str {
+    private val teamNo = Regex("""^(\d+)군$""")
+
+    override fun sec(text: String) = "${text}秒"
+    override val secSuffixes = listOf("秒", "s", "초")
+    override fun span(min: Int, sec: Int) = when { min == 0 -> "${sec}秒"; sec == 0 -> "${min}分"; else -> "${min}分${sec}秒" }
+    override fun teamName(raw: String) = teamNo.matchEntire(raw)?.let { "${it.groupValues[1]}隊" } ?: raw
+    override fun wave(n: Int) = "第${n}波"
+    override val waveWord = "波"
+    override fun teamCount(n: Int) = "${n}支隊伍"
+    override val teams = "隊伍"
+    override fun teamsOf(n: Int, max: Int) = "隊伍 ${n}/${max}"
+    override val commander = "指揮官"
+    override val leader = "集結隊長"
+    override val me = "我"
+    override val myTeamDesc = "我的隊伍"
+    override val none = "無"
+    override val roomWord = "房間"
+    override fun room(code: String) = "房間 ${code}"
+    override val charName = "角色名"
+
+    override val phaseNames = listOf("等待", "集結", "行軍", "到達")
+    override val beforeClick = "點擊前"
+    override val gathering = "集結中"
+    override val marching = "行軍中"
+    override val statusMarch = "行軍"
+    override val statusArrived = "到達"
+    override val statusExcluded = "排除"
+    override val prepMove = "準備時間"
+    override val waitClick = "等待點擊"
+
+    override val noTeamsJoining = "沒有參加的隊伍"
+    override fun untilWaveArrives(wave: Int) = "距第${wave}波到達"
+    override fun wavePlus(wave: Int, span: String) = "第${wave}波 +${span}"
+    override val cancelled = "行動已取消"
+    override val cancelledSub = "已預約的點擊全部停止"
+    override val allArrived = "全員到達"
+    override val arrivedSub = "如果失敗，請馬上重新集結"
+    override val roomEmptyAdmin = "這個房間沒有隊伍"
+    override val roomEmptyAdminSub = "請確認房間號 · 新房間在應用程式首頁建立"
+    override val roomEmptyLeader = "指揮官正在編排隊伍"
+    override val roomEmptyLeaderSub = "房間裡有了隊伍就會顯示在這裡"
+    override val notJoining = "不參加"
+    override val notAssigned = "還沒有給你分配隊伍"
+    override val notAssignedSub = "指揮官分配隊伍後就可以開始"
+    override val adminOut = "這次行動你不參加"
+    override val adminOutSub = "請在隊伍列表中檢視進度"
+    override val excluded = "這次行動你被排除了"
+    override val excludedSub = "指揮官重新加入後就可以參加"
+    override val waitingStart = "等待指揮官開始"
+    override fun myClickAt(sec: Int) = "開始後${sec}秒點擊我的集結"
+    override val untilFirstClick = "距第一次集結點擊"
+    override val untilAllDepart = "距全員出發"
+    override val untilAllArrive = "距全員到達"
+    override fun waveStage(wave: Int, phase: Int) = "第${wave}波 " + when (phase) { 0 -> "點擊前"; 1 -> "集結中"; else -> "行軍中" }
+    override fun nextWave(wave: Int, mmss: String) = " · 下一波 第${wave}波 ${mmss}"
+    override val goToRally = "請切換到集結畫面"
+    override val untilMyClick = "距集結點擊"
+    override val waitingClick = "等待點擊中"
+    override fun untilDepartThenMarch(mmss: String) = "距出發 · 之後行軍 ${mmss}"
+    override val untilCastle = "距到達城堡"
+    override fun allArriveIn(mmss: String) = "距全員到達 ${mmss}"
+    override val myArrived = "我的隊伍已到達"
+    override val warnName = "請先登記角色名（點擊輸入）"
+    override val warnPosition = "請先儲存點擊位置（點擊開啟）"
+    override fun idleSub(sub: String, activeTeams: Int) = "${sub} · 參加隊伍${activeTeams}支"
+    override fun offline(who: String) = "${who} 未連線"
+    override fun eta(clock: String) = "預計到達 ${clock}"
+    override fun arrivedAt(clock: String) = "${clock} 到達"
+    override fun clicked(time: String) = "✓ 已點擊 ${time}"
+    override fun commanderFallback(last4: String) = "指揮官 …${last4}"
+    override fun lastChange(who: String, ago: String) = "最後修改：${who} · ${ago}"
+    override val justNow = "剛剛"
+    override fun minAgo(n: Long) = "${n}分鐘前"
+    override fun hourAgo(n: Long) = "${n}小時前"
+    override fun dayAgo(n: Long) = "${n}天前"
+
+    override val clickFirst = "最先點擊"
+    override fun secLater(text: String) = "${text}秒後"
+    override val arrivesFirst = "最先到達"
+    override val arrivesTogether = "同時到達"
+    override fun arrivesAfter(span: String) = "${span}後到達"
+    override fun base(label: String) = "${label}（基準）"
+    override fun untilArrive(mmss: String) = "距到達 ${mmss}"
+    override fun afterStart(mmss: String) = "開始後 ${mmss}"
+    override val rowsHeadEdit = "行軍時間 · 從上到下依次點擊"
+    override val rowsHeadRun = "行軍時間 · 到本階段結束"
+    override val unassigned = "未分配"
+    override val unassignedTapAssign = "未分配 · 點擊分配"
+    override fun unassignedNote(names: String) = "${names} 未分配 · 沒有負責人的隊伍不會點擊"
+    override val tapAgainToDelete = "再點一次刪除"
+    override fun deleteTeam(name: String) = "刪除${name}"
+    override val deleteQ = "刪除？"
+    override val expand = "展開"
+    override val collapse = "收起"
+    override val splitWaves = "分波"
+    override val addTeam = "+ 新增隊伍"
+    override fun maxTeams(n: Int) = "最多${n}支"
+
+    override val setup = "房間設定"
+    override val setupExpand = "展開房間設定"
+    override val setupCollapse = "收起房間設定"
+    override fun setupSummary(waitMin: String, prepSec: String) = "集結時間${waitMin}分 · 準備時間${prepSec}秒"
+    override val blockedHintEditing = "請勾選要參加的隊伍"
+    override val blockedHintView = "點擊上方的鉛筆，勾選隊伍"
+    override val myDevice = "我的裝置"
+    override val posSaved = "位置已儲存"
+    override val posNone = "沒有位置"
+    override val roomNone = "沒有房間"
+    override val nameNone = "沒有角色名"
+    override fun correction(text: String) = "校正 ${text}"
+    override val savedFlash = "✓ 已儲存"
+    override val saveAgain = "重新儲存"
+    override val savePos = "儲存位置"
+    override val register = "登記"
+    override val offsetStepNote = "校正 · 每次0.5秒"
+    override val done = "完成"
+    override val tapToExpand = "點擊展開"
+    override val minimize = "縮小"
+    override val starting = "正在開始…"
+    override val regroup = "重新集結"
+    override val start = "開始集結"
+    override val miniCancelled = "行動取消"
+    override val miniAssignWait = "等待分配隊伍"
+    override val miniBuilding = "編排隊伍中"
+    override val miniStartWait = "等待開始"
+
+    override val close = "關閉"
+    override val cancel = "取消"
+    override val ok = "確定"
+    override val move = "移動"
+    override fun moveTo(room: String, action: String) = "${action}到房間 ${room}"
+    override val pickRoomFirst = "請選擇要去的房間"
+    override val badgeCurrent = "當前"
+    override val badgeRunning = "集結中"
+    override fun rangeError(max: Int) = "請輸入 0 ~ ${max} 之間的數字"
+    override fun rangeErrorEx(max: Int, example: String) = "請輸入 0 ~ ${max} 之間的數字（例如 ${example}）"
+    override val offsetError = "請輸入 −5 ~ +5 之間的數字（例如 -1.5）"
+    override fun unassignedTitle(names: String) = "${names} 還沒有分配"
+    override val unassignedBody = "沒有負責人的隊伍不會點擊。要怎麼做？"
+    override val startWithoutUnassigned = "排除未分配後開始"
+    override val startAnyway = "直接開始"
+    override val closeGuardToast = "集結正在進行。要關閉面板請再點一次 ✕"
+    override val askMarch = "行軍時間（秒）"
+    override val askPrep = "準備時間（秒）"
+    override fun askWaveDelay(wave: Int) = "第${wave}波 · 比第1波晚幾秒到達"
+    override val splitTitle = "分波"
+    override val splitBody = "按隊伍編號順序分。每一波可以分別設定比第1波晚多久到達。"
+    override fun perWave(n: Int) = "每波${n}支"
+    override val allOneWave = "全部歸入第1波（不分波）"
+    override fun askTeamOffset(team: String) = "${team} 校正（秒） · −更早，+更晚"
+    override val askMyOffset = "點擊校正（秒） · −更早，+更晚"
+    override val noRoomsToast = "還沒有進入過房間。請在應用程式首頁建立或進入房間"
+    override fun roomsLoading(n: Int) = "選擇房間（${n}個） · 載入中…"
+    override val roomsLoadingNone = "選擇房間 · 載入中…"
+    override fun roomsFailed(error: String) = "選擇房間 · 無法載入伺服器上的房間列表" + (if (error.isNotEmpty()) " ($error)" else "")
+    override fun roomsTitle(n: Int) = "選擇房間（${n}個）"
+    override val askCharName = "遊戲角色名 · 指揮官會根據這個名字分配隊伍"
+    override fun charNameError(max: Int) = "請輸入角色名（最多${max}個字）"
+    override fun assignTitle(team: String) = "${team} 的負責人"
+    override val rosterLoading = "正在載入名單…"
+    override fun rosterFailed(error: String) = "無法載入名單。請檢查網路連線，以及 Firebase 規則（rallyMembers）是否已發佈\n($error)"
+    override val unassign = "取消分配"
+    override val rosterEmpty = "還沒有人登記。集結隊長在應用程式中登記角色名後會顯示在這裡"
+
+    override val rejected = "伺服器拒絕了房間修改。請確認這台裝置在指揮官名單中，並且伺服器規則正確"
+    override fun saveFailed(message: String) = "無法儲存到伺服器：${message}"
+    override val unknownError = "未知錯誤"
+    override val wavesRejected = "無法儲存分波。需要重新發布伺服器規則才能使用分波（Firebase 主控台 → 規則）"
+    override fun startFailed(why: String) = "無法開始集結。請再點一次 · ${why}"
+    override fun cancelFailed(why: String) = "取消沒有傳到伺服器。其他手機可能還在進行 · ${why}"
+    override fun adminOffsetNote(text: String) = "指揮官校正 ${text}（與我的校正相加）"
+    override val pollingNote = "接收方式：每1秒檢查（最多比實時晚1秒）"
+    override fun deviceLine(last4: String, team: String) = "裝置 ID …${last4} · 分配：${team}"
+    override val noneYet = "還沒有"
+    override fun syncMode(live: Boolean) = "接收方式：" + (if (live) "實時" else "每1秒檢查")
+    override val needLogin = "需要登入"
+    override fun serverRefused(code: Int) = "伺服器拒絕了 (${code})"
+    override val checkInternet = "請檢查網路連線"
+    override val nameEmpty = "角色名為空"
+    override fun lastDiag(actualSec: String, targetSec: String, offsetMs: Int, wall: String) =
+        "上次集結：收到訊號${actualSec}秒後點擊（目標${targetSec}秒，校正${offsetMs}ms） · ${wall}"
 }

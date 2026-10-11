@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoClicker Pro 使用說明</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F3F5; --card:#FFFFFF; --ink:#16181D; --sub:#5B6270; --line:#E2E8F0;
+  --blue:#1F3FA6; --blue-soft:#EAF0FF; --soft:#F1F5F9;
+  --wait:#B45309; --panel:#121A2C; --panel2:#18223A; --panel-line:#2E3B5A; --panel-ink:#F1F5F9; --panel-sub:#A9B4C7;
+  --y:#FBBF24; --b:#3B82F6; --p:#A78BFA; --t:#2DD4BF;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:sans-serif; font-size:16px; line-height:1.65; overflow-wrap:anywhere}
+a{color:var(--blue); text-decoration:none}
+.wrap{max-width:640px; margin:0 auto; padding:0 16px 48px}
+
+.top{padding:22px 0 6px}
+.top h1{margin:0; font-size:24px; line-height:1.3}
+.top p{margin:6px 0 0; color:var(--sub); font-size:14px}
+
+.nav{position:sticky; top:0; z-index:5; background:var(--bg); margin:0 -16px; padding:8px 16px; border-bottom:1px solid var(--line); display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch}
+.nav a{flex:0 0 auto; height:36px; padding:0 14px; border-radius:18px; background:var(--card); border:1px solid var(--line); color:var(--ink); font-size:14px; font-weight:700; display:flex; align-items:center; white-space:nowrap}
+
+.roles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px}
+.role{display:block; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; color:var(--ink)}
+.role b{display:block; font-size:16px}
+.role span{display:block; font-size:13px; color:var(--sub); line-height:1.45; margin-top:2px}
+.role i{display:block; font-style:normal; font-size:13px; font-weight:700; color:var(--blue); margin-top:8px}
+
+section{scroll-margin-top:60px; margin-top:28px}
+h2{margin:0 0 4px; font-size:20px; line-height:1.35; display:flex; align-items:center; gap:8px}
+h2 .n{flex:0 0 auto; width:28px; height:28px; border-radius:9px; background:var(--blue); color:#fff; font-size:14px; display:flex; align-items:center; justify-content:center}
+h3{margin:18px 0 6px; font-size:16px}
+.lead{margin:0 0 10px; color:var(--sub); font-size:14px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-top:10px}
+.card > :first-child{margin-top:0}
+.card > :last-child{margin-bottom:0}
+p{margin:8px 0}
+ul{margin:8px 0; padding-left:20px}
+li{margin:4px 0}
+b.k{background:var(--soft); border-radius:6px; padding:1px 6px; font-weight:700; white-space:nowrap}
+.who{display:inline-block; font-size:12px; font-weight:700; border-radius:6px; padding:0 6px; margin-right:4px; background:var(--blue-soft); color:var(--blue); white-space:nowrap}
+
+ol.steps{list-style:none; margin:8px 0; padding:0; counter-reset:s}
+ol.steps li{counter-increment:s; position:relative; padding:0 0 12px 40px; margin:0}
+ol.steps li:last-child{padding-bottom:0}
+ol.steps li::before{content:counter(s); position:absolute; left:0; top:1px; width:26px; height:26px; border-radius:13px; background:var(--blue-soft); color:var(--blue); font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center}
+ol.steps li::after{content:""; position:absolute; left:12.5px; top:30px; bottom:2px; width:1px; background:var(--line)}
+ol.steps li:last-child::after{display:none}
+
+.tip, .warn{border-radius:12px; padding:10px 12px; font-size:14px; margin-top:10px}
+.tip{background:var(--blue-soft)}
+.warn{background:var(--soft); border:1px solid var(--line)}
+.warn b:first-child{color:var(--wait)}
+
+.tbl{overflow-x:auto; margin-top:10px; border:1px solid var(--line); border-radius:12px; background:var(--card)}
+table{border-collapse:collapse; width:100%; font-size:14px}
+th,td{padding:9px 10px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{background:var(--soft); font-size:13px; white-space:nowrap}
+td.c, th.c{text-align:center; white-space:nowrap}
+th.c{font-size:12px; padding-left:4px; padding-right:4px}
+td.c{padding-left:4px; padding-right:4px}
+
+.fig{background:var(--panel); color:var(--panel-ink); border-radius:18px; padding:14px; margin-top:10px; font-size:13px; line-height:1.4}
+.fig .cap{color:var(--panel-sub); font-size:12px; margin-bottom:8px}
+.fig .box{background:var(--panel2); border:1px solid var(--panel-line); border-radius:12px; overflow:hidden}
+.fig .box + .box{margin-top:8px}
+.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#222E4B; border-bottom:1px solid var(--panel-line)}
+.fig .tag{background:#F1F5F9; color:#121A2C; font-weight:700; border-radius:7px; padding:1px 8px}
+.fig .grow{flex:1; color:var(--panel-sub); font-size:12px}
+.fig .row{display:flex; align-items:center; gap:8px; padding:9px 10px}
+.fig .row + .row{border-top:1px solid #2A3653}
+.fig .row b{font-size:15px}
+.fig .row .who2{flex:1; color:#CBD5E1}
+.fig .row .t{text-align:right; font-weight:700}
+.fig .row .t small{display:block; font-weight:400; color:var(--panel-sub); font-size:11px}
+.fig .me{background:#2F5FE3; border-radius:9px; padding:0 7px; font-size:11px; font-weight:700}
+.phases{display:flex; gap:6px; margin-top:4px}
+.phases div{flex:1; border-radius:10px; padding:8px 4px; text-align:center; font-weight:700; font-size:13px; color:#121A2C}
+.phases small{display:block; font-weight:400; font-size:11px}
+.bar{display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:10px}
+.bar i{display:block; height:100%}
+.legend{display:flex; justify-content:space-between; color:var(--panel-sub); font-size:11px; margin-top:4px}
+.calc{display:grid; grid-template-columns:auto 1fr auto; gap:6px 10px; align-items:center; margin-top:10px}
+.calc .l{font-weight:700}
+.calc .tr{height:10px; border-radius:5px; background:#2A3653; position:relative; overflow:hidden}
+.calc .tr i{position:absolute; top:0; bottom:0; border-radius:5px}
+.calc .r{color:var(--panel-sub); font-size:12px; white-space:nowrap}
+
+.up{display:inline-block; margin-top:12px; font-size:13px; font-weight:700}
+.foot{margin-top:32px; color:var(--sub); font-size:12px; text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="top">
+
+<div class="top">
+  <h1>AutoClicker Pro 使用說明</h1>
+  <p>每台手機在各自設定的時刻自動點擊集結按鈕，讓多支隊伍<b>同一時刻到達城堡</b>。</p>
+</div>
+
+<div class="nav">
+  <a href="#ready">準備</a>
+  <a href="#general">連點</a>
+  <a href="#rally">集結原理</a>
+  <a href="#leader">集結隊長</a>
+  <a href="#commander">指揮官</a>
+  <a href="#waves">分波</a>
+  <a href="#rep">聯盟代表</a>
+  <a href="#group">所屬</a>
+  <a href="#faq">遇到問題</a>
+</div>
+
+<div class="roles">
+  <a class="role" href="#general"><b>普通</b><span>只使用連點。不需要驗證。</span><i>檢視連點 ›</i></a>
+  <a class="role" href="#leader"><b>集結隊長</b><span>負責一支隊伍，參加集結。</span><i>檢視集結隊長 ›</i></a>
+  <a class="role" href="#commander"><b>指揮官</b><span>建立房間並開始集結。</span><i>檢視指揮官 ›</i></a>
+  <a class="role" href="#rep"><b>聯盟代表</b><span>指定本聯盟的指揮官。</span><i>檢視聯盟代表 ›</i></a>
+</div>
+
+<div class="tbl">
+<table>
+  <tr><th>可以做的事</th><th class="c">普通</th><th class="c">隊長</th><th class="c">指揮官</th><th class="c">代表</th></tr>
+  <tr><td>連點</td><td class="c">O</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>進入房間並檢視集結面板</td><td class="c">-</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>修改自己隊伍的行軍時間</td><td class="c">-</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>建立房間、編輯和分配隊伍</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>開始和取消集結</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>發放集結隊長代碼</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>指定本聯盟的指揮官</td><td class="c">-</td><td class="c">-</td><td class="c">-</td><td class="c">O</td></tr>
+</table>
+</div>
+
+<!-- 1 -->
+<section id="ready">
+  <h2><span class="n">1</span>準備</h2>
+  <p class="lead">應用程式需要一項權限才能替你點擊遊戲。所有角色的做法都一樣。</p>
+  <div class="card">
+    <ol class="steps">
+      <li>在應用程式首頁的 <b class="k">允許點擊螢幕</b> 卡片上點 <b class="k">去設定</b>。</li>
+      <li>閱讀說明並同意。手機的<b>無障礙</b>設定會開啟。</li>
+      <li>在列表中找到 <b>AutoClicker</b>，開啟它的開關。</li>
+      <li>回到應用程式。看到 <b class="k">已允許點擊螢幕</b> 就完成了。</li>
+    </ol>
+    <div class="tip">重啟手機或更新應用程式後，開關可能會被關掉。如果按鈕沒有反應，請在無障礙中把它<b>關掉再開啟</b>。</div>
+  </div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<!-- 2 -->
+<section id="general">
+  <h2><span class="n">2</span>連點</h2>
+  <p class="lead">按固定的間隔反覆點擊同一個位置。任何人都可以不驗證直接使用。</p>
+  <div class="card">
+    <ol class="steps">
+      <li>點 <b class="k">普通連點模式</b> 卡片，開啟<b>連點設定</b>。</li>
+      <li>選擇<b>點擊間隔</b>（0.1秒、0.2秒、0.5秒、1.0秒，或自己輸入）。</li>
+      <li>選擇<b>重複條件</b>：<b class="k">無限</b> 一直點擊，<b class="k">次數</b> 點滿次數後停止，<b class="k">時間</b> 到設定時間後停止。</li>
+      <li>點 <b class="k">套用</b>，然後點 <b class="k">顯示 AutoClicker</b>。</li>
+      <li>把出現在遊戲上的<b>準星</b>拖到想點擊的位置。</li>
+      <li>點懸浮條上的 <b>▶</b> 開始。再點一次停止。</li>
+    </ol>
+    <div class="warn"><b>緊急停止</b> · 連點時按<b>音量鍵</b>會立即停止。</div>
+  </div>
+  <h3>遊戲上方的懸浮條</h3>
+  <div class="tbl">
+  <table>
+    <tr><th>按鈕</th><th>作用</th></tr>
+    <tr><td>▶ / ■</td><td>開始和停止連點。</td></tr>
+    <tr><td>準星</td><td>隱藏或顯示準星。<b>長按</b>可以把準星放回螢幕中央。</td></tr>
+    <tr><td>旗幟</td><td>開啟和關閉集結面板。</td></tr>
+    <tr><td>齒輪</td><td>不離開遊戲就能修改連點設定。</td></tr>
+    <tr><td>時鐘</td><td>顯示帶秒的時鐘。</td></tr>
+    <tr><td>✕</td><td>關閉懸浮條和準星。</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<!-- 3 -->
+<section id="rally">
+  <h2><span class="n">3</span>集結原理</h2>
+  <p class="lead">每支隊伍到達城堡需要的時間（行軍時間）不同。要同時到達，遠的隊伍要先點，近的隊伍後點。這些計算和點擊都由應用程式來做。</p>
+
+  <div class="fig">
+    <div class="cap">每支隊伍經過的4個階段 · 面板使用這些顏色</div>
+    <div class="phases">
+      <div style="background:var(--y)">等待<small>點擊前</small></div>
+      <div style="background:var(--b);color:#fff">集結<small>集結中</small></div>
+      <div style="background:var(--p)">行軍<small>前往城堡</small></div>
+      <div style="background:var(--t)">到達<small>完成</small></div>
+    </div>
+    <div class="calc">
+      <div class="cap" style="grid-column:1/-1;margin:10px 0 0">例：準備時間15秒，行軍 1隊10秒 · 2隊30秒 · 3隊50秒</div>
+      <div class="l">3隊</div><div class="tr"><i style="left:0;width:15%;background:var(--y)"></i><i style="left:15%;width:35%;background:var(--b)"></i><i style="left:50%;width:50%;background:var(--p)"></i></div><div class="r">15秒後點擊</div>
+      <div class="l">2隊</div><div class="tr"><i style="left:0;width:35%;background:var(--y)"></i><i style="left:35%;width:35%;background:var(--b)"></i><i style="left:70%;width:30%;background:var(--p)"></i></div><div class="r">35秒後點擊</div>
+      <div class="l">1隊</div><div class="tr"><i style="left:0;width:55%;background:var(--y)"></i><i style="left:55%;width:35%;background:var(--b)"></i><i style="left:90%;width:10%;background:var(--p)"></i></div><div class="r">55秒後點擊</div>
+    </div>
+    <div class="legend"><span>開始集結</span><span>全員同一時刻到達 →</span></div>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>用語</th><th>含義</th></tr>
+    <tr><td><b>行軍時間</b></td><td>集結從出發到城堡所需的時間。請填寫遊戲裡顯示的數值。</td></tr>
+    <tr><td><b>集結時間</b></td><td>點擊集結按鈕後到出發為止的等待時間。必須和遊戲裡選擇的一致（3、5或10分鐘）。</td></tr>
+    <tr><td><b>準備時間</b></td><td>收到開始訊號後，切換到有集結按鈕的畫面所留的時間。每支隊伍都同樣加上。</td></tr>
+    <tr><td><b>校正</b></td><td>某台手機或某支隊伍稍微偏晚或偏早時，以0.5秒為單位提前或推後（−更早，+更晚）。</td></tr>
+    <tr><td><b>房間</b></td><td>要同時到達同一座城堡的隊伍聚在一起的地方。只計算房間裡的隊伍。</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<!-- 4 -->
+<section id="leader">
+  <h2><span class="n">4</span>集結隊長</h2>
+  <p class="lead">從指揮官那裡拿到代碼，驗證後進入房間，負責自己的隊伍。</p>
+
+  <h3>只做一次：驗證並進入房間</h3>
+  <div class="card">
+    <ol class="steps">
+      <li><span class="who">隊長</span>把你的 <b>ID</b> 告訴指揮官。電子郵件或暱稱都可以。</li>
+      <li><span class="who">指揮官</span>生成代碼並把文字發給你。裡面有 ID、集結隊長代碼、所屬和房間號。</li>
+      <li><span class="who">隊長</span><b>把文字整段複製</b>，然後在應用程式首頁點 <b class="k">驗證</b>。各項已經自動填好，確認後點按鈕。</li>
+      <li>在 <b class="k">集結房間</b> 卡片上點 <b class="k">請選擇房間</b>，選擇指揮官告訴你的房間。</li>
+      <li>輸入遊戲裡的<b>角色名</b>。它會顯示在指揮官的名單上。</li>
+      <li><span class="who">指揮官</span>把你分配到一支隊伍。你的那一行會顯示 <b class="k">我</b> 標記。</li>
+    </ol>
+    <div class="tip">集結隊長代碼是 <b>AC-</b> 加6個字元，並且<b>與你的 ID 和所屬綁定</b>。ID 請按原樣填寫。驗證後，你的所屬會鎖定為指揮官的所屬。</div>
+  </div>
+
+  <h3>集結之前：儲存點擊位置</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>點應用程式底部的 <b class="k">開啟集結面板</b>，切換到遊戲。</li>
+      <li>在遊戲裡進入<b>能看到集結按鈕的畫面</b>。</li>
+      <li>把<b>準星</b>拖到集結按鈕上。</li>
+      <li>在集結面板底部開啟 <b class="k">我的裝置 ▾</b>，點 <b class="k">儲存位置</b>。看到 <b class="k">✓ 位置已儲存</b> 就設好了。</li>
+      <li>把自己隊伍的<b>行軍時間</b>設為遊戲裡顯示的數值（−/+ 每次1秒，點數字可以直接輸入）。</li>
+    </ol>
+    <div class="warn"><b>請確認</b> · 如果看到黃色的「請先儲存點擊位置」或「請先登記角色名」，點它就會直接帶你過去。</div>
+  </div>
+
+  <h3>集結開始時</h3>
+  <div class="card">
+    <ul>
+      <li>指揮官開始後，大數字會倒數到<b>你的點擊</b>。</li>
+      <li>這段時間你必須停在<b>能看到集結按鈕的畫面</b>。應用程式只會點擊儲存的位置。</li>
+      <li>到0時應用程式替你點擊。之後會顯示「✓ 已點擊」和時間。</li>
+      <li>如果面板擋住了畫面，點頂部的 <b>–</b> 把它收成小條。倒數仍然看得到。</li>
+    </ul>
+  </div>
+
+  <h3>「我的裝置」一欄</h3>
+  <div class="tbl">
+  <table>
+    <tr><th>專案</th><th>作用</th></tr>
+    <tr><td>房間</td><td>換到其他房間。</td></tr>
+    <tr><td>角色名</td><td>修改名單上顯示的名字。</td></tr>
+    <tr><td>校正 −/+</td><td>把這台手機的點擊以0.5秒為單位提前或推後（−5秒到+5秒）。點數字可以直接輸入。</td></tr>
+    <tr><td>儲存位置</td><td>把準星現在的位置儲存為集結點擊位置。</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<!-- 5 -->
+<section id="commander">
+  <h2><span class="n">5</span>指揮官</h2>
+  <p class="lead">建立房間、編排隊伍並開始集結。為集結隊長生成代碼。</p>
+
+  <h3>成為指揮官</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>從聯盟代表那裡拿到<b>指揮官代碼</b>（<b>AD-</b> 加8個字元）。</li>
+      <li>點應用程式首頁右上角的<b>鑰匙</b>，開啟 <b class="k">指揮官登入</b>。</li>
+      <li>輸入代碼後點確定。頂部會出現 <b class="k">集結隊長</b> / <b class="k">指揮官</b> 標籤。</li>
+      <li>之後只要點 <b class="k">指揮官</b> 標籤即可，不需要代碼。</li>
+    </ol>
+    <div class="tip">指揮官代碼只能使用<b>一次</b>，並且有期限（代表生成的代碼為24小時）。所屬包含在代碼裡，會自動設定，不能更改。</div>
+  </div>
+
+  <h3>建立房間並編排隊伍</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>點 <b class="k">請選擇房間</b> → <b class="k">建立新房間</b>。每個所屬最多10個房間。</li>
+      <li>點 <b class="k">分享房間號</b>，把房間號發給集結隊長。</li>
+      <li>點 <b class="k">開啟集結面板</b>，再點面板頂部的<b>鉛筆</b>進入編輯。</li>
+      <li>點 <b class="k">+ 新增隊伍</b> 建立隊伍（每個房間最多10支）。</li>
+      <li>點隊伍那一行展開，選擇<b>負責人</b>並輸入<b>行軍時間</b>。</li>
+      <li>在<b>房間設定</b>中設定<b>集結時間</b>（3、5或10分鐘）和<b>準備時間</b>（每次1秒）。</li>
+      <li>點 <b class="k">完成</b> 關閉編輯。每次修改都會立即儲存並傳給所有人。</li>
+    </ol>
+    <div class="tip">列表一次顯示 <b>5支隊伍</b>，其餘的在列表內滾動檢視。點 <b class="k">房間設定 ▾</b> 把它收起，列表就會相應變長。收起的那一行仍然顯示數值。</div>
+  </div>
+
+  <div class="fig">
+    <div class="cap">編輯時的隊伍列表</div>
+    <div class="box">
+      <div class="row"><b>1隊</b><span class="who2">Moon <span class="me">我</span></span><span class="t">10秒<small>20秒後</small></span></div>
+      <div class="row"><b>2隊</b><span class="who2">AngryBird</span><span class="t">30秒<small>最先點擊</small></span></div>
+      <div class="row"><b>3隊</b><span class="who2" style="color:var(--y)">未分配</span><span class="t">50秒</span></div>
+    </div>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>看到的內容</th><th>含義</th></tr>
+    <tr><td>藍色勾選</td><td>這支隊伍參加本次集結。取消勾選後變為<b>排除</b>，顯示成一條細行。順序不變。</td></tr>
+    <tr><td>大數字（10秒）</td><td>這支隊伍的行軍時間。</td></tr>
+    <tr><td>小字</td><td>比最先點擊的隊伍晚幾秒點擊。在分波的房間裡，只在<b>同一波內</b>比較。</td></tr>
+    <tr><td>黃色「未分配」</td><td>沒有負責人。沒有手機去點擊，這支隊伍不會出發。</td></tr>
+    <tr><td>隊伍校正</td><td>在展開的行裡，只把這支隊伍以0.5秒為單位提前或推後（−5秒到+5秒）。</td></tr>
+    <tr><td>「刪除N隊」</td><td>在展開的行的最下面。點兩次刪除。</td></tr>
+  </table>
+  </div>
+
+  <h3>開始與取消</h3>
+  <div class="card">
+    <ul>
+      <li>點 <b class="k">開始集結</b>，所有手機同時開始倒數。只需開始一次。</li>
+      <li>如果參加的隊伍中有未分配的，應用程式會詢問：<b>排除未分配後開始</b> / <b>直接開始</b> / 取消。</li>
+      <li>進行中，同一個按鈕變成 <b class="k">取消集結</b>。還沒點擊的手機將不再點擊。</li>
+      <li>到達或取消之後，按鈕變成 <b class="k">重新集結</b>。不需要重新輸入設定。</li>
+      <li>集結進行中不能修改隊伍和時間。</li>
+    </ul>
+    <div class="warn"><b>防止誤點</b> · 取消後的1.5秒內，同一位置的「重新集結」不會響應。</div>
+  </div>
+
+  <h3>為集結隊長生成代碼</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>向集結隊長要他的 <b>ID</b>。</li>
+      <li>在 <b class="k">集結房間</b> 卡片上點 <b class="k">管理</b> → <b class="k">發放集結隊長代碼</b>。</li>
+      <li>輸入 ID，點 <b class="k">生成集結隊長代碼</b>。</li>
+      <li>把文字發出去。對方整段複製後進行驗證。</li>
+    </ol>
+    <div class="warn"><b>請注意</b> · 集結隊長代碼沒有期限，也<b>無法收回</b>。要讓某人退出，請把他從隊伍中取消分配。</div>
+  </div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<!-- 6 -->
+<section id="waves">
+  <h2><span class="n">6</span>分波 <span class="who">指揮官</span></h2>
+  <p class="lead">把隊伍分成幾波，讓各波<b>間隔一段時間</b>到達。同一波的隊伍同時到達，從第2波起，每一波比第1波晚設定的時間到達。</p>
+
+  <div class="fig">
+    <div class="cap">編輯使用分波的房間</div>
+    <div class="box">
+      <div class="band"><span class="tag">第1波</span><span class="grow">2支隊伍</span><span>最先到達（基準）</span></div>
+      <div class="row"><b>1隊</b><span class="who2">Moon</span><span class="t">10秒</span></div>
+      <div class="row"><b>2隊</b><span class="who2">AngryBird</span><span class="t">30秒</span></div>
+    </div>
+    <div class="box">
+      <div class="band"><span class="tag">第2波</span><span class="grow">1支隊伍</span><span>− &nbsp;<b>2分後到達</b>&nbsp; +</span></div>
+      <div class="row"><b>3隊</b><span class="who2">Cart</span><span class="t">50秒</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <ol class="steps">
+      <li>進入編輯後點 <b class="k">分波</b>，按隊伍編號順序分組，<b>每波2、3或5支</b>。選擇<b>全部歸入第1波</b>可以取消分波。</li>
+      <li>要移動某一支隊伍，展開它的那一行，選擇 <b class="k">第1波</b> 到 <b class="k">第5波</b>。</li>
+      <li>用每一波標題上的 <b>−/+</b> 設定間隔：<b>每次10秒</b>，從0秒到10分鐘。點數值可以直接輸入。</li>
+      <li><b class="k">開始集結</b> 只需點一次。後面幾波的手機會相應晚一些點擊。</li>
+    </ol>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>規則</th><th>內容</th></tr>
+    <tr><td>波數</td><td>第1波到第5波。每一波的隊伍數不限（整個房間最多10支）。</td></tr>
+    <tr><td>間隔的基準</td><td>始終是<b>第1波</b>。「2分後到達」表示比第1波晚2分鐘。</td></tr>
+    <tr><td>行軍時間</td><td>不受影響。保持遊戲裡顯示的數值。</td></tr>
+    <tr><td>大數字</td><td>沒有隊伍的指揮官：下一波到達。集結隊長：自己的隊伍。</td></tr>
+    <tr><td>所有隊伍都在第1波</td><td>不顯示波的標題。</td></tr>
+    <tr><td>收起一波</td><td>點某一波的標題收起它的隊伍，再點一次展開。只在你的手機上收起。</td></tr>
+  </table>
+  </div>
+  <div class="warn"><b>請確認</b> · 使用分波時，指揮官和集結隊長必須<b>全部使用最新版本</b>。舊版本不知道間隔，會提前點擊。</div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<!-- 7 -->
+<section id="rep">
+  <h2><span class="n">7</span>聯盟代表</h2>
+  <p class="lead">每個聯盟一名。可以做指揮官能做的所有事，還可以指定和移除本聯盟的指揮官。</p>
+
+  <h3>申請成為代表</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>首頁右上角的<b>鑰匙</b> → <b class="k">指揮官登入</b> → <b class="k">申請成為本聯盟代表</b>。</li>
+      <li>填寫伺服器編號、聯盟和遊戲角色名。可以加一句留言（最多60個字，例如：我是 WBI 的盟主）。</li>
+      <li>點 <b class="k">申請</b>。首頁會顯示正在等待批准，也可以在那裡取消。</li>
+      <li>批准之後再開啟申請視窗，就會切換到指揮官畫面。</li>
+    </ol>
+    <div class="tip">批准時不會有通知。請不時開啟應用程式檢視。一台手機只能提交一個申請。</div>
+  </div>
+
+  <h3>指定本聯盟的指揮官</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>點 <b class="k">管理</b> → <b class="k">本聯盟指揮官</b>。</li>
+      <li>點 <b class="k">+ 生成指揮官代碼</b>，輸入備註名，生成代碼後發出去。</li>
+      <li>對方在<b>24小時內</b>到指揮官登入中輸入代碼，就成為指揮官。</li>
+      <li>要移除某人，在名單上點 <b class="k">刪除</b>。那台手機下次開啟應用程式時會回到集結隊長畫面。</li>
+    </ol>
+  </div>
+  <div class="tbl">
+  <table>
+    <tr><th>規則</th><th>內容</th></tr>
+    <tr><td>每個聯盟的指揮官</td><td>包括代表在內最多5名。</td></tr>
+    <tr><td>代表管理的範圍</td><td>只有自己的聯盟。看不到其他聯盟。</td></tr>
+    <tr><td>指揮官指定指揮官</td><td>不可以。只有代表可以指定。</td></tr>
+    <tr><td>更換代表</td><td>同一聯盟的其他人提交申請，批准後代表更換。原代表變為普通指揮官。</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<!-- 8 -->
+<section id="group">
+  <h2><span class="n">8</span>所屬（伺服器 · 聯盟）</h2>
+  <p class="lead">房間歸在所屬之下。只有相同所屬的人才會在同一個房間裡見面。畫面上顯示為 <b class="k">2000 · WBI</b>。</p>
+  <div class="card">
+    <ul>
+      <li>伺服器編號：最多6位數字。聯盟：最多8個字母和數字。</li>
+      <li><b>聯盟區分大小寫。</b>WBI 和 wbi 是不同的所屬。</li>
+      <li>房間號按所屬分開計算。其他聯盟使用相同的號碼也不會衝突。</li>
+      <li>更改所屬後，你會離開原來所在的房間。</li>
+    </ul>
+  </div>
+  <div class="tbl">
+  <table>
+    <tr><th>角色</th><th>所屬如何設定</th></tr>
+    <tr><td>集結隊長</td><td>複製邀請文字並驗證：使用邀請中的所屬並鎖定。要去其他聯盟，請向那個聯盟的指揮官索取新代碼。</td></tr>
+    <tr><td>指揮官、代表</td><td>包含在指揮官代碼裡。顯示鎖的圖示，不能更改。</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<!-- 9 -->
+<section id="faq">
+  <h2><span class="n">9</span>遇到問題</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>問題</th><th>解決方法</th></tr>
+    <tr><td>按鈕能點，但遊戲沒有被點擊</td><td>在無障礙中把 AutoClicker <b>關掉再開啟</b>。<a href="#ready">檢視準備</a></td></tr>
+    <tr><td>「用集結隊長代碼驗證後才能使用。」</td><td>你還沒有驗證。<a href="#leader">檢視集結隊長</a></td></tr>
+    <tr><td>代碼不正確</td><td>請確認 ID 是否按原樣填寫、聯盟的大小寫是否一致。舊版的代碼不再接受，請索取新的代碼。</td></tr>
+    <tr><td>列表裡沒有我們的房間</td><td>請確認你的所屬（伺服器 · 聯盟）和指揮官的一致。<a href="#group">檢視所屬</a></td></tr>
+    <tr><td>指揮官的名單上沒有我的名字</td><td>請確認已進入房間並輸入了角色名。如果還是沒有，請離開房間後重新進入。</td></tr>
+    <tr><td>時間到了卻沒有點擊</td><td>請確認已儲存點擊位置、已被分配到隊伍（你的那一行有「我」），並且隊伍沒有被排除。</td></tr>
+    <tr><td>比別人稍晚或稍早</td><td>在<b>我的裝置</b>中以0.5秒為單位調整校正。− 更早，+ 更晚。</td></tr>
+    <tr><td>「開始集結」是灰色的</td><td>沒有參加的隊伍。下面的紅字會說明原因。</td></tr>
+    <tr><td>選了波卻又回到第1波</td><td>如果看到「無法儲存分波」，說明伺服器還沒有做好相應的設定。請告訴應用程式的管理者。</td></tr>
+    <tr><td>連線狀態的圓點是橙色或紅色</td><td>綠色是實時，橙色是每秒檢查一次，紅色是已斷開。請檢查網路。</td></tr>
+    <tr><td>解除安裝後重新安裝了應用程式</td><td>指揮官和代表需要拿新的代碼重新登記。更新（覆蓋安裝）則全部保留。</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ 回到頂部</a>
+</section>
+
+<div class="foot">AutoClicker Pro 使用說明</div>
+</div>
+</body>
+</html>
