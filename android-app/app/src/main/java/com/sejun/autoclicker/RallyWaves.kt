@@ -30,8 +30,7 @@ object RallyWaves {
         val total = Math.round(Math.max(0.0, sec)).toInt()
         val m = total / 60
         val s = total % 60
-        return T.s.span(m, s)분 ${s}초"
-        }
+        return T.s.span(m, s)
     }
 
     /** 조 제목 줄의 값: "먼저 도착", "같이 도착", "1분 뒤 도착" */
