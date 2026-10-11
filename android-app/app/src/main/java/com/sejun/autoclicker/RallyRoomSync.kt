@@ -58,6 +58,7 @@ class RallyRoomSync(
     private var startedAt: Long? = null
     @Volatile private var clickWallMs: Long? = null // 이 기기가 내 클릭을 실행한 시계 시각
     @Volatile private var arriveWallMs: Long? = null // 이 기기 시계 기준 전원 도착 시각(안내용)
+    @Volatile private var startWall: Long? = null // 이 기기 시계 기준 시작 신호를 받은 시각(조별 도착 시각 안내용)
     private var clickTask: Runnable? = null
     private var armTask: Runnable? = null
     @Volatile private var polling = false
@@ -175,9 +176,9 @@ class RallyRoomSync(
             "CANCELLED" -> RallyRunState.CANCELLED
             else -> RallyRunState.IDLE
         }
-        val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded, it.adminAdjustMs, it.leaderId) }
+        val teams = d.teams.map { RallyTeamState(it.id, it.name, it.leaderName, it.marchSec, online, it.excluded, it.adminAdjustMs, it.leaderId, it.wave) }
         return RallyRoomState(teams, RallyRoomEdit.teamIdOf(d, memberId, getCharacterName()), d.prepSec, d.waitSec, run, elapsed, positionSaved(),
-            characterNameSet = isAdmin || getCharacterName().isNotBlank(), isAdmin = isAdmin)
+            characterNameSet = isAdmin || getCharacterName().isNotBlank(), isAdmin = isAdmin, waveDelaySec = d.waveDelaySec)
     }
 
     override fun deviceCorrectionMs(): Int = correctionMs().toInt()
@@ -300,6 +301,15 @@ class RallyRoomSync(
     }
 
     override fun onAddTeam() = change { RallyRoomEdit.addNextTeam(it, 30.0) }
+
+    override fun onSetWave(teamId: String, wave: Int) = change { RallyRoomEdit.setWave(it, teamId, wave) }
+
+    override fun onSetWaveDelay(wave: Int, sec: Double) = change { RallyRoomEdit.setWaveDelay(it, wave, sec) }
+
+    override fun onSplitWaves(size: Int) = change { RallyRoomEdit.splitWaves(it, size) }
+
+    /** 이 기기가 시작 신호를 받은 시계 시각. 조마다의 도착 시각을 보여 주는 데 쓴다. */
+    override fun startWallMs(): Long? = startWall
 
     override fun onSetPrep(sec: Double) = change { RallyRoomEdit.setPrep(it, sec) }
 
@@ -504,7 +514,8 @@ class RallyRoomSync(
         if (startDetector.onDoc(d.startSeq, d.run, fromRemote)) {
             startedAt = SystemClock.elapsedRealtime()
             clickWallMs = null
-            val plan = RallySchedule.plan(d.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) }, d.prepSec, d.waitSec)
+            val plan = RallySchedule.plan(d.inputs(), d.prepSec, d.waitSec)
+            startWall = System.currentTimeMillis()
             arriveWallMs = RallyArrivalNote.arriveAtMs(System.currentTimeMillis(), plan.arriveAtSec)
             scheduleMyClick(d)
             onRallyStart()
@@ -513,6 +524,7 @@ class RallyRoomSync(
             cancelClick()
             startedAt = null
             arriveWallMs = null
+            startWall = null
             clickWallMs = null
             onCancel()
         }
@@ -521,9 +533,7 @@ class RallyRoomSync(
 
     private fun scheduleMyClick(d: RallyRoomDoc) {
         cancelClick()
-        val plan = RallySchedule.plan(
-            d.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) }, d.prepSec, d.waitSec
-        )
+        val plan = RallySchedule.plan(d.inputs(), d.prepSec, d.waitSec)
         val mine = plan.teamPlan(myTeamId) ?: return // 제외된 팀은 클릭하지 않는다
         val totalMs = RallyClickTiming.totalCorrectionMs(correctionMs(), myAdminAdjustMs(d))
         val delay = RallyClickTiming.delayUntilClickMs(mine.clickAtSec, 0L, totalMs)

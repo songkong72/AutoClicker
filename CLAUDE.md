@@ -34,6 +34,7 @@
 - 군단은 방마다 **최대 10개**(`RallyRoomEdit.MAX_TEAMS`). 10개 이상이면 "+ 군단 추가"는 흐린 "최대 10개".
 - 군단 **순서는 1군부터 고정**. 제외해도 자리를 옮기지 않는다. 제외 줄은 얇게(32dp, 막대·행군 시간 없음).
 - 군단 목록은 **5줄**까지 보이고 그 이상은 목록 안에서 스크롤(`RallyPanelView.VISIBLE_ROWS`). 패널은 화면 높이의 86%를 넘지 않는다.
+- 조: 군단마다 **1조~5조**(`RallyWaves.MAX_WAVES`) 중 하나, 새 군단은 1조. 한 조의 군단 수는 제한 없음(방 전체 10개만). 같은 조는 동시에 도착하고, 2조부터는 **"1조보다 몇 초 뒤 도착"**(도착 간격) 값을 하나씩 가진다: −/+ **10초씩**, 0초~10분. 행군 시간은 건드리지 않고 시작은 한 번. 군단이 없는 조는 보이지 않고, **모두 1조면 조가 없던 때와 똑같이** 보인다. 큰 숫자와 알약은 군단 없는 지휘관에게 "다음에 도착할 조"를 보여 주고(도착하면 다음 조로), 집결장은 내 군단 기준 그대로. "조 나누기"는 번호 순으로 2·3·5개씩.
 - 보정(내 기기·군단 보정): −/+ **0.5초씩**, 범위 ±5초. 숫자를 누르면 직접 입력.
 - 행군 시간: −/+ 1초씩. 이동 준비: −/+ 1초씩, 새 방 기본 15초. 집결 대기: 3·5·10분 중 선택(기본 5분).
 - 편집 값은 누르는 즉시 저장·전파된다. "완료"는 편집 화면을 닫을 뿐.
@@ -52,6 +53,7 @@
 - `RallyPanelHost.kt`: 패널 창 띄우기·이동·접기, 입력/선택 팝업 연결.
 - `RallyDragLayout.kt`: 패널 드래그와 목록 높이 맞춤(목록 위 세로 드래그는 스크롤).
 - `RallyRoomSync.kt`: 서버 동기화(실시간 스트림+폴링), 시작·취소, 내 클릭 예약.
+- `RallyWaves.kt`: 조와 도착 간격의 규칙. 시간 계산은 `RallySchedule`의 `delaySec`, 화면은 `ScreenModel.waves`·`waveMode`.
 - `RallyRoomDoc.kt`: 방 문서와 편집 규칙(`RallyRoomEdit`). `RallySchedule.kt`: 클릭 시각 계산. `RallyScreenModel.kt`: 화면 모델.
 - `SequenceClickController.kt`(모드 목록, 순서 클릭 자리 잡기·실행 버튼), `ClickSequences.kt`(순서 저장 형식과 규칙). 헌터 모드는 `AutoClickService.kt`·`HunterModeManager.kt`.
 - `RallyGroup.kt`: 소속(서버·연맹)과 서버에 쓰는 방 이름. 서버 호출 직전에만 방 번호를 방 이름으로 바꾼다(`MainActivity.roomKey`, `RallyRoomSync.roomKey`).

@@ -12,11 +12,16 @@ package com.sejun.autoclicker
  *   집결 클릭 시각 = 이동 준비시간 + (최대 행군 - 내 행군)
  *   출발 시각      = 집결 클릭 시각 + 집결 대기
  *   도착 시각      = 출발 시각 + 내 행군  (= 이동 준비 + 최대 행군 + 집결 대기, 전 팀 동일)
+ *
+ * 조(도착 간격)를 쓰면 팀마다 늦출 초(delaySec)가 집결 클릭 시각에 더해지고, 도착도 그만큼 늦어진다.
+ * 같은 값을 가진 팀끼리는 여전히 동시에 도착한다.
  */
 data class RallyTeamInput(
     val id: String,
     val marchSec: Double,
-    val excluded: Boolean = false
+    val excluded: Boolean = false,
+    /** 이 팀의 도착을 통째로 늦추는 초(조의 도착 간격). 집결 클릭도 그만큼 늦어진다. */
+    val delaySec: Double = 0.0
 )
 
 data class RallyTeamPlan(
@@ -29,6 +34,7 @@ data class RallyTeamPlan(
 
 data class RallyPlan(
     val maxMarchSec: Double,
+    /** 마지막 팀이 도착하는 시각(전원 도착). 조를 쓰지 않으면 모든 팀이 이 시각에 도착한다. */
     val arriveAtSec: Double,
     /** 집결 클릭이 빠른 순 (행군이 긴 팀이 먼저) */
     val teams: List<RallyTeamPlan>
@@ -48,18 +54,18 @@ object RallySchedule {
         require(prepSec >= 0.0) { "이동 준비시간은 0 이상이어야 합니다: $prepSec" }
         require(waitSec >= 0.0) { "집결 대기시간은 0 이상이어야 합니다: $waitSec" }
         teams.forEach { require(it.marchSec >= 0.0) { "행군시간은 0 이상이어야 합니다: ${it.id}=${it.marchSec}" } }
+        teams.forEach { require(it.delaySec >= 0.0) { "도착 간격은 0 이상이어야 합니다: ${it.id}=${it.delaySec}" } }
 
         val active = teams.filter { !it.excluded }
         if (active.isEmpty()) return RallyPlan(0.0, 0.0, emptyList())
 
         val maxMarch = active.maxOf { it.marchSec }
-        val arrive = prepSec + maxMarch + waitSec
         val plans = active.map {
-            val click = prepSec + (maxMarch - it.marchSec)
+            val click = prepSec + (maxMarch - it.marchSec) + it.delaySec
             val depart = click + waitSec
             RallyTeamPlan(it.id, it.marchSec, click, depart, depart + it.marchSec)
         }.sortedBy { it.clickAtSec }
-        return RallyPlan(maxMarch, arrive, plans)
+        return RallyPlan(maxMarch, plans.maxOf { it.arriveAtSec }, plans)
     }
 
     /** 시작 신호 후 elapsedSec 시점에 해당 팀이 어느 단계인지. 경계 시각은 다음 단계로 넘어간다. */

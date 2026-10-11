@@ -16,7 +16,9 @@ data class RallyTeamState(
     /** 지휘관이 이 군단에 더해 준 클릭 보정(ms) */
     val adminAdjustMs: Int = 0,
     /** 이 군단에 배정된 사람의 기기 ID. 배정 전이면 빈 문자열. */
-    val leaderId: String = ""
+    val leaderId: String = "",
+    /** 조(1~5) */
+    val wave: Int = 1
 )
 
 data class RallyRoomState(
@@ -32,7 +34,9 @@ data class RallyRoomState(
     /** 이 기기의 캐릭터명이 등록되어 있는지(지휘관은 등록하지 않아도 되므로 true로 넘긴다) */
     val characterNameSet: Boolean = true,
     /** 지휘관 기기인가. 지휘관이 자기 군단을 제외하면 "제외됐어요" 대신 전체 진행을 보여 준다. */
-    val isAdmin: Boolean = false
+    val isAdmin: Boolean = false,
+    /** 조별 도착 간격(초). [RallyWaves] 참고. */
+    val waveDelaySec: Map<Int, Double> = emptyMap()
 )
 
 data class HeroModel(
@@ -62,7 +66,24 @@ data class TeamRowModel(
     val clickAtSec: Double = 0.0,
     val departAtSec: Double = 0.0,
     val arriveAtSec: Double = 0.0,
-    val adminAdjustMs: Int = 0
+    val adminAdjustMs: Int = 0,
+    val wave: Int = 1,
+    /** 이 군단의 조가 가진 도착 간격(초). 누르는 순서 안내에 쓴다. */
+    val delaySec: Double = 0.0
+)
+
+/** 조 한 줄(목록의 조 제목). 군단이 하나라도 들어 있는 조만 만든다. */
+data class WaveModel(
+    val wave: Int,
+    val delaySec: Double,
+    /** 참여(제외 아님) 군단 수 */
+    val activeCount: Int,
+    /** 시작 후 이 조가 성에 도착하는 초. 참여 군단이 없으면 null. */
+    val arriveAtSec: Double?,
+    /** 진행 중일 때 도착까지 남은 초. 그 밖에는 null. */
+    val remainingSec: Double?,
+    /** 진행 중일 때 단계: 0 대기 · 1 집결 · 2 행군 · 3 도착. 그 밖에는 null. */
+    val phase: Int?
 )
 
 data class ScreenModel(
@@ -77,27 +98,38 @@ data class ScreenModel(
     val arriveAtSec: Double = 0.0,
     val nowSec: Double? = null,
     val prepSec: Double = 0.0,
-    val waitSec: Double = 0.0
+    val waitSec: Double = 0.0,
+    /** 조를 쓰는 방인가(1조가 아닌 군단이 하나라도 있다). 아니면 화면은 조가 없던 때와 같다. */
+    val waveMode: Boolean = false,
+    /** 군단이 들어 있는 조들(조 번호 순). 조를 쓰지 않으면 1조 하나다. */
+    val waves: List<WaveModel> = emptyList(),
+    /** 대기 중 큰 숫자에 흐리게 보일 초: 가장 먼저 닿는 조의 도착까지(조를 쓰지 않으면 전원 도착까지). */
+    val previewSec: Double = 0.0,
+    /** 조를 쓸 때 대기 중 큰 숫자 아래 한 줄. 없으면 null. */
+    val previewNote: String? = null
 )
 
 object RallyScreenModel {
 
     fun build(state: RallyRoomState): ScreenModel {
         val plan = RallySchedule.plan(
-            state.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) },
+            state.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded, RallyWaves.delayOf(state.waveDelaySec, it.wave)) },
             state.prepSec,
             state.waitSec
         )
+        val waveMode = state.teams.any { it.wave != 1 }
         val myPlan = plan.teamPlan(state.myTeamId)
         val elapsed = state.elapsedSec
         val arrivedByTime = state.runState == RallyRunState.RUNNING &&
             plan.teams.isNotEmpty() && elapsed >= plan.arriveAtSec
         val run = if (state.runState == RallyRunState.ARRIVED || arrivedByTime) RallyRunState.ARRIVED else state.runState
         val editable = run != RallyRunState.RUNNING
+        val waves = waves(state, plan, run)
+        val first = waves.filter { it.arriveAtSec != null }.minByOrNull { it.arriveAtSec ?: 0.0 }
 
         return ScreenModel(
-            hero = hero(state, myPlan, run, plan),
-            rows = rows(state, plan, run),
+            hero = hero(state, myPlan, run, plan, if (waveMode) waves else emptyList()),
+            rows = rows(state, plan, run, waveMode),
             maxMarchSec = plan.maxMarchSec,
             editable = editable,
             warnings = nameWarnings(state) + positionWarnings(state) + (if (editable) offlineWarnings(state) else emptyList()),
@@ -105,11 +137,47 @@ object RallyScreenModel {
             arriveAtSec = plan.arriveAtSec,
             nowSec = if (state.runState == RallyRunState.RUNNING) state.elapsedSec else null,
             prepSec = state.prepSec,
-            waitSec = state.waitSec
+            waitSec = state.waitSec,
+            waveMode = waveMode,
+            waves = waves,
+            previewSec = if (waveMode) first?.arriveAtSec ?: 0.0 else plan.arriveAtSec,
+            previewNote = if (waveMode && first != null) previewNote(first, waves) else null
         )
     }
 
-    private fun hero(state: RallyRoomState, my: RallyTeamPlan?, run: RallyRunState, plan: RallyPlan): HeroModel = when {
+    /** "1조 도착까지 · 2조 +1분 · 3조 +2분" */
+    private fun previewNote(first: WaveModel, waves: List<WaveModel>): String {
+        val base = first.arriveAtSec ?: 0.0
+        val rest = waves.filter { it.arriveAtSec != null && it.wave != first.wave }.sortedBy { it.arriveAtSec ?: 0.0 }
+            .joinToString("") { " · ${it.wave}조 +${RallyWaves.span((it.arriveAtSec ?: base) - base)}" }
+        return "${first.wave}조 도착까지$rest"
+    }
+
+    /** 군단이 들어 있는 조마다 한 줄. 같은 조의 참여 군단은 같은 시각에 도착한다. */
+    private fun waves(state: RallyRoomState, plan: RallyPlan, run: RallyRunState): List<WaveModel> {
+        val planById = plan.teams.associateBy { it.id }
+        val e = state.elapsedSec
+        return state.teams.groupBy { it.wave }.toSortedMap().map { (wave, teams) ->
+            val plans = teams.mapNotNull { planById[it.id] }
+            val arrive = plans.maxOfOrNull { it.arriveAtSec }
+            val running = run == RallyRunState.RUNNING && arrive != null
+            WaveModel(
+                wave = wave,
+                delaySec = RallyWaves.delayOf(state.waveDelaySec, wave),
+                activeCount = plans.size,
+                arriveAtSec = arrive,
+                remainingSec = if (running) Math.max(0.0, (arrive ?: e) - e) else null,
+                phase = if (!running) null else when {
+                    e < plans.minOf { it.clickAtSec } -> 0
+                    e < plans.maxOf { it.departAtSec } -> 1
+                    e < (arrive ?: e) -> 2
+                    else -> 3
+                }
+            )
+        }
+    }
+
+    private fun hero(state: RallyRoomState, my: RallyTeamPlan?, run: RallyRunState, plan: RallyPlan, waves: List<WaveModel>): HeroModel = when {
         run == RallyRunState.CANCELLED ->
             HeroModel(HeroKind.CANCELLED, "작전 취소됨", null, "예약된 클릭이 모두 멈췄어요", 1.0)
         run == RallyRunState.ARRIVED ->
@@ -121,7 +189,8 @@ object RallyScreenModel {
         // 군단이 없는 지휘관 등: 내 클릭은 없어도 진행 중에는 전원 도착까지 남은 시간을 보여 준다(숫자가 멈춰 보이지 않게)
         // 집결장이 군단을 못 찾았을 때는 전체 보기가 아니라 아래의 "배정되지 않았어요" 안내를 보여 준다.
         (state.isAdmin && (state.teams.none { it.id == state.myTeamId } || my == null)) && run == RallyRunState.RUNNING ->
-            overviewHero(plan, state.elapsedSec, state.prepSec).copy(note = if (state.teams.any { it.id == state.myTeamId }) "참여 안 함" else null)
+            (waveHero(waves, state.elapsedSec) ?: overviewHero(plan, state.elapsedSec, state.prepSec))
+                .copy(note = if (state.teams.any { it.id == state.myTeamId }) "참여 안 함" else null)
         state.teams.none { it.id == state.myTeamId } ->
             HeroModel(HeroKind.IDLE, "아직 군단이 배정되지 않았어요", null, "지휘관이 군단을 배정하면 시작할 수 있어요", 0.0)
         state.isAdmin && my == null ->
@@ -151,6 +220,21 @@ object RallyScreenModel {
         }
     }
 
+    /**
+     * 조를 쓰는 방에서 군단이 없는 지휘관이 보는 큰 숫자: 다음에 도착할 조의 도착까지 남은 시간.
+     * 그 조가 도착하면 다음 조로 넘어간다. 조를 쓰지 않거나 남은 조가 없으면 null.
+     */
+    private fun waveHero(waves: List<WaveModel>, e: Double): HeroModel? {
+        val coming = waves.filter { (it.arriveAtSec ?: -1.0) > e }.sortedBy { it.arriveAtSec ?: 0.0 }
+        val next = coming.firstOrNull() ?: return null
+        val arrive = next.arriveAtSec ?: return null
+        val prevArrive = waves.mapNotNull { it.arriveAtSec }.filter { it <= e }.maxOrNull() ?: 0.0
+        val stage = when (next.phase) { 0 -> "클릭 전"; 1 -> "집결 중"; else -> "행군 중" }
+        val after = coming.getOrNull(1)?.let { " · 다음 ${it.wave}조 ${formatMmSs((it.arriveAtSec ?: e) - e)}" } ?: ""
+        val progress = if (arrive <= prevArrive) 1.0 else ((e - prevArrive) / (arrive - prevArrive)).coerceIn(0.0, 1.0)
+        return HeroModel(HeroKind.OVERVIEW, "${next.wave}조 $stage", arrive - e, "${next.wave}조 도착까지$after", progress, (next.phase ?: 0).coerceIn(0, 2))
+    }
+
     private fun runningHero(state: RallyRoomState, my: RallyTeamPlan): HeroModel {
         val e = state.elapsedSec
         return when (RallySchedule.phaseAt(my, e)) {
@@ -177,21 +261,21 @@ object RallyScreenModel {
      * 군단 이름(번호) 순서로 보여 준다. 행군시간을 고치거나 제외해도 줄이 움직이지 않는다.
      * 번호는 이름 속 첫 숫자(2군 → 2, 10군 → 10)로 비교하고, 숫자가 없는 이름은 만든 순서대로 뒤에 둔다.
      */
-    private fun rows(state: RallyRoomState, plan: RallyPlan, run: RallyRunState): List<TeamRowModel> {
+    private fun rows(state: RallyRoomState, plan: RallyPlan, run: RallyRunState, waveMode: Boolean): List<TeamRowModel> {
         val planById = plan.teams.associateBy { it.id }
+        // 조를 쓰면 조별로 묶고(1조부터), 조 안에서는 군단 번호 순서 그대로
         val ordered = state.teams.withIndex()
-            .sortedWith(compareBy({ teamNumber(it.value.name) ?: Int.MAX_VALUE }, { it.index }))
+            .sortedWith(compareBy({ if (waveMode) it.value.wave else 0 }, { RallyWaves.teamNumber(it.value.name) ?: Int.MAX_VALUE }, { it.index }))
             .map { it.value }
         return ordered.map { t ->
             val p = planById[t.id]
+            val delay = RallyWaves.delayOf(state.waveDelaySec, t.wave)
             if (t.excluded || p == null)
                 TeamRowModel(t.id, t.name, t.leaderName, t.marchSec, "제외", null, true, t.online, t.id == state.myTeamId,
-                    adminAdjustMs = t.adminAdjustMs)
-            else row(state, t, p, run)
+                    adminAdjustMs = t.adminAdjustMs, wave = t.wave, delaySec = delay)
+            else row(state, t, p, run).copy(wave = t.wave, delaySec = delay)
         }
     }
-
-    private fun teamNumber(name: String): Int? = Regex("\\d+").find(name)?.value?.toIntOrNull()
 
     private fun row(state: RallyRoomState, t: RallyTeamState, p: RallyTeamPlan, run: RallyRunState): TeamRowModel {
         val e = state.elapsedSec

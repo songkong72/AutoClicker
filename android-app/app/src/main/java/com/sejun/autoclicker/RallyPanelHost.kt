@@ -56,6 +56,14 @@ class RallyPanelHost(
         fun onUnassignLeader(teamId: String) {}
         fun onSetMarch(teamId: String, sec: Double) {}
         fun onAddTeam() {}
+        /** 군단을 다른 조로 옮긴다. */
+        fun onSetWave(teamId: String, wave: Int) {}
+        /** 조의 도착 간격(1조보다 몇 초 뒤에 도착하는지). */
+        fun onSetWaveDelay(wave: Int, sec: Double) {}
+        /** 조 나누기: 번호 순으로 [size]개씩. 0이면 모두 1조. */
+        fun onSplitWaves(size: Int) {}
+        /** 이 기기가 시작 신호를 받은 시계 시각(조별 도착 시각 안내용). 진행한 집결이 없으면 null. */
+        fun startWallMs(): Long? = null
         fun onSetPrep(sec: Double) {}
         fun onSetWait(sec: Double) {}
         /** 지휘관이 한 군단에 더해 주는 클릭 보정(ms) */
@@ -142,6 +150,25 @@ class RallyPanelHost(
             }
             override fun onSetPrep(sec: Double) { stateSource.onSetPrep(sec); refresh() }
             override fun onSetWait(sec: Double) { stateSource.onSetWait(sec); refresh() }
+            override fun onSetWave(teamId: String, wave: Int) { stateSource.onSetWave(teamId, wave); refresh() }
+            override fun onSetWaveDelay(wave: Int, sec: Double) { stateSource.onSetWaveDelay(wave, sec); refresh() }
+            override fun onEditWaveDelay(wave: Int, currentSec: Double) {
+                input.show("${wave}조 · 1조보다 몇 초 뒤에 도착할까요", currentSec.toInt().toString(),
+                    errorText = "0 ~ ${RallyWaves.MAX_DELAY_SEC.toInt()} 사이 숫자를 입력해 주세요 (예: 60)") { text ->
+                    val sec = RallyInputParse.marchSeconds(text)?.takeIf { it <= RallyWaves.MAX_DELAY_SEC } ?: return@show false
+                    stateSource.onSetWaveDelay(wave, sec); refresh(); true
+                }
+            }
+            override fun onSplitWaves() {
+                pick.show("조 나누기", emptyList(), "군단 번호 순서대로 나눠요. 조마다 1조보다 몇 분 뒤에 도착할지 따로 정할 수 있어요.",
+                    listOf(
+                        RallyPickPopup.Item("2개씩") { stateSource.onSplitWaves(2); refresh() },
+                        RallyPickPopup.Item("3개씩") { stateSource.onSplitWaves(3); refresh() },
+                        RallyPickPopup.Item("5개씩") { stateSource.onSplitWaves(5); refresh() },
+                        RallyPickPopup.Item("모두 1조로 (조 없애기)", "#93C5FD") { stateSource.onSplitWaves(0); refresh() },
+                        RallyPickPopup.Item("닫기", "#94A3B8") { }
+                    ))
+            }
             override fun onEditAdminAdjust(teamId: String, teamName: String, currentMs: Int) {
                 val shown = if (currentMs % 1000 == 0) (currentMs / 1000).toString() else (currentMs / 1000.0).toString()
                 input.show("$teamName 보정(초) · −는 더 일찍, +는 더 늦게", shown, signed = true,
@@ -328,7 +355,7 @@ class RallyPanelHost(
         }
         val note = listOf(stateSource.arrivalNote(), stateSource.clickNote(), stateSource.changeNote()).filter { it.isNotEmpty() }.joinToString(" · ")
         p.render(model, stateSource.isAdmin, state.runState == RallyRunState.RUNNING, note,
-            stateSource.connection(), RallyCountdownCue.urgent(waiting, remain), stateSource.isStarting())
+            stateSource.connection(), RallyCountdownCue.urgent(waiting, remain), stateSource.isStarting(), stateSource.startWallMs())
         if (minimized) p.setMinimized(true, model.hero)
     }
 

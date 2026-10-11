@@ -12,7 +12,9 @@ data class RallyTeamDoc(
     val excluded: Boolean = false,
     val adminAdjustMs: Int = 0,
     /** 이 군단에 배정된 사람의 기기 ID. 비어 있으면 아직 배정 전. [leaderName]은 그 사람의 캐릭터명이다. */
-    val leaderId: String = ""
+    val leaderId: String = "",
+    /** 조(1~5). 조를 쓰지 않는 방은 모두 1이다. [RallyWaves] 참고. */
+    val wave: Int = 1
 )
 
 /**
@@ -27,8 +29,14 @@ data class RallyRoomDoc(
     val startSeq: Long,
     /** 마지막으로 방을 바꾼 지휘관의 표시 이름과 시각(ms). 바꾼 적이 없으면 빈 문자열과 0. */
     val lastBy: String = "",
-    val lastAt: Long = 0L
-)
+    val lastAt: Long = 0L,
+    /** 조별 도착 간격(초): 2조부터, 1조보다 몇 초 뒤에 도착하는지. 없는 조는 0. */
+    val waveDelaySec: Map<Int, Double> = emptyMap()
+) {
+    /** 시간 계산에 넣을 팀 목록(조의 도착 간격 포함). */
+    fun inputs(): List<RallyTeamInput> =
+        teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded, RallyWaves.delayOf(waveDelaySec, it.wave)) }
+}
 
 /** Firebase JSON <-> RallyRoomDoc 변환. org.json 대신 Map/List를 써서 JVM 단위 테스트가 가능하다. */
 object RallyRoomCodec {
@@ -38,13 +46,22 @@ object RallyRoomCodec {
                 "id" to it.id, "name" to it.name, "leaderName" to it.leaderName,
                 "marchSec" to it.marchSec, "excluded" to it.excluded,
                 "adminAdjustMs" to it.adminAdjustMs, "leaderId" to it.leaderId
-            )
+            // 조를 쓰지 않는 방(모두 1조)은 예전과 똑같은 모양으로 저장한다(새 서버 규칙을 게시하기 전에도 그대로 동작)
+            ) + (if (it.wave != 1) mapOf("wave" to it.wave) else emptyMap())
         },
         "prepSec" to doc.prepSec,
         "waitSec" to doc.waitSec,
         "run" to doc.run,
         "startSeq" to doc.startSeq
-    ) + (if (doc.lastAt > 0L && doc.lastBy.isNotEmpty()) mapOf("lastBy" to doc.lastBy, "lastAt" to doc.lastAt) else emptyMap()))
+    ) + (if (doc.lastAt > 0L && doc.lastBy.isNotEmpty()) mapOf("lastBy" to doc.lastBy, "lastAt" to doc.lastAt) else emptyMap())
+      + waveDelays(doc))
+
+    /** 값이 있는 조의 도착 간격만 저장한다. 하나도 없으면 항목 자체를 넣지 않는다. */
+    private fun waveDelays(doc: RallyRoomDoc): Map<String, Any?> {
+        val used = doc.waveDelaySec.filter { it.key in 2..RallyWaves.MAX_WAVES && it.value > 0.0 }
+        return if (used.isEmpty()) emptyMap()
+        else mapOf("waveDelay" to used.toSortedMap().entries.associate { RallyWaves.key(it.key) to RallyWaves.cleanDelay(it.value) })
+    }
 
     /** 값이 없거나 숫자가 Int/Long으로 와도 안전하게 읽는다. (Firebase는 빈 리스트를 아예 빼 버린다) */
     fun decode(map: Map<String, Any?>?): RallyRoomDoc {
@@ -59,9 +76,15 @@ object RallyRoomCodec {
                 marchSec = (t["marchSec"] as? Number)?.toDouble() ?: 0.0,
                 excluded = t["excluded"] as? Boolean ?: false,
                 adminAdjustMs = (t["adminAdjustMs"] as? Number)?.toInt() ?: 0,
-                leaderId = t["leaderId"] as? String ?: ""
+                leaderId = t["leaderId"] as? String ?: "",
+                wave = RallyWaves.cleanWave((t["wave"] as? Number)?.toInt() ?: 1)
             )
         }
+        val delays = (map["waveDelay"] as? Map<*, *>).orEmpty().mapNotNull { (k, v) ->
+            val wave = RallyWaves.waveOfKey(k.toString()) ?: return@mapNotNull null
+            val sec = (v as? Number)?.toDouble() ?: return@mapNotNull null
+            wave to RallyWaves.cleanDelay(sec)
+        }.toMap()
         return RallyRoomDoc(
             teams = teams,
             prepSec = (map["prepSec"] as? Number)?.toDouble() ?: 0.0,
@@ -69,7 +92,8 @@ object RallyRoomCodec {
             run = map["run"] as? String ?: "IDLE",
             startSeq = (map["startSeq"] as? Number)?.toLong() ?: 0L,
             lastBy = map["lastBy"] as? String ?: "",
-            lastAt = (map["lastAt"] as? Number)?.toLong() ?: 0L
+            lastAt = (map["lastAt"] as? Number)?.toLong() ?: 0L,
+            waveDelaySec = delays
         )
     }
 }
@@ -97,7 +121,7 @@ object RallyRoomEdit {
     /** 진행 중이던 집결이 전원 도착 시각을 지났는가. 이때부터 화면은 "전원 도착"이고 수정도 허용해야 한다. */
     fun finished(doc: RallyRoomDoc, elapsedSec: Double): Boolean {
         if (doc.run != "RUNNING") return false
-        val plan = RallySchedule.plan(doc.teams.map { RallyTeamInput(it.id, it.marchSec, it.excluded) }, doc.prepSec, doc.waitSec)
+        val plan = RallySchedule.plan(doc.inputs(), doc.prepSec, doc.waitSec)
         return plan.teams.isNotEmpty() && elapsedSec >= plan.arriveAtSec
     }
 
@@ -154,6 +178,32 @@ object RallyRoomEdit {
 
     fun setExcluded(doc: RallyRoomDoc, teamId: String, excluded: Boolean): RallyRoomDoc =
         mapTeam(doc, teamId) { it.copy(excluded = excluded) }
+
+    // ---- 조 ----
+
+    /** 군단을 다른 조로 옮긴다(1~5). 진행 중이면 그대로. */
+    fun setWave(doc: RallyRoomDoc, teamId: String, wave: Int): RallyRoomDoc =
+        mapTeam(doc, teamId) { it.copy(wave = RallyWaves.cleanWave(wave)) }
+
+    /** 조의 도착 간격(1조보다 몇 초 뒤에 도착하는지). 2조부터, 0~10분. 진행 중이거나 1조면 그대로. */
+    fun setWaveDelay(doc: RallyRoomDoc, wave: Int, sec: Double): RallyRoomDoc {
+        if (locked(doc) || wave !in 2..RallyWaves.MAX_WAVES) return doc
+        val clean = RallyWaves.cleanDelay(sec)
+        val next = if (clean <= 0.0) doc.waveDelaySec - wave else doc.waveDelaySec + (wave to clean)
+        return if (next == doc.waveDelaySec) doc else doc.copy(waveDelaySec = next)
+    }
+
+    /** 화면에 보이는 순서(군단 번호 순)의 군단 목록. */
+    fun ordered(doc: RallyRoomDoc): List<RallyTeamDoc> = doc.teams.withIndex()
+        .sortedWith(compareBy({ RallyWaves.teamNumber(it.value.name) ?: Int.MAX_VALUE }, { it.index })).map { it.value }
+
+    /** 조 나누기: 번호 순으로 [size]개씩 1조, 2조…에 넣는다. 0 이하면 모두 1조. 진행 중이면 그대로. */
+    fun splitWaves(doc: RallyRoomDoc, size: Int): RallyRoomDoc {
+        if (locked(doc)) return doc
+        val waves = RallyWaves.split(ordered(doc).map { it.id }, size)
+        val teams = doc.teams.map { it.copy(wave = waves[it.id] ?: 1) }
+        return if (teams == doc.teams) doc else doc.copy(teams = teams)
+    }
 
     fun addTeam(doc: RallyRoomDoc, name: String, marchSec: Double): RallyRoomDoc {
         if (locked(doc)) return doc

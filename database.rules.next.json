@@ -32,6 +32,9 @@
             "leaderId": {
               ".validate": "newData.isString() && newData.val().length <= 40"
             },
+            "wave": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
+            },
             "$other": {
               ".validate": false
             }
@@ -54,6 +57,11 @@
         },
         "lastAt": {
           ".validate": "newData.isNumber()"
+        },
+        "waveDelay": {
+          "$w": {
+            ".validate": "$w.matches(/^w[2-5]$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 600"
+          }
         },
         "$other": {
           ".validate": false
