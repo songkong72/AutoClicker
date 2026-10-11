@@ -546,7 +546,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             gravity = android.view.Gravity.CENTER
             maxLines = 1
             minHeight = dpx(36)
-            setPadding(dpx(8), 0, dpx(8), 0)
+            setPadding(dpx(6), 0, dpx(4), 0)
         }
         val arrow = android.widget.ImageView(themed).apply {
             setImageResource(R.drawable.ic_rp_chevron)
@@ -600,7 +600,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 // 오른쪽에는 남은 시간 하나만 굵게. 도착 시각은 왼쪽에 작은 회색 글씨로 따로 둔다
                 // (둘을 한 줄에 이어 쓰면 길어서 잘렸고, 숫자 두 개가 붙어 무엇인지 헷갈렸다). 접힌 줄은 그 자리에 "군단 N개".
                 h.value.text = if (phase >= 3) "도착" else "도착까지 " + RallyScreenModel.formatMmSs(remaining)
-                if (!folded && clock != null) h.count.text = "$clock 도착"
+                // 시각만 적는다(오른쪽이 "도착까지"라 뜻이 통한다). " 도착"까지 붙이면 글자가 큰 폰에서 "14:31:3…"로 잘렸다.
+                if (!folded && clock != null) h.count.text = clock
                 h.value.setTextColor(Color.parseColor(PHASE_COLORS[phase]))
                 h.value.setTypeface(null, android.graphics.Typeface.BOLD)
             }
@@ -778,7 +779,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             v.findViewById<TextView>(R.id.rowName).apply {
                 // "1군 달구지": 군단은 굵게, 맡은 사람은 조금 작고 옅게. 지휘관에게는 비어 있는 군단을 "미배정"으로 보여 준다.
                 val who = if (r.leaderName.isNotBlank()) r.leaderName else if (isAdmin) "미배정" else ""
-                text = if (who.isEmpty()) android.text.SpannableStringBuilder(r.name).apply {
+                val label = if (who.isEmpty()) android.text.SpannableStringBuilder(r.name).apply {
                     setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 } else android.text.SpannableStringBuilder("${r.name}  $who").apply {
                     setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, r.name.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -790,13 +791,22 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                         else -> "#8190A8"
                     })), r.name.length, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
+                // 내 군단의 "나" 딱지는 이름 글자 뒤에 함께 그린다. 따로 둔 뷰는 진행 중처럼 줄이 붐빌 때
+                // 이름에 밀려 찌그러지거나(글자 없는 파란 점) 아예 사라졌다.
+                if (r.isMine) {
+                    val at = label.length
+                    label.append("나")
+                    label.setSpan(BadgeSpan(Color.parseColor("#2F5FE3"), Color.WHITE, d), at, label.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+                text = label
+                contentDescription = if (r.isMine) "${r.name} $who 내 군단" else null
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (thin) 14f else 17f)
                 minHeight = if (thin) 0 else (40 * d).toInt()
                 // 편집 모드에서 이름을 누르면 맡을 사람을 고른다
                 setOnClickListener { if (editing) callbacks.onAssignLeader(r.id, r.name) }
                 isClickable = editing
             }
-            v.findViewById<View>(R.id.rowMe).visibility = if (r.isMine) View.VISIBLE else View.GONE
+            v.findViewById<View>(R.id.rowMe).visibility = View.GONE // "나"는 이름 글자 안에 그린다(위)
             // 펼친 줄의 머리: [3군] [코카콜라 — 눌러서 배정] [✕ 삭제]
             v.findViewById<TextView>(R.id.rowTeamBox).apply {
                 visibility = if (editOpen) View.VISIBLE else View.GONE
