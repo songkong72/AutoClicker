@@ -565,9 +565,11 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     private fun bindWaveHead(h: WaveHead, wave: Int, m: WaveModel?, editing: Boolean, teamCount: Int) {
         val delay = m?.delaySec ?: 0.0
         h.name.text = "${wave}조"
-        h.count.text = "군단 ${teamCount}개"
         // 머리띠(화살표·조 딱지·군단 수 쪽)를 누르면 그 조를 접고 편다. −/+ 와 값은 저마다의 일을 한다.
         val folded = wave in foldedWaves
+        // "군단 N개"는 편집 중이거나 접혀 있을 때만 적는다. 펼친 보기에서는 아래에 군단 줄이 보이고,
+        // 오른쪽 글("먼저 도착 · 시작 후 6:05")이 길어 자리가 모자라 "…"로 잘렸다.
+        h.count.text = if (editing || folded) "군단 ${teamCount}개" else ""
         h.arrow.rotation = if (folded) 0f else 90f
         h.root.contentDescription = "${wave}조 " + (if (folded) "펼치기" else "접기")
         h.root.setOnClickListener { toggleWave(wave) }
@@ -595,13 +597,14 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 val startWall = startWallShown
                 val clock = if (startWall == null || arriveAt == null) null
                     else java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(RallyArrivalNote.arriveAtMs(startWall, arriveAt)))
-                h.value.text = listOfNotNull(if (phase >= 3) "도착" else "도착까지 " + RallyScreenModel.formatMmSs(remaining), clock).joinToString(" · ")
+                // 접힌 줄은 "군단 N개"와 함께 한 줄에 들어가야 하니 시각을 뺀다.
+                h.value.text = listOfNotNull(if (phase >= 3) "도착" else "도착까지 " + RallyScreenModel.formatMmSs(remaining), clock.takeUnless { folded }).joinToString(" · ")
                 h.value.setTextColor(Color.parseColor(PHASE_COLORS[phase]))
                 h.value.setTypeface(null, android.graphics.Typeface.BOLD)
             }
             else -> {
                 // 대기·취소·도착 뒤: "1분 뒤 도착 · 시작 후 7:00"
-                h.value.text = listOfNotNull(label, if (arriveAt == null) null else "시작 후 " + RallyScreenModel.formatMmSs(arriveAt)).joinToString(" · ")
+                h.value.text = listOfNotNull(label, if (arriveAt == null || folded) null else "시작 후 " + RallyScreenModel.formatMmSs(arriveAt)).joinToString(" · ")
                 h.value.setTextColor(Color.parseColor("#A9B4C7"))
                 h.value.setTypeface(null, android.graphics.Typeface.NORMAL)
             }
