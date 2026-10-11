@@ -29,6 +29,29 @@ class StringsTest {
             .forEach { assertFalse(it, hangul.containsMatchIn(it)) }
     }
 
+    private fun plainApp(s: AppStr): Map<String, String> = AppStr::class.java.methods
+        .filter { it.parameterCount == 0 && it.returnType == String::class.java }
+        .associate { it.name to it.invoke(s) as String }
+
+    @Test fun `앱 화면의 영어 표에도 한글이 남아 있지 않다`() {
+        assertEquals(emptySet<String>(), plainApp(AppEn).filter { hangul.containsMatchIn(it.value) }.keys)
+        assertTrue(plainApp(AppEn).size > 150)
+        listOf(AppEn.groupSet("2000 · WBI"), AppEn.roomDeleted("1111"), AppEn.tapWhere(1, 2, 3, 4, true, false), AppEn.settingsApplied("0.5", AppEn.modeInfinite, 80),
+            AppEn.roomSummary("3", "2"), AppEn.pickLine("1111", 3, 2), AppEn.timerDone(1, 30), AppEn.every("0.5"), AppEn.noSuchRoomStatus("2000 · WBI"))
+            .forEach { assertFalse(it, hangul.containsMatchIn(it)) }
+    }
+
+    @Test fun `앱 화면 표는 집결 패널 표와 같은 언어를 따른다`() {
+        assertSame(AppKo, T.a)
+        T.set(StrEn)
+        assertSame(AppEn, T.a)
+        assertEquals("every 0.5s · endless", ClickSummary.text(500, RepeatMode.INFINITE, 0, 0))
+        assertEquals("3 teams · 2/3 assigned", RoomChooser.summaryFromLine("1111 · 군단 3개 (배정 2)"))
+        T.set(StrKo)
+        assertEquals("0.5초마다 · 무한 반복", ClickSummary.text(500, RepeatMode.INFINITE, 0, 0))
+        assertEquals("군단 3개 · 배정 2/3", RoomChooser.summaryFromLine("1111 · 군단 3개 (배정 2)"))
+    }
+
     @Test fun `한국어 표는 전과 같은 글자다`() {
         assertEquals("지휘관 시작 대기 중", StrKo.waitingStart)
         assertEquals("2조 행군 중", StrKo.waveStage(2, 2))

@@ -105,8 +105,8 @@ class AutoClickService : AccessibilityService() {
     /** 저장된 타겟 위치를 지금 1회 탭한다 (상대시간 집결의 예약 시각에 호출됨). */
     fun performRallyClickNow() {
         val saved = PreferencesHelper.getSavedRallyTargetPosition(this) ?: run {
-            rallyRoomSync?.clickResult = "⚠️ 클릭 안 함: 저장된 위치 없음"
-            vibrate(80); showToast("⚠ 저장된 클릭 위치가 없어 클릭하지 못했어요"); return
+            rallyRoomSync?.clickResult = T.a.clickNoPos
+            vibrate(80); showToast(T.a.toastNoPos); return
         }
         val target = targetView
         val loc = IntArray(2)
@@ -121,8 +121,8 @@ class AutoClickService : AccessibilityService() {
         val cy = saved.second + offY + h / 2f
         val dm = resources.displayMetrics
         val armed = rallyClickArmed
-        val where = "탭 좌표 (${cx.toInt()}, ${cy.toInt()}) · 화면 ${dm.widthPixels}x${dm.heightPixels} · 과녁 ${if (target == null) "없음" else "있음"} · 투과 ${if (armed) "사전" else "즉시"}"
-        rallyRoomSync?.clickResult = "탭 전송 중 · $where"
+        val where = T.a.tapWhere(cx.toInt(), cy.toInt(), dm.widthPixels, dm.heightPixels, target != null, armed)
+        rallyRoomSync?.clickResult = T.a.tapSending(where)
         // 과녁 오버레이가 터치를 가로채지 않도록 먼저 투과시킨 뒤 탭한다 (기존 예약 클릭과 동일한 방식).
         setTargetTouchable(false)
         mainHandler.postDelayed({
@@ -130,16 +130,16 @@ class AutoClickService : AccessibilityService() {
             val stroke = GestureDescription.StrokeDescription(path, 0L, 60L)
             val callback = object : GestureResultCallback() {
                 override fun onCompleted(gestureDescription: GestureDescription?) {
-                    rallyRoomSync?.clickResult = "✓ 탭 완료 · $where"
+                    rallyRoomSync?.clickResult = T.a.tapDone(where)
                 }
                 override fun onCancelled(gestureDescription: GestureDescription?) {
-                    rallyRoomSync?.clickResult = "✗ 탭 취소됨 · $where"
+                    rallyRoomSync?.clickResult = T.a.tapCancelled(where)
                 }
             }
             val ok = dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), callback, null)
             Log.d(TAG, "rally click at ($cx, $cy) dispatched=$ok")
-            if (!ok) rallyRoomSync?.clickResult = "✗ 탭 전송 거부됨 · $where"
-            showToast(if (ok) "집결 클릭! (${cx.toInt()}, ${cy.toInt()})" else "⚠ 클릭을 보내지 못했어요")
+            if (!ok) rallyRoomSync?.clickResult = T.a.tapRefused(where)
+            showToast(if (ok) T.a.rallyClickToast(cx.toInt(), cy.toInt()) else T.a.clickSendFailed)
             mainHandler.postDelayed({ rallyClickArmed = false; setTargetTouchable(true) }, 500L)
         }, if (armed) 0L else 40L)
     }
@@ -165,7 +165,7 @@ class AutoClickService : AccessibilityService() {
         prefs.edit().putString("cloud_room_number", code).putString("cloud_room_creatable", "").apply()
         RallyRoomHistory.record(prefs, code)
         leaveRallyRoom()
-        showToast("방 $code 로 옮겼어요")
+        showToast(T.a.movedRoom(code))
         toggleRallyPanel()
     }
 
@@ -241,7 +241,7 @@ class AutoClickService : AccessibilityService() {
     fun toggleRallyPanel() {
         val isAdmin = PreferencesHelper.isAdminMode(this)
         if (!PreferencesHelper.hasAccess(this)) {
-            Toast.makeText(this, "집결장 코드 인증이 필요해요.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, T.a.needAuth, Toast.LENGTH_SHORT).show()
             return
         }
         val wm = windowManager ?: return
@@ -249,7 +249,7 @@ class AutoClickService : AccessibilityService() {
             .getString("cloud_room_number", "") ?: ""
         if (room.isEmpty()) {
             // 깃발이 아무 반응 없는 것처럼 보이지 않게: 안내와 함께 앱 첫 화면을 열어 바로 방에 입장하게 한다.
-            showToast("집결 방에 먼저 입장해 주세요. 앱 화면을 열게요")
+            showToast(T.a.openAppJoin)
             try {
                 startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
             } catch (e: Exception) {
@@ -260,7 +260,7 @@ class AutoClickService : AccessibilityService() {
         // 방은 소속(서버·연맹) 아래에 있다. 소속을 아직 정하지 않았으면 앱 화면에서 먼저 정하게 한다.
         val group = RallyGroup.load(getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE))
         if (group == null) {
-            showToast("소속(서버·연맹)을 먼저 정해 주세요. 앱 화면을 열게요")
+            showToast(T.a.openAppGroup)
             try {
                 startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
             } catch (e: Exception) {
@@ -285,19 +285,19 @@ class AutoClickService : AccessibilityService() {
                 correctionMs = { PreferencesHelper.getClickOffsetMs(this).toLong() },
                 setCorrectionMs = { ms -> PreferencesHelper.setClickOffsetMs(this, ms) },
                 positionText = {
-                    PreferencesHelper.getSavedRallyTargetPosition(this)?.let { "저장된 클릭 위치 ${it.first}, ${it.second}" }
-                        ?: "클릭 위치 없음 · 과녁을 집결 버튼 위에 놓고 저장하세요"
+                    PreferencesHelper.getSavedRallyTargetPosition(this)?.let { T.a.savedPos(it.first, it.second) }
+                        ?: T.a.noPosHelp
                 },
                 positionSaved = { PreferencesHelper.getSavedRallyTargetPosition(this) != null },
                 savePosition = {
                     PreferencesHelper.setSavedRallyTargetPosition(this, targetParams?.x ?: 0, targetParams?.y ?: 0)
-                    showToast("현재 과녁 위치를 클릭 위치로 저장했어요")
+                    showToast(T.a.posSavedToast)
                 },
                 onClickDue = { performRallyClickNow() },
                 onClickArm = { on -> rallyClickArmed = on; setTargetTouchable(!on) },
                 onRallyStart = { rallyPanelHost?.let { if (!it.isShowing) it.show() } },
                 onCancel = { },
-                onOtherAdminChange = { who -> showToast("다른 지휘관($who)가 방을 바꿨어요") },
+                onOtherAdminChange = { who -> showToast(T.a.otherAdminChanged(who)) },
                 onWriteFailed = { why -> showToast(why) },
                 canCreateRoom = {
                     // 앱 첫 화면에서 만든·입장한 방만 새로 만든다. 값이 아예 없으면(예전 버전에서 정한 방) 그대로 허용한다.
@@ -328,11 +328,11 @@ class AutoClickService : AccessibilityService() {
             when (intent?.action) {
                 ACTION_STOP_CLICK -> {
                     stopAutoClick()
-                    showToast("알림창에서 연타를 멈췄어요.")
+                    showToast(T.a.stoppedFromNoti)
                 }
                 ACTION_CLOSE_ALL -> {
                     hideOverlays()
-                    showToast("오토클리커를 완전히 껐어요.")
+                    showToast(T.a.fullyOff)
                 }
                 Intent.ACTION_SCREEN_OFF -> {
                     stopAutoClick()
@@ -342,9 +342,16 @@ class AutoClickService : AccessibilityService() {
     }
 
 
+    /** 폰이나 이 앱의 언어가 바뀌면 글자 표도 바꾼다. */
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        T.use(this)
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        T.use(this)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         currentOverlayAlpha = PreferencesHelper.getOverlayAlpha(this)
         Log.d(TAG, "AutoClickService connected.")
@@ -366,7 +373,7 @@ class AutoClickService : AccessibilityService() {
             registerReceiver(actionReceiver, filter)
         }
 
-        showToast("오토클리커 준비가 끝났어요. 앱에서 [띄우기]를 눌러 주세요.")
+        showToast(T.a.serviceReady)
     }
 
     /**
@@ -380,7 +387,7 @@ class AutoClickService : AccessibilityService() {
                 if (isClicking) {
                     stopAutoClick()
                     vibrate(60)
-                    showToast("볼륨 키로 연타를 바로 멈췄어요.")
+                    showToast(T.a.stoppedByVolume)
                     return true
                 }
             }
@@ -436,7 +443,7 @@ class AutoClickService : AccessibilityService() {
             // 메뉴 생성이 실패하면 먼저 붙은 조준점만 남지 않게 모두 걷어 낸다.
             Log.e(TAG, "Overlay creation failed", e)
             hideOverlays()
-            showToast("화면 위젯을 띄우지 못했어요. 다시 시도해 주세요.")
+            showToast(T.a.widgetFailed)
             return
         }
         updateNotification()
@@ -497,7 +504,7 @@ class AutoClickService : AccessibilityService() {
             val btnToggle = controlView?.findViewById<ImageButton>(R.id.btnToggleTarget)
             btnToggle?.setImageResource(R.drawable.ic_visibility_off)
             btnToggle?.setColorFilter(Color.parseColor("#94A3B8"))
-            showToast("과녁을 화면 가운데에 놓았어요.")
+            showToast(T.a.targetCentered)
         } catch (e: Exception) {
             Log.e(TAG, "Error recentering target", e)
         }
@@ -687,7 +694,7 @@ class AutoClickService : AccessibilityService() {
             vibrate(20)
             hideOverlays()
             // 방에 들어가 있으면 화면만 닫히고 방 연결은 남는다: 완전히 꺼진 것으로 오해하지 않게 알린다.
-            showToast(if (rallyRoomSync != null) "화면만 닫았어요. 집결이 시작되면 자동으로 클릭해요." else "오토클리커를 껐어요.")
+            showToast(if (rallyRoomSync != null) T.a.closedKeepRally else T.a.turnedOff)
         }
 
         // 6. 접기 / 펼치기 토글 버튼 (^ / v)
@@ -814,11 +821,11 @@ class AutoClickService : AccessibilityService() {
         if (isTargetVisible) {
             btnToggle.setImageResource(R.drawable.ic_visibility_off)
             btnToggle.setColorFilter(Color.parseColor("#94A3B8"))
-            showToast("과녁을 보이게 했어요.")
+            showToast(T.a.targetShown)
         } else {
             btnToggle.setImageResource(R.drawable.ic_visibility)
             btnToggle.setColorFilter(Color.parseColor("#38BDF8"))
-            showToast("과녁을 숨겼어요. (연타는 계속돼요)")
+            showToast(T.a.targetHidden)
         }
     }
 
@@ -1023,7 +1030,7 @@ class AutoClickService : AccessibilityService() {
                 applyOverlayAlpha(a)
                 PreferencesHelper.setOverlayAlpha(this, a)
                 updateLevelHighlight(a)
-                showToast("투명도 ${(a * 100).toInt()}%")
+                showToast(T.a.opacityToast((a * 100).toInt()))
             }
         }
 
@@ -1250,11 +1257,11 @@ class AutoClickService : AccessibilityService() {
             PreferencesHelper.setOverlayAlpha(this, selectedAlpha)
             applyOverlayAlpha(selectedAlpha)
 
-            showToast("⚙️ 설정 적용 완료! (${ClickSummary.seconds(newInterval)}초 / ${when(selectedMode) {
-                RepeatMode.INFINITE -> "무한"
-                RepeatMode.COUNT -> "${newCount}회"
-                RepeatMode.TIMER -> "${m}분${s}초"
-            }} / 투명도 ${(selectedAlpha * 100).toInt()}%)")
+            showToast(T.a.settingsApplied(ClickSummary.seconds(newInterval), when (selectedMode) {
+                RepeatMode.INFINITE -> T.a.modeInfinite
+                RepeatMode.COUNT -> T.a.countTimes(newCount)
+                RepeatMode.TIMER -> T.a.minSec(m, s)
+            }, (selectedAlpha * 100).toInt()))
             hideSettingsDialog()
             onStatusChanged?.invoke(isClicking) // 앱 첫 화면의 설정 요약 한 줄을 새 값으로
         }
@@ -1267,7 +1274,7 @@ class AutoClickService : AccessibilityService() {
         if (isClicking) {
             stopAutoClick()
             vibrate(30)
-            showToast("치료 연타를 멈췄어요.")
+            showToast(T.a.stoppedTap)
             return
         }
 
@@ -1280,7 +1287,7 @@ class AutoClickService : AccessibilityService() {
 
         val target = targetView
         if (target == null) {
-            showToast("과녁이 아직 준비되지 않았어요.")
+            showToast(T.a.targetNotReady)
             return
         }
 
@@ -1348,11 +1355,11 @@ class AutoClickService : AccessibilityService() {
         val targetDurationSec = PreferencesHelper.getRepeatDurationSec(this)
 
         val modeDesc = when (repeatMode) {
-            RepeatMode.INFINITE -> "무한 반복"
-            RepeatMode.COUNT -> "${targetCount}회 반복"
-            RepeatMode.TIMER -> "${targetDurationSec / 60}분 ${targetDurationSec % 60}초 타이머"
+            RepeatMode.INFINITE -> T.a.repInfinite
+            RepeatMode.COUNT -> T.a.repeatN(targetCount)
+            RepeatMode.TIMER -> T.a.timerDesc(targetDurationSec / 60, targetDurationSec % 60)
         }
-        showToast("연타 시작 ($modeDesc)")
+        showToast(T.a.tapStarted(modeDesc))
         Log.d(TAG, "Starting robust infinite auto click at ($x, $y) with $intervalMs ms and $modeDesc")
 
         clickJob = serviceScope.launch {
@@ -1389,7 +1396,7 @@ class AutoClickService : AccessibilityService() {
                 if (repeatMode == RepeatMode.COUNT && clickCount >= targetCount) {
                     mainHandler.post {
                         stopAutoClick()
-                        showToast("✓ ${targetCount}회를 다 눌러서 자동으로 멈췄어요.")
+                        showToast(T.a.countDone(targetCount))
                     }
                     break
                 }
@@ -1402,7 +1409,7 @@ class AutoClickService : AccessibilityService() {
                             stopAutoClick()
                             val m = targetDurationSec / 60
                             val s = targetDurationSec % 60
-                            showToast("✓ 타이머(${m}분 ${s}초)가 끝나서 자동으로 멈췄어요.")
+                            showToast(T.a.timerDone(m, s))
                         }
                         break
                     }
@@ -1430,10 +1437,10 @@ class AutoClickService : AccessibilityService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "오토클리커 컨트롤러",
+                T.a.notiChannel,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "오토클리커 실행 및 비상 정지 리모컨"
+                description = T.a.notiChannelDesc
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)
@@ -1458,12 +1465,12 @@ class AutoClickService : AccessibilityService() {
         )
 
         val title = when {
-            isClicking -> "▶ 치료 연타 실행 중 (클릭중)"
-            else -> "⏹ 오토클리커 대기 중"
+            isClicking -> T.a.notiRunning
+            else -> T.a.notiIdle
         }
         val text = when {
-            isClicking -> "정지하려면 아래 [연타 정지]를 누르세요."
-            else -> "게임 화면의 컨트롤러로 조작하세요."
+            isClicking -> T.a.notiRunningSub
+            else -> T.a.notiIdleSub
         }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
@@ -1474,9 +1481,9 @@ class AutoClickService : AccessibilityService() {
             .setOngoing(true)
 
         if (isClicking) {
-            builder.addAction(R.drawable.ic_pause, "⏹ 연타 정지", stopIntent)
+            builder.addAction(R.drawable.ic_pause, T.a.notiStop, stopIntent)
         }
-        builder.addAction(R.drawable.ic_close, "✕ 위젯 종료", closeIntent)
+        builder.addAction(R.drawable.ic_close, T.a.notiClose, closeIntent)
 
         manager.notify(NOTIFICATION_ID, builder.build())
     }

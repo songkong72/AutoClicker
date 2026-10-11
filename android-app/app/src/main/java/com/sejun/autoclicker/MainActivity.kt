@@ -51,12 +51,12 @@ class MainActivity : AppCompatActivity() {
         // 중복 방지
         if (isFinishing) return
         SheetDialog(
-            this, "새로운 버전 업데이트",
-            "연맹 필수 업데이트예요. 새 버전의 오토클리커 Pro를 지금 받을까요?",
+            this, T.a.updTitle,
+            T.a.updBody,
             cancelable = false
         ).actions(
-            SheetDialog.act("나중에"),
-            SheetDialog.act("다운로드", SheetDialog.Kind.PRIMARY) {
+            SheetDialog.act(T.a.later),
+            SheetDialog.act(T.a.download, SheetDialog.Kind.PRIMARY) {
                 startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
             }
         ).show()
@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        T.use(this) // 폰(또는 이 앱)의 언어에 맞춘 글자 표
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -86,6 +87,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        T.use(this)
         checkAppVersion()
         verifyServerAdmin()
         updateAuthUI()
@@ -179,33 +181,33 @@ class MainActivity : AppCompatActivity() {
         binding.btnEmergencyStop.setOnClickListener {
             val service = AutoClickService.instance
             service?.stopAutoClick()
-            Toast.makeText(this, "치료 연타를 바로 멈췄어요.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, T.a.stoppedNow, Toast.LENGTH_SHORT).show()
             updateServiceState()
         }
 
         // ⚔️ 집결 동시 착탄 및 그룹 작전 설정 버튼
         binding.btnOpenRallySettings.setOnClickListener {
             if (!PreferencesHelper.hasAccess(this)) {
-                Toast.makeText(this, "집결장 코드로 인증한 뒤에 쓸 수 있어요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.needAuthToast, Toast.LENGTH_SHORT).show()
                 showVerificationDialog()
                 return@setOnClickListener
             }
 
             if (!hasAccessibilityPermission()) {
-                Toast.makeText(this, "스위치를 먼저 켜야 게임을 자동으로 터치할 수 있어요.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, T.a.needSwitch, Toast.LENGTH_LONG).show()
                 openAccessibilitySettings()
                 return@setOnClickListener
             }
 
             val service = AutoClickService.instance
             if (service == null) {
-                Toast.makeText(this, "아직 준비 중이에요. 잠시 후 다시 눌러 주세요.\n(계속 안 되면 접근성을 껐다가 다시 켜 주세요)", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, T.a.notReady, Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 
             if (group() == null) { showGroupSheet(); return@setOnClickListener }
             if ((roomPrefs().getString("cloud_room_number", "") ?: "").isEmpty()) {
-                Toast.makeText(this, "먼저 집결 방에 입장해 주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.joinRoomFirst, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -215,21 +217,21 @@ class MainActivity : AppCompatActivity() {
                 service.showOverlays()
             }
             service.toggleRallyPanel()
-            Toast.makeText(this, "집결 화면을 띄웠어요.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, T.a.panelShown, Toast.LENGTH_SHORT).show()
             moveTaskToBack(true)
         }
 
         // Single Smart Toggle Button: [🚀 오토클리커 띄우기] ↔ [✕ 오토클리커 숨기기]
         binding.btnStartService.setOnClickListener {
             if (!hasAccessibilityPermission()) {
-                Toast.makeText(this, "스위치를 먼저 켜야 게임을 자동으로 터치할 수 있어요.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, T.a.needSwitch, Toast.LENGTH_LONG).show()
                 openAccessibilitySettings()
                 return@setOnClickListener
             }
 
             val service = AutoClickService.instance
             if (service == null) {
-                Toast.makeText(this, "아직 준비 중이에요. 잠시 후 다시 눌러 주세요.\n(계속 안 되면 접근성을 껐다가 다시 켜 주세요)", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, T.a.notReady, Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 
@@ -238,11 +240,11 @@ class MainActivity : AppCompatActivity() {
             if (service.isOverlaysShowing()) {
                 // 이미 화면에 떠 있으면 숨기기
                 service.hideOverlays()
-                Toast.makeText(this, "오토클리커를 숨겼어요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.floaterHidden, Toast.LENGTH_SHORT).show()
             } else {
                 // 화면에 없으면 띄우기
                 service.showOverlays()
-                Toast.makeText(this, "오토클리커를 띄웠어요. 게임으로 이동할게요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.floaterShown, Toast.LENGTH_SHORT).show()
                 moveTaskToBack(true) // Switch to game immediately
             }
             updateServiceState()
@@ -254,7 +256,7 @@ class MainActivity : AppCompatActivity() {
      * 버튼 투명도는 게임 위 막대에만 쓰이는 값이라 여기에는 두지 않는다.
      */
     private fun showClickSettingsSheet() {
-        val sheet = SheetDialog(this, "연타 설정")
+        val sheet = SheetDialog(this, T.a.clickSettings)
         val density = resources.displayMetrics.density
         fun px(v: Int) = (v * density).toInt()
         val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -284,8 +286,8 @@ class MainActivity : AppCompatActivity() {
 
         // 클릭 주기: 초로 적는다. 칩을 누르면 입력 칸에 그 값이 들어간다.
         val etInterval = numberBox(ClickSummary.seconds(PreferencesHelper.getIntervalMs(this)), decimal = true)
-        row(6, label("클릭 주기", bold = true) to lp(0, wrap, 1f), etInterval to lp(px(96), px(44)), label("초") to lp(wrap, wrap, left = 8))
-        val presets = listOf(100L to "0.1초", 200L to "0.2초", 500L to "0.5초", 1000L to "1.0초")
+        row(6, label(T.a.interval, bold = true) to lp(0, wrap, 1f), etInterval to lp(px(96), px(44)), label(T.a.unitSec) to lp(wrap, wrap, left = 8))
+        val presets = listOf(100L to T.a.secs("0.1"), 200L to T.a.secs("0.2"), 500L to T.a.secs("0.5"), 1000L to T.a.secs("1.0"))
         val speedPills = presets.map { (ms, text) -> sheet.pill(text) { etInterval.setText(ClickSummary.seconds(ms)) } }
         sheet.equalRow(*speedPills.toTypedArray())
         fun paintSpeed() = paint(speedPills, presets.indexOfFirst { it.first == ClickSummary.parseSeconds(etInterval.text.toString()) })
@@ -297,21 +299,21 @@ class MainActivity : AppCompatActivity() {
         paintSpeed()
 
         // 반복 조건: 고른 것에 따라 아래 한 줄이 바뀐다(무한 = 안내, 횟수·시간 = 입력 줄).
-        sheet.heading("반복 조건")
+        sheet.heading(T.a.repeatCond)
         var mode = PreferencesHelper.getRepeatMode(this)
-        val modes = listOf(RepeatMode.INFINITE to "무한", RepeatMode.COUNT to "횟수", RepeatMode.TIMER to "시간")
+        val modes = listOf(RepeatMode.INFINITE to T.a.modeInfinite, RepeatMode.COUNT to T.a.modeCount, RepeatMode.TIMER to T.a.modeTimer)
         val modePills = modes.map { (_, text) -> sheet.pill(text) { } }
         sheet.equalRow(*modePills.toTypedArray())
-        val infiniteNote = sheet.line(sheet.content, "정지 버튼이나 볼륨 키를 누를 때까지 계속 연타해요.", small = true, top = 8).apply { setPadding(px(4), 0, px(4), 0) }
+        val infiniteNote = sheet.line(sheet.content, T.a.infiniteNote, small = true, top = 8).apply { setPadding(px(4), 0, px(4), 0) }
         val etCount = numberBox(PreferencesHelper.getRepeatCount(this).toString())
-        val countRow = row(8, etCount to lp(px(84), px(44)), label("회") to lp(wrap, wrap, left = 8),
+        val countRow = row(8, etCount to lp(px(84), px(44)), label(T.a.unitTimes) to lp(wrap, wrap, left = 8),
             *listOf("50", "100", "300").map { n -> sheet.pill(n) { etCount.setText(n) } to lp(0, px(44), 1f, left = 8) }.toTypedArray())
         val totalSec = PreferencesHelper.getRepeatDurationSec(this)
         val etMin = numberBox((totalSec / 60).toString())
         val etSec = numberBox((totalSec % 60).toString())
-        val timerRow = row(8, etMin to lp(px(64), px(44)), label("분") to lp(wrap, wrap, left = 6),
-            etSec to lp(px(64), px(44), left = 8), label("초") to lp(wrap, wrap, left = 6),
-            *listOf(1, 3).map { m -> sheet.pill("${m}분") { etMin.setText(m.toString()); etSec.setText("0") } to lp(0, px(44), 1f, left = 8) }.toTypedArray())
+        val timerRow = row(8, etMin to lp(px(64), px(44)), label(T.a.unitMin) to lp(wrap, wrap, left = 6),
+            etSec to lp(px(64), px(44), left = 8), label(T.a.unitSec) to lp(wrap, wrap, left = 6),
+            *listOf(1, 3).map { m -> sheet.pill(T.a.mins(m)) { etMin.setText(m.toString()); etSec.setText("0") } to lp(0, px(44), 1f, left = 8) }.toTypedArray())
         fun showMode() {
             paint(modePills, modes.indexOfFirst { it.first == mode })
             infiniteNote.visibility = if (mode == RepeatMode.INFINITE) View.VISIBLE else View.GONE
@@ -322,11 +324,11 @@ class MainActivity : AppCompatActivity() {
         showMode()
 
         sheet.actions(
-            SheetDialog.act("취소"),
-            SheetDialog.Action("적용", SheetDialog.Kind.PRIMARY) {
+            SheetDialog.act(T.s.cancel),
+            SheetDialog.Action(T.a.apply, SheetDialog.Kind.PRIMARY) {
                 val intervalMs = ClickSummary.parseSeconds(etInterval.text.toString())
                 if (intervalMs == null) {
-                    Toast.makeText(this, "클릭 주기를 0보다 큰 숫자로 입력해 주세요 (예: 0.5)", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, T.a.intervalError, Toast.LENGTH_SHORT).show()
                     return@Action false
                 }
                 PreferencesHelper.setIntervalMs(this, intervalMs)
@@ -344,7 +346,7 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
         Toast.makeText(
             this,
-            "목록에서 [오토클리커 Pro]를 찾아 켜주세요.",
+            T.a.findInList,
             Toast.LENGTH_LONG
         ).show()
     }
@@ -355,7 +357,7 @@ class MainActivity : AppCompatActivity() {
             binding.badgeAccessibility.text = getString(R.string.status_granted)
             binding.badgeAccessibility.setBackgroundResource(R.drawable.bg_badge_success)
             binding.badgeAccessibility.setTextColor(ContextCompat.getColor(this, R.color.success))
-            // 허용된 뒤에는 "허용됨" 배지만 남긴다(누를 수 없는 "완료" 버튼이 같은 뜻으로 한 번 더 나오던 것)
+            // 허용된 뒤에는 "허용됨" 배지만 남긴다(누를 수 없는 T.s.done 버튼이 같은 뜻으로 한 번 더 나오던 것)
             binding.btnGrantAccessibility.visibility = View.GONE
             binding.tvAccessibilityHint.visibility = View.GONE
             // 허용된 뒤에는 카드 대신 "화면 터치 허용됨" 한 줄만 보인다
@@ -380,23 +382,23 @@ class MainActivity : AppCompatActivity() {
 
         if (isClicking) {
             binding.btnEmergencyStop.visibility = View.VISIBLE
-            binding.btnEmergencyStop.text = "🛑 치료 연타 즉시 정지"
+            binding.btnEmergencyStop.text = T.a.emergencyStop
         } else {
             binding.btnEmergencyStop.visibility = View.GONE
         }
 
         if (isShowing) {
             // 이미 화면에 떠 있는 경우: 빨간색 [✕ 오토클리커 숨기기]
-            binding.btnStartService.text = "✕ 오토클리커 숨기기"
+            binding.btnStartService.text = T.a.hideFloater
             binding.btnStartService.setBackgroundColor(ContextCompat.getColor(this, R.color.danger))
         } else {
             // 화면에 없는 경우: 파란색 [🚀 오토클리커 띄우기]
-            binding.btnStartService.text = "🚀 오토클리커 띄우기"
+            binding.btnStartService.text = T.a.showFloater
             binding.btnStartService.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
         }
         updateStartButtonVisibility()
         // 회원 화면에는 띄우기 버튼이 없으므로, 조작판이 떠 있는지는 제목에서 알 수 있게 한다
-        binding.tvGeneralModeTitle.text = "일반 연타 모드" + (if (isShowing) " · 떠 있음" else "")
+        binding.tvGeneralModeTitle.text = T.a.generalMode + (if (isShowing) T.a.floatingNow else "")
         binding.tvClickSummary.text = ClickSummary.text(
             PreferencesHelper.getIntervalMs(this), PreferencesHelper.getRepeatMode(this),
             PreferencesHelper.getRepeatCount(this), PreferencesHelper.getRepeatDurationSec(this)
@@ -430,12 +432,12 @@ class MainActivity : AppCompatActivity() {
      */
     private fun showGroupSheet(then: () -> Unit = {}) {
         if (groupLocked()) {
-            Toast.makeText(this, "지휘관의 소속은 개발자나 연맹 대표가 정해요. 바꾸려면 그분께 말씀해 주세요.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, T.a.groupByOthers, Toast.LENGTH_LONG).show()
             return
         }
         if (leaderLocked()) {
             // 집결장의 소속은 받은 코드에 묶여 있다. 다른 소속으로 가려면 그 소속의 지휘관에게 새 코드를 받아 다시 인증한다.
-            Toast.makeText(this, "소속은 지휘관에게 받은 집결장 코드로 정해져요. 바꾸려면 새 코드를 받아 다시 인증해 주세요.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, T.a.groupByCode, Toast.LENGTH_LONG).show()
             showVerificationDialog()
             return
         }
@@ -444,27 +446,27 @@ class MainActivity : AppCompatActivity() {
         val copied = if (current == null) InviteText.groupIn(clipboardText()) else null
         val shown = current ?: copied
         val sheet = SheetDialog(
-            this, "소속 정하기",
-            (if (copied != null) "복사해 둔 글에서 소속을 가져왔어요. 맞는지 보고 저장을 눌러 주세요.\n" else "") +
-                "같은 소속끼리만 방이 보여요. 지휘관에게 받은 그대로 적어 주세요.\n연맹은 대문자와 소문자를 구분해요 (WBI와 wbi는 다른 소속)."
+            this, T.a.setGroup,
+            (if (copied != null) T.a.groupFromCopied else "") +
+                T.a.groupBody
         )
-        val server = sheet.field("서버 번호 (예: 2000)", RallyGroup.MAX_SERVER, InputType.TYPE_CLASS_NUMBER, shown?.server.orEmpty())
+        val server = sheet.field(T.a.serverHint, RallyGroup.MAX_SERVER, InputType.TYPE_CLASS_NUMBER, shown?.server.orEmpty())
         // 키보드가 첫 글자를 대문자로 바꾸거나 자동 고침을 하지 않게 한다(대소문자를 구분하므로 적은 그대로 들어가야 한다).
         val alliance = sheet.field(
-            "연맹 (예: WBI)", RallyGroup.MAX_ALLIANCE,
+            T.a.allianceHint, RallyGroup.MAX_ALLIANCE,
             InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
             shown?.alliance.orEmpty(), top = 10
         )
         sheet.actions(
-            SheetDialog.act("취소"),
-            SheetDialog.Action("저장", SheetDialog.Kind.PRIMARY) {
+            SheetDialog.act(T.s.cancel),
+            SheetDialog.Action(T.a.save, SheetDialog.Kind.PRIMARY) {
                 val problem = RallyGroup.problem(server.text?.toString(), alliance.text?.toString())
                 val next = RallyGroup.of(server.text?.toString(), alliance.text?.toString())
                 if (problem != null || next == null) {
-                    Toast.makeText(this, problem ?: "소속을 다시 확인해 주세요.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, problem ?: T.a.groupCheck, Toast.LENGTH_SHORT).show()
                     false
                 } else {
-                    if (next != current) applyGroup(next, "소속을 ${next.label}(으)로 정했어요. 방을 골라 주세요.")
+                    if (next != current) applyGroup(next, T.a.groupSet(next.label))
                     updateRallyInfoCard()
                     then()
                     true
@@ -520,7 +522,7 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
             if (isFinishing || isDestroyed) return@runOnUiThread
             if (locked && serverGroup != null && serverGroup != group()) {
-                applyGroup(serverGroup, "소속이 ${serverGroup.label}(으)로 정해졌어요. 방을 골라 주세요.")
+                applyGroup(serverGroup, T.a.groupAssigned(serverGroup.label))
             }
             updateRallyInfoCard()
         }
@@ -542,7 +544,7 @@ class MainActivity : AppCompatActivity() {
         val room = roomPrefs().getString("cloud_room_number", "") ?: ""
         val admin = PreferencesHelper.isAdminMode(this)
         val hasRoom = room.isNotEmpty()
-        // 방 번호를 치지 않고 서버의 방 목록에서 고른다. 방이 없으면 큰 "방 선택", 있으면 "방 바꾸기".
+        // 방 번호를 치지 않고 서버의 방 목록에서 고른다. 방이 없으면 큰 T.a.pickRooms, 있으면 "방 바꾸기".
         binding.btnPickRoom.visibility = if (hasRoom) View.GONE else View.VISIBLE
         binding.btnChangeRoom.visibility = if (hasRoom) View.VISIBLE else View.GONE
         binding.btnShareRoom.visibility = if (admin && hasRoom) View.VISIBLE else View.GONE
@@ -553,15 +555,15 @@ class MainActivity : AppCompatActivity() {
         // 방 번호는 크게, 옆에 내 역할과 군단·배정 수(마지막으로 받은 방 목록 기준이라 없으면 비운다)
         binding.rowRoomNumber.visibility = if (hasRoom) View.VISIBLE else View.GONE
         binding.tvRoomNumber.text = room
-        binding.tvRoleChip.text = if (admin) "지휘관" else "집결장"
+        binding.tvRoleChip.text = if (admin) T.s.commander else T.s.leader
         // 소속 표시: 정해 둔 소속, 없으면 정하라는 안내. 누르면 소속 정하기 창이 뜬다.
-        binding.tvRoomGroup.text = (group()?.label ?: "소속 정하기") + if (groupLocked() || leaderLocked()) " 🔒" else " ›"
+        binding.tvRoomGroup.text = (group()?.label ?: T.a.setGroup) + if (groupLocked() || leaderLocked()) " 🔒" else " ›"
         binding.tvRoomSummary.text = RoomChooser.summaryFromLine(RoomListCache.load(roomPrefs()).firstOrNull { it.first == room }?.second).orEmpty()
         val status = listOf(
             when {
                 hasRoom -> ""
-                admin -> "방을 고르거나 만들어 주세요."
-                else -> "방을 선택해 주세요."
+                admin -> T.a.pickOrCreate
+                else -> T.a.pickRoom
             },
             rosterStatus
         ).filter { it.isNotEmpty() }.joinToString("\n")
@@ -573,15 +575,15 @@ class MainActivity : AppCompatActivity() {
         binding.btnPickRoom.setOnClickListener { showRoomChooser() }
         binding.btnManage.setOnClickListener { showAdminMenu() }
         binding.btnRoomHelp.setOnClickListener {
-            SheetDialog(this, "집결 방", "같은 방에 들어온 군단들이 동시에 성에 도착하도록 집결 클릭 시각이 자동 계산돼요.")
-                .actions(SheetDialog.act("확인", SheetDialog.Kind.PRIMARY)).show()
+            SheetDialog(this, T.a.roomHelpTitle, T.a.roomHelpBody)
+                .actions(SheetDialog.act(T.s.ok, SheetDialog.Kind.PRIMARY)).show()
         }
         binding.btnChangeRoom.setOnClickListener { showRoomChooser() }
         binding.tvRoomGroup.setOnClickListener { showGroupSheet() }
         binding.btnShareRoom.setOnClickListener {
             val code = roomPrefs().getString("cloud_room_number", "") ?: ""
             if (code.isEmpty()) {
-                Toast.makeText(this, "먼저 방을 만들어 주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.createFirst, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val groupLine = group()?.let { it.shareLine + "\n" }.orEmpty()
@@ -598,7 +600,7 @@ class MainActivity : AppCompatActivity() {
         if (group() == null) { showGroupSheet { showRoomChooser() }; return }
         val current = roomPrefs().getString("cloud_room_number", "") ?: ""
         val admin = PreferencesHelper.isAdminMode(this)
-        Toast.makeText(this, "방 목록을 불러오는 중…", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, T.a.loadingRooms, Toast.LENGTH_SHORT).show()
         Thread {
             val r = AdminServer(RallyRoomSync.DB_URL, roomAuth()).loadRoomsOnly(group())
             val overviews = if (r.error != null) null else RoomList.summarize(r.value, null)
@@ -616,7 +618,7 @@ class MainActivity : AppCompatActivity() {
                     showNew = entries.any { it.kind == RoomChooser.Kind.NEW },
                     showType = entries.any { it.kind == RoomChooser.Kind.TYPE },
                     onPick = { code ->
-                        if (code == current) Toast.makeText(this, "지금 들어와 있는 방이에요.", Toast.LENGTH_SHORT).show()
+                        if (code == current) Toast.makeText(this, T.a.alreadyHere, Toast.LENGTH_SHORT).show()
                         else joinRoom(code)
                     },
                     onNew = { askNewRoom() },
@@ -632,7 +634,7 @@ class MainActivity : AppCompatActivity() {
         Thread {
             val err = adminServer().deleteRoom(roomKey(code))
             runOnUiThread {
-                if (err != null) { Toast.makeText(this, "방을 지우지 못했어요: $err", Toast.LENGTH_LONG).show(); done(false); return@runOnUiThread }
+                if (err != null) { Toast.makeText(this, T.a.deleteFailed(err), Toast.LENGTH_LONG).show(); done(false); return@runOnUiThread }
                 RallyRoomHistory.forget(roomPrefs(), code)
                 RoomListCache.save(roomPrefs(), RoomListCache.load(roomPrefs()).filter { it.first != code })
                 // 지운 방에 들어와 있었다면 방에서 나온다. 번호를 남겨 두면 집결 화면이 그 방을 다시 만들어 버린다.
@@ -641,7 +643,7 @@ class MainActivity : AppCompatActivity() {
                     AutoClickService.instance?.leaveRallyRoom()
                     rosterStatus = ""
                 }
-                Toast.makeText(this, "방 $code 을(를) 지웠어요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.roomDeleted(code), Toast.LENGTH_SHORT).show()
                 updateRallyInfoCard()
                 done(true)
             }
@@ -652,13 +654,13 @@ class MainActivity : AppCompatActivity() {
     private fun askRoomNumber() {
         InputSheet(
             this,
-            title = "방 번호 입력",
-            message = "집결장에게 받은 방 번호를 입력해 주세요.",
-            fields = listOf(InputSheet.Field(hint = "방 번호 (4자리 이상)", maxLength = 8)),
-            submitLabel = "입장"
+            title = T.a.enterCodeTitle,
+            message = T.a.enterCodeBody,
+            fields = listOf(InputSheet.Field(hint = T.a.codeHint, maxLength = 8)),
+            submitLabel = T.a.enter
         ) { v ->
             val code = v[0].trim()
-            if (code.length < 4) { Toast.makeText(this, "방 번호를 4자리 이상 입력해 주세요.", Toast.LENGTH_SHORT).show(); false }
+            if (code.length < 4) { Toast.makeText(this, T.a.codeTooShort, Toast.LENGTH_SHORT).show(); false }
             else { joinRoom(code); true }
         }.show()
     }
@@ -667,13 +669,13 @@ class MainActivity : AppCompatActivity() {
     private fun askCharName(onDone: (String) -> Unit) {
         InputSheet(
             this,
-            title = "캐릭터명 입력",
-            message = "지휘관이 군단을 배정할 때 이 이름으로 보여요.",
-            fields = listOf(InputSheet.Field(hint = "캐릭터명", maxLength = 20, inputType = android.text.InputType.TYPE_CLASS_TEXT)),
-            submitLabel = "확인"
+            title = T.a.nameTitle,
+            message = T.a.nameBody,
+            fields = listOf(InputSheet.Field(hint = T.a.nameHint, maxLength = 20, inputType = android.text.InputType.TYPE_CLASS_TEXT)),
+            submitLabel = T.s.ok
         ) { v ->
             val name = RallyRoster.cleanName(v[0])
-            if (name.isEmpty()) { Toast.makeText(this, "캐릭터명을 입력해 주세요.", Toast.LENGTH_SHORT).show(); false }
+            if (name.isEmpty()) { Toast.makeText(this, T.a.nameRequired, Toast.LENGTH_SHORT).show(); false }
             else { PreferencesHelper.setRallyCharacterName(this, name); onDone(name); true }
         }.show()
     }
@@ -689,17 +691,17 @@ class MainActivity : AppCompatActivity() {
             roomPrefs().edit().putString("cloud_room_number", code).putString("cloud_room_creatable", code).apply() // 첫 입장이므로 없는 방이면 만들어도 된다
             RallyRoomHistory.record(roomPrefs(), code)
             AutoClickService.instance?.leaveRallyRoom() // 방이 바뀌면 이전 방 연결은 끊는다
-            Toast.makeText(this, "방 $code 에 입장했어요.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, T.a.joined(code), Toast.LENGTH_SHORT).show()
             if (admin) {
                 rosterStatus = ""
             } else {
                 // 곧바로 방 명단에 올려, 지휘관 목록에 바로 나타나게 한다.
-                rosterStatus = "명단에 등록하는 중…"
+                rosterStatus = T.a.registering
                 val memberId = PreferencesHelper.getRallyMemberId(this)
                 Thread {
                     val err = RallyRoomSync.registerMember(RallyRoomSync.DB_URL, roomAuth(), roomKey(code), memberId, name)
                     runOnUiThread {
-                        rosterStatus = if (err == null) "✓ 명단에 등록됐어요 ($name)" else "✗ 명단 등록 실패: $err · 방 바꾸기에서 다시 골라 주세요"
+                        rosterStatus = if (err == null) T.a.registered(name) else T.a.registerFailed(err)
                         updateRallyInfoCard()
                     }
                 }.start()
@@ -711,7 +713,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, toast, Toast.LENGTH_LONG).show()
             updateRallyInfoCard()
         }
-        rosterStatus = "방을 확인하는 중…"
+        rosterStatus = T.a.checkingRoom
         updateRallyInfoCard()
         if (admin) {
             // 새 번호로 방을 만들 때는 서버의 방 수 상한(10개)을 본다. 이미 있는 방이면 그냥 들어간다.
@@ -721,7 +723,7 @@ class MainActivity : AppCompatActivity() {
                     when (RoomLimit.decide(codes, code)) {
                         RoomLimit.Verdict.ALLOW -> enter()
                         RoomLimit.Verdict.FULL -> fail(RoomLimit.fullMessage(), RoomLimit.fullMessage())
-                        RoomLimit.Verdict.UNKNOWN -> fail("서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요", "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.")
+                        RoomLimit.Verdict.UNKNOWN -> fail(T.a.roomCheckFailedStatus, T.a.roomCheckFailed)
                     }
                 }
             }.start()
@@ -732,8 +734,8 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     when (exists) {
                         true -> enter()
-                        false -> fail("없는 방이에요. 소속(${group()?.label ?: "없음"})과 방 번호를 확인해 주세요", "없는 방이에요. 소속과 방 번호를 확인해 주세요.")
-                        null -> fail("서버에서 방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요", "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요.")
+                        false -> fail(T.a.noSuchRoomStatus(group()?.label ?: T.s.none), T.a.noSuchRoom)
+                        null -> fail(T.a.roomCheckFailedStatus, T.a.roomCheckFailed)
                     }
                 }
             }.start()
@@ -746,13 +748,13 @@ class MainActivity : AppCompatActivity() {
      */
     private fun askNewRoom() {
         val current = roomPrefs().getString("cloud_room_number", "") ?: ""
-        val moving = if (current.isEmpty()) "" else "\n\n지금 방 $current 에서 나가게 돼요. 집결장들은 이전 방에 남으니 새 번호를 다시 공유해야 해요."
+        val moving = if (current.isEmpty()) "" else T.a.movingNote(current)
         InputSheet(
             this,
-            title = "새 방 만들기",
-            message = "원하는 방 번호를 4자리 이상 적어 주세요. 비워 두면 번호를 자동으로 정해요.$moving",
-            fields = listOf(InputSheet.Field(hint = "방 번호 (비워 두면 자동)", maxLength = 8)),
-            submitLabel = "만들기"
+            title = T.a.newRoomTitle,
+            message = T.a.newRoomBody(moving),
+            fields = listOf(InputSheet.Field(hint = T.a.newRoomHint, maxLength = 8)),
+            submitLabel = T.a.create
         ) { v -> createNewRoom(v[0]); true }.show()
     }
 
@@ -762,15 +764,15 @@ class MainActivity : AppCompatActivity() {
             // 화면에 보여 줄 실패 이유. 방을 만들었으면 null
             var code = ""
             val problem: String? = when {
-                codes == null -> "방을 확인하지 못했어요. 인터넷 연결을 확인해 주세요."
+                codes == null -> T.a.roomCheckFailed
                 else -> when (RoomChooser.newRoom(typed, codes)) {
-                    RoomChooser.NewRoom.TOO_SHORT -> "방 번호를 4자리 이상 입력해 주세요."
-                    RoomChooser.NewRoom.EXISTS -> "이미 있는 방이에요. 방 목록에서 골라 주세요."
+                    RoomChooser.NewRoom.TOO_SHORT -> T.a.codeTooShort
+                    RoomChooser.NewRoom.EXISTS -> T.a.roomExists
                     else -> {
                         code = typed.trim().ifEmpty { generateSequence { (100000..999999).random().toString() }.first { it !in codes } }
                         if (RoomLimit.decide(codes, code) == RoomLimit.Verdict.FULL) RoomLimit.fullMessage()
                         // 서버에 바로 만들어, 집결 화면을 열기 전에도 방 목록에 보이게 한다
-                        else RallyRoomSync.createRoom(RallyRoomSync.DB_URL, roomAuth(), roomKey(code))?.let { "방을 만들지 못했어요: $it" }
+                        else RallyRoomSync.createRoom(RallyRoomSync.DB_URL, roomAuth(), roomKey(code))?.let { T.a.createFailed(it) }
                     }
                 }
             }
@@ -780,7 +782,7 @@ class MainActivity : AppCompatActivity() {
                 RallyRoomHistory.record(roomPrefs(), code)
                 AutoClickService.instance?.leaveRallyRoom()
                 rosterStatus = ""
-                Toast.makeText(this, "새 방 $code 을 만들었어요. 집결장에게 번호를 공유하세요.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, T.a.roomCreated(code), Toast.LENGTH_LONG).show()
                 updateRallyInfoCard()
             }
         }.start()
@@ -827,49 +829,49 @@ class MainActivity : AppCompatActivity() {
 
         if (PreferencesHelper.isUserView(this)) {
             // 개발자가 일반 사용자 화면을 보는 중: 집결 기능은 가려지고 연타만 남는다
-            binding.tvAuthStatusTitle.text = "👤 일반 화면 (개발자 미리보기)"
+            binding.tvAuthStatusTitle.text = T.a.previewTitle
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#F59E0B"))
             if (roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null) != null) {
                 // 미리보기에서 연맹 대표를 신청해 본 상태: 일반 사용자의 대기 화면과 같게 보인다
-                binding.tvAuthStatusSubtitle.text = "연맹 대표 승인 대기 중 · " + RallyRoles.groupLabel(roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null).orEmpty()) +
-                    "\n위쪽 탭을 눌러 돌아가서 '지휘관 관리'에서 승인하거나 거절해 볼 수 있어요."
-                binding.btnAuthAction.text = "승인됐는지 확인"
+                binding.tvAuthStatusSubtitle.text = T.a.repPendingPrefix + RallyRoles.groupLabel(roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null).orEmpty()) +
+                    T.a.previewPendingTail
+                binding.btnAuthAction.text = T.a.checkApproved
             } else {
-                binding.tvAuthStatusSubtitle.text = "일반 사용자가 보는 화면이에요. 인증·지휘관 로그인·연맹 대표 신청을 시험해 볼 수 있어요. 위쪽 탭을 눌러 돌아가세요."
-                binding.btnAuthAction.text = "인증하기"
+                binding.tvAuthStatusSubtitle.text = T.a.previewBody
+                binding.btnAuthAction.text = T.a.verify
             }
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#3B82F6"))
         } else if (PreferencesHelper.isAdminMode(this)) {
-            binding.tvAuthStatusTitle.text = "👑 지휘관 모드"
+            binding.tvAuthStatusTitle.text = T.a.adminModeTitle
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#2563EB"))
-            binding.tvAuthStatusSubtitle.text = "방을 만들고 집결장에게 방 번호와 집결장 코드를 공유하세요."
-            binding.btnAuthAction.text = "관리"
+            binding.tvAuthStatusSubtitle.text = T.a.adminModeBody
+            binding.btnAuthAction.text = T.a.manage
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#2563EB"))
         } else if (PreferencesHelper.isRosterAdmin(this)) {
             // 지휘관으로 등록된 기기가 집결장 화면으로 지내는 중
-            binding.tvAuthStatusTitle.text = "🚩 집결장 모드"
+            binding.tvAuthStatusTitle.text = T.a.leaderModeTitle
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
-            binding.tvAuthStatusSubtitle.text = "지휘관으로 등록된 기기예요. 위쪽 버튼으로 코드 없이 지휘관으로 전환할 수 있어요."
-            binding.btnAuthAction.text = "지휘관으로 전환"
+            binding.tvAuthStatusSubtitle.text = T.a.leaderModeBody
+            binding.btnAuthAction.text = T.a.switchToCommander
         } else if (roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null) != null) {
             // 연맹 대표를 신청하고 개발자의 승인을 기다리는 중
-            binding.tvAuthStatusTitle.text = "⏳ 연맹 대표 승인 대기 중"
+            binding.tvAuthStatusTitle.text = T.a.repPendingTitle
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#B45309"))
             binding.tvAuthStatusSubtitle.text = RallyRoles.groupLabel(roomPrefs().getString(AdminRosterUi.KEY_REQUEST, null).orEmpty()) +
-                " · 개발자가 승인하면 지휘관 화면이 열려요. 아래 버튼으로 확인하거나 신청을 취소할 수 있어요."
-            binding.btnAuthAction.text = "승인됐는지 확인"
+                T.a.repPendingTail
+            binding.btnAuthAction.text = T.a.checkApproved
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#475569"))
         } else if (isVerified) {
-            binding.tvAuthStatusTitle.text = "✅ 집결장 인증 완료"
+            binding.tvAuthStatusTitle.text = T.a.verifiedTitle
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#10B981"))
-            binding.tvAuthStatusSubtitle.text = if (userId.isNotEmpty()) "인증한 ID: $userId" else "집결장 인증을 마쳤어요."
-            binding.btnAuthAction.text = "인증 변경"
+            binding.tvAuthStatusSubtitle.text = if (userId.isNotEmpty()) T.a.verifiedId(userId) else T.a.verifiedBody
+            binding.btnAuthAction.text = T.a.changeAuth
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#475569"))
         } else {
-            binding.tvAuthStatusTitle.text = "🔒 집결은 인증 후 사용"
+            binding.tvAuthStatusTitle.text = T.a.lockedTitle
             binding.tvAuthStatusTitle.setTextColor(Color.parseColor("#F59E0B"))
-            binding.tvAuthStatusSubtitle.text = "연타는 바로 쓸 수 있어요. 집결은 집결장 코드로 인증하면 열려요."
-            binding.btnAuthAction.text = "인증하기"
+            binding.tvAuthStatusSubtitle.text = T.a.lockedBody
+            binding.btnAuthAction.text = T.a.verify
             binding.btnAuthAction.setBackgroundColor(Color.parseColor("#3B82F6"))
         }
         // 전환 버튼은 서버 명단에 있다고 확인된 기기에만 보이고, 그때는 열쇠(코드 입력) 아이콘이 필요 없다
@@ -886,10 +888,10 @@ class MainActivity : AppCompatActivity() {
             v.setTextColor(ContextCompat.getColor(this, if (on) R.color.text_primary else R.color.text_secondary))
             v.setTypeface(null, if (on) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
         }
-        // 지휘관 화면과 (명단에 있는) 집결장 화면에서는 상태 카드를 두지 않는다: 전환은 위 막대, 관리는 집결 방 카드의 "관리"
+        // 지휘관 화면과 (명단에 있는) 집결장 화면에서는 상태 카드를 두지 않는다: 전환은 위 막대, 관리는 집결 방 카드의 T.a.manage
         binding.cardAuthStatus.visibility = if (!userView && (adminMode || roster)) View.GONE else View.VISIBLE
         binding.btnAdminIcon.visibility = if (roster) View.GONE else View.VISIBLE // 미리보기에서는 일반 사용자처럼 보인다
-        // 집결장 화면에서는 위쪽 전환 버튼 하나만 둔다: 카드 안에 같은 "지휘관으로 전환"을 또 두지 않는다
+        // 집결장 화면에서는 위쪽 전환 버튼 하나만 둔다: 카드 안에 같은 T.a.switchToCommander을 또 두지 않는다
         // 일반 화면 미리보기에서는 일반 사용자와 같은 버튼(인증하기)이 보인다. 돌아가는 것은 위쪽 막대의 집결장·지휘관 칸이다.
         binding.btnAuthAction.visibility =
             if (!userView && roster && !PreferencesHelper.isAdminMode(this)) View.GONE else View.VISIBLE
@@ -942,7 +944,7 @@ class MainActivity : AppCompatActivity() {
                     PreferencesHelper.setAdminMode(this, false)
                     PreferencesHelper.setAdminViaServer(this, false)
                     AutoClickService.instance?.leaveRallyRoom()
-                    Toast.makeText(this, "지휘관 권한이 없어서 집결장 화면으로 돌아가요. 지휘관 코드를 받아 다시 로그인해 주세요.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, T.a.demoted, Toast.LENGTH_LONG).show()
                     updateAuthUI()
                     updateRallyInfoCard()
                 }
@@ -957,21 +959,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAdminMenu() {
-        // "지휘관 관리"와 "내 기기 ID 보기"는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 지휘관과 집결장은 필요 없다)
+        // T.a.menuAdmin와 T.a.menuMyId는 개발자에게만 보인다(개발자 등록에 쓰는 것이라 지휘관과 집결장은 필요 없다)
         val owner = roomPrefs().getBoolean("is_owner_cached", false)
         val items = buildList {
-            add(MenuSheet.Item("집결장 코드 발급") { showAdminPanelDialog() })
-            if (owner) add(MenuSheet.Item("지휘관 관리", "개발자 전용") { AdminRosterUi(this@MainActivity, adminServer()).showManage() })
-            if (owner) add(MenuSheet.Item("내 기기 ID 보기") { AdminRosterUi(this@MainActivity, adminServer()).showMyId() })
-            // 연맹 대표는 자기 소속의 지휘관을 정하고 뺀다(개발자는 "지휘관 관리"에서 모든 소속을 다룬다)
+            add(MenuSheet.Item(T.a.menuIssueCode) { showAdminPanelDialog() })
+            if (owner) add(MenuSheet.Item(T.a.menuAdmin, T.a.devOnly) { AdminRosterUi(this@MainActivity, adminServer()).showManage() })
+            if (owner) add(MenuSheet.Item(T.a.menuMyId) { AdminRosterUi(this@MainActivity, adminServer()).showMyId() })
+            // 연맹 대표는 자기 소속의 지휘관을 정하고 뺀다(개발자는 T.a.menuAdmin에서 모든 소속을 다룬다)
             if (!owner && roomPrefs().getBoolean("is_rep_cached", false)) {
-                add(MenuSheet.Item("우리 연맹 지휘관", "대표 전용") { AdminRosterUi(this@MainActivity, adminServer()).showMyAlliance() })
+                add(MenuSheet.Item(T.a.menuAlliance, T.a.repOnly) { AdminRosterUi(this@MainActivity, adminServer()).showMyAlliance() })
             }
-            if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add(MenuSheet.Item("집결장으로 전환") { switchToLeader() }) // 위쪽 전환 버튼이 없을 때만
-            add(MenuSheet.Item("사용 설명서") { ManualActivity.open(this@MainActivity) })
+            if (!PreferencesHelper.isRosterAdmin(this@MainActivity)) add(MenuSheet.Item(T.a.menuToLeader) { switchToLeader() }) // 위쪽 전환 버튼이 없을 때만
+            add(MenuSheet.Item(T.a.manual) { ManualActivity.open(this@MainActivity) })
             // "일반 화면으로 전환"은 두지 않는다: 위쪽 막대의 "일반 화면" 칸이 같은 일을 한다.
         }
-        MenuSheet(this, "지휘관", items).show()
+        MenuSheet(this, T.s.commander, items).show()
     }
 
     private fun showVerificationDialog() {
@@ -980,42 +982,42 @@ class MainActivity : AppCompatActivity() {
         val knownGroup = invite?.group ?: group()
         InputSheet(
             this,
-            title = "집결장 코드 인증",
-            message = if (invite != null) "복사해 둔 초대 글에서 채웠어요. 맞는지 보고 아래 버튼을 눌러 주세요."
-                else "지휘관에게 받은 글을 통째로 복사한 뒤 이 창을 열면 저절로 채워져요. 직접 적을 때는 ID, 집결장 코드, 소속을 받은 그대로 적어 주세요.",
+            title = T.a.verifyTitle,
+            message = if (invite != null) T.a.verifyFilled
+                else T.a.verifyBody,
             fields = listOf(
                 InputSheet.Field(
-                    hint = "예: user@gmail.com", maxLength = 100, label = "이메일 또는 ID",
+                    hint = T.a.hintEmail, maxLength = 100, label = T.a.labelEmail,
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
                     initial = invite?.id ?: PreferencesHelper.getVerifiedUserId(this)
                 ),
                 InputSheet.Field(
-                    hint = "예: AC-8F3K9A", maxLength = 20, label = "집결장 코드 (AC- 뒤 6자리)",
+                    hint = T.a.hintCode, maxLength = 20, label = T.a.labelCode,
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS,
                     initial = invite?.code.orEmpty()
                 ),
                 InputSheet.Field(
-                    hint = "예: 2000", maxLength = RallyGroup.MAX_SERVER, label = "서버 번호",
+                    hint = T.a.hintServer, maxLength = RallyGroup.MAX_SERVER, label = T.a.labelServer,
                     inputType = android.text.InputType.TYPE_CLASS_NUMBER, initial = knownGroup?.server.orEmpty()
                 ),
                 // 대문자·소문자를 구분하므로 키보드가 글자를 바꾸지 않게 한다
                 InputSheet.Field(
-                    hint = "예: WBI", maxLength = RallyGroup.MAX_ALLIANCE, label = "연맹 (대문자·소문자 구분)",
+                    hint = T.a.hintAlliance, maxLength = RallyGroup.MAX_ALLIANCE, label = T.a.labelAlliance,
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
                     initial = knownGroup?.alliance.orEmpty()
                 )
             ),
-            submitLabel = "인증 완료 및 시작하기",
+            submitLabel = T.a.verifySubmit,
             showCancel = false,
-            link = InputSheet.Link("지휘관 로그인 (코드 발급 및 관리)") { showAdminLoginDialog() }
+            link = InputSheet.Link(T.a.linkAdminLogin) { showAdminLoginDialog() }
         ) { v ->
             val userId = v[0].trim()
             val code = v[1].trim()
             if (userId.isEmpty()) {
-                Toast.makeText(this, "이메일 또는 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.needEmail, Toast.LENGTH_SHORT).show()
                 false
             } else if (code.isEmpty()) {
-                Toast.makeText(this, "집결장 코드를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.needCode, Toast.LENGTH_SHORT).show()
                 false
             } else if (RallyGroup.problem(v[2], v[3]) != null) {
                 Toast.makeText(this, RallyGroup.problem(v[2], v[3]), Toast.LENGTH_SHORT).show()
@@ -1027,18 +1029,18 @@ class MainActivity : AppCompatActivity() {
                     // 코드가 그 소속에서만 맞으므로 소속도 함께 정하고 잠근다(지휘관의 소속을 물려받는다)
                     roomPrefs().edit().putBoolean("leader_group_locked", true).apply()
                     if (codeGroup != group() && !groupLocked()) {
-                        applyGroup(codeGroup, "집결장 인증을 마쳤어요. 소속은 ${codeGroup.label}이에요. 방을 골라 주세요.")
+                        applyGroup(codeGroup, T.a.verifiedGroup(codeGroup.label))
                     } else {
-                        Toast.makeText(this, "집결장 인증을 마쳤어요. 환영해요!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, T.a.verifiedWelcome, Toast.LENGTH_LONG).show()
                     }
                     updateAuthUI()
                     updateRallyInfoCard() // 방 카드의 소속 표시도 바로 맞춘다
                     true
                 } else if (InvitationManager.isOldInviteCode(userId, code)) {
-                    Toast.makeText(this, "예전 방식의 코드예요. 지휘관에게 새 집결장 코드를 받아 주세요. (지휘관도 앱을 최신으로 올려야 해요)", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, T.a.oldCode, Toast.LENGTH_LONG).show()
                     false
                 } else {
-                    Toast.makeText(this, "코드가 맞지 않아요. ID, 코드, 소속(대문자·소문자)을 받은 그대로 적었는지 봐 주세요.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, T.a.codeMismatch, Toast.LENGTH_LONG).show()
                     false
                 }
             }
@@ -1048,27 +1050,27 @@ class MainActivity : AppCompatActivity() {
     private fun showAdminLoginDialog() {
         // "개발자"라는 말은 개발자 폰에서만 보인다. 다른 사람에게는 연맹 대표만 알면 된다.
         val owner = roomPrefs().getBoolean("is_owner_cached", false)
-        val intro = if (owner) "개발자나 연맹 대표에게 받은 지휘관 코드를 입력해 주세요. 이미 지휘관이나 개발자로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다."
-            else "연맹 대표에게 받은 지휘관 코드를 입력해 주세요. 이미 지휘관으로 등록된 기기는 칸을 비워 두고 확인을 누르면 됩니다."
+        val intro = if (owner) T.a.loginIntroOwner
+            else T.a.loginIntro
         InputSheet(
             this,
-            title = "지휘관 로그인",
-            message = "$intro 우리 연맹에 대표가 아직 없다면 아래에서 신청할 수 있어요.",
+            title = T.a.loginTitle,
+            message = intro + T.a.loginTail,
             fields = listOf(InputSheet.Field(
-                hint = "지휘관 코드 (AD-XXXXXXXX)", maxLength = 40,
+                hint = T.a.loginHint, maxLength = 40,
                 inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             )),
-            submitLabel = "확인",
-            link = InputSheet.Link("내 기기 ID") { AdminRosterUi(this, adminServer()).showMyId() },
+            submitLabel = T.s.ok,
+            link = InputSheet.Link(T.a.linkMyId) { AdminRosterUi(this, adminServer()).showMyId() },
             // 대표가 없는 연맹 사람이 찾아야 하는 길이라 작은 글자 단추가 아니라 버튼으로 둔다
-            extra = InputSheet.Link("우리 연맹 대표 신청하기") { openRepRequest() }
+            extra = InputSheet.Link(T.a.linkRepRequest) { openRepRequest() }
         ) { v ->
             val typed = v[0].trim()
             if (typed.isEmpty()) {
                 enterFromRoster(askCodeIfNot = false)
             } else if (AdminRoster.looksLikeCode(typed)) {
                 // 지휘관 코드: 서버 명단에 올라야 지휘관이 된다
-                Toast.makeText(this, "지휘관 코드를 확인하는 중…", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.checkingCode, Toast.LENGTH_SHORT).show()
                 Thread {
                     val server = adminServer()
                     val err = server.redeem(typed)
@@ -1081,14 +1083,14 @@ class MainActivity : AppCompatActivity() {
                             AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
                             updateAuthUI()
                             updateRallyInfoCard()
-                            Toast.makeText(this, "지휘관으로 등록됐어요. 다음부터는 코드 없이 전환할 수 있어요.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this, T.a.commanderRegistered, Toast.LENGTH_LONG).show()
                         } else {
                             Toast.makeText(this, "$err", Toast.LENGTH_LONG).show()
                         }
                     }
                 }.start()
             } else {
-                Toast.makeText(this, "지휘관 코드는 AD- 로 시작해요. 개발자에게 받은 코드를 확인해 주세요.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, T.a.codePrefixError, Toast.LENGTH_LONG).show()
             }
             true
         }.show()
@@ -1097,7 +1099,7 @@ class MainActivity : AppCompatActivity() {
     /** 서버의 개발자 목록(owners)에 이 기기가 있으면 코드 없이 지휘관 모드로 들어간다. */
     /** 개발자만: 서버에 개발자인지 다시 확인한 뒤 일반 사용자 화면으로 바꾼다. 확인하지 못하면 바꾸지 않는다. */
     private fun enterUserView() {
-        Toast.makeText(this, "개발자 여부를 확인하는 중…", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, T.a.checkingOwner, Toast.LENGTH_SHORT).show()
         Thread {
             val server = adminServer()
             val uid = server.uid().value
@@ -1107,10 +1109,10 @@ class MainActivity : AppCompatActivity() {
                 when (owner) {
                     Check.YES -> setUserView(true)
                     Check.NO -> {
-                        Toast.makeText(this, "개발자로 등록된 기기만 쓸 수 있어요.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, T.a.ownerOnly, Toast.LENGTH_LONG).show()
                         updateAuthUI()
                     }
-                    Check.UNKNOWN -> Toast.makeText(this, "서버에서 확인하지 못했어요. 네트워크를 확인하고 다시 눌러 주세요.", Toast.LENGTH_LONG).show()
+                    Check.UNKNOWN -> Toast.makeText(this, T.a.serverCheckFailedNet, Toast.LENGTH_LONG).show()
                 }
             }
         }.start()
@@ -1119,7 +1121,7 @@ class MainActivity : AppCompatActivity() {
     private fun setUserView(on: Boolean) {
         PreferencesHelper.setUserView(this, on)
         AutoClickService.instance?.leaveRallyRoom() // 보이는 권한이 바뀌면 집결 패널을 닫는다
-        Toast.makeText(this, if (on) "일반 화면으로 바꿨어요." else "개발자 화면으로 돌아왔어요.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, if (on) T.a.toUserView else T.a.toDevView, Toast.LENGTH_SHORT).show()
         updateAuthUI()
         updateServiceState() // 펼침 상태가 바뀌었으니 제목의 ▴/▾ 와 띄우기 버튼 글자를 다시 맞춘다
         updateRallyInfoCard()
@@ -1130,7 +1132,7 @@ class MainActivity : AppCompatActivity() {
         PreferencesHelper.setAdminMode(this, false)
         PreferencesHelper.setAdminViaServer(this, false)
         AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
-        Toast.makeText(this, "집결장으로 전환했어요.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, T.a.toLeader, Toast.LENGTH_SHORT).show()
         updateAuthUI()
         updateRallyInfoCard()
     }
@@ -1140,7 +1142,7 @@ class MainActivity : AppCompatActivity() {
      * 명단에 없으면 들여보내지 않고, [askCodeIfNot]이면 지휘관 코드 입력 창을 띄운다. 확인하지 못했을 때도 들여보내지 않는다.
      */
     private fun enterFromRoster(askCodeIfNot: Boolean) {
-        Toast.makeText(this, "지휘관 명단을 확인하는 중…", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, T.a.checkingRoster, Toast.LENGTH_SHORT).show()
         Thread {
             val server = adminServer()
             val uid = server.uid().value
@@ -1159,25 +1161,25 @@ class MainActivity : AppCompatActivity() {
                         AutoClickService.instance?.leaveRallyRoom() // 권한이 바뀌면 패널을 새로 만든다
                         updateAuthUI()
                         updateRallyInfoCard()
-                        Toast.makeText(this, if (owner == Check.YES) "개발자로 들어왔어요." else "지휘관으로 전환했어요.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, if (owner == Check.YES) T.a.enteredOwner else T.a.toCommander, Toast.LENGTH_SHORT).show()
                     }
                     Check.NO -> {
                         PreferencesHelper.setRosterAdmin(this, false)
                         updateAuthUI()
                         updateRallyInfoCard()
-                        Toast.makeText(this, "지휘관 명단에 없는 기기예요. 지휘관 코드를 입력해 주세요.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, T.a.notOnRoster, Toast.LENGTH_LONG).show()
                         if (askCodeIfNot && !isFinishing && !isDestroyed) showAdminLoginDialog()
                     }
-                    Check.UNKNOWN -> Toast.makeText(this, "서버에서 확인하지 못했어요. 인터넷 연결을 확인해 주세요.", Toast.LENGTH_LONG).show()
+                    Check.UNKNOWN -> Toast.makeText(this, T.a.serverCheckFailed, Toast.LENGTH_LONG).show()
                 }
             }
         }.start()
     }
 
     private fun showAdminPanelDialog() {
-        val sheet = SheetDialog(this, "집결장 코드 발급", "집결장의 이메일이나 ID를 입력하면 그 사람만 쓸 수 있는 코드를 만들어요.")
+        val sheet = SheetDialog(this, T.a.menuIssueCode, T.a.issueBody)
         val etTargetId = sheet.field(
-            hint = "집결장 이메일 또는 ID (예: friend@gmail.com)", maxLength = 100,
+            hint = T.a.issueHint, maxLength = 100,
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
         )
 
@@ -1186,8 +1188,8 @@ class MainActivity : AppCompatActivity() {
         // 코드를 만든 뒤에만 보이는 것들: 코드와 보낼 내용 미리보기, 보내기 버튼들
         val afterMade = mutableListOf<View>()
 
-        // 파란 버튼은 "카카오톡으로 보내기" 하나만 되게, 만들기는 테두리 버튼으로 둔다
-        val btnGenerate = sheet.wideButton("집결장 코드 만들기", SheetDialog.Kind.OUTLINE, top = 12) { }
+        // 파란 버튼은 T.a.sendKakao 하나만 되게, 만들기는 테두리 버튼으로 둔다
+        val btnGenerate = sheet.wideButton(T.a.makeCode, SheetDialog.Kind.OUTLINE, top = 12) { }
 
         val resultCard = sheet.card(top = 14)
         val tvCode = sheet.line(resultCard, "", bold = true).apply {
@@ -1196,27 +1198,27 @@ class MainActivity : AppCompatActivity() {
         }
         val tvPreview = sheet.line(resultCard, "", small = true, top = 8)
         afterMade += resultCard
-        afterMade += sheet.wideButton("카카오톡으로 보내기", top = 14) { TextShare.toKakao(this, shareTitle, shareMsg) }
+        afterMade += sheet.wideButton(T.a.sendKakao, top = 14) { TextShare.toKakao(this, shareTitle, shareMsg) }
         afterMade += sheet.equalRow(
-            sheet.pill("복사") { TextShare.copy(this, shareTitle, shareMsg) },
-            sheet.pill("다른 앱으로 보내기") { TextShare.chooser(this, shareTitle, shareMsg) }
+            sheet.pill(T.a.copy) { TextShare.copy(this, shareTitle, shareMsg) },
+            sheet.pill(T.a.sendOther) { TextShare.chooser(this, shareTitle, shareMsg) }
         )
         afterMade.forEach { it.visibility = View.GONE }
 
         btnGenerate.setOnClickListener {
             val memberId = etTargetId.text.toString().trim()
             if (memberId.isEmpty()) {
-                Toast.makeText(this, "이메일 또는 ID를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, T.a.needEmail, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val codeGroup = group()
             if (codeGroup == null) {
-                Toast.makeText(this, "집결장 코드는 소속에 묶여요. 먼저 소속을 정해 주세요.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, T.a.needGroupForCode, Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             val code = InvitationManager.generateInviteCode(memberId, codeGroup)
             if (code.isEmpty()) {
-                Toast.makeText(this, "이 앱에는 집결장 코드 설정이 없어 만들 수 없어요.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, T.a.noCodeSecret, Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             // 방 번호를 따로 한 번 더 보내지 않아도 되게, 지금 방이 있으면 같은 메시지에 넣는다
@@ -1226,9 +1228,9 @@ class MainActivity : AppCompatActivity() {
             tvCode.text = code
             tvPreview.text = shareMsg
             afterMade.forEach { it.visibility = View.VISIBLE }
-            Toast.makeText(this, "집결장 코드를 만들었어요.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, T.a.codeMade, Toast.LENGTH_SHORT).show()
         }
 
-        sheet.actions(SheetDialog.act("닫기")).show()
+        sheet.actions(SheetDialog.act(T.s.close)).show()
     }
 }

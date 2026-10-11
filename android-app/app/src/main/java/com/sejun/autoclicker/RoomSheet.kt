@@ -14,7 +14,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 /**
- * 앱 첫 화면의 방 선택 창(아래에서 올라오는 창). 방을 눌러 들어가고, 지휘관은 "편집"에서 방을 지운다.
+ * 앱 첫 화면의 방 선택 창(아래에서 올라오는 창). 방을 눌러 들어가고, 지휘관은 T.a.edit에서 방을 지운다.
  * 삭제는 같은 창 안에서 한 번 더 묻는다. 무엇을 보여 줄지는 [RoomChooser]가 정하고, 여기서는 그리기만 한다.
  */
 internal class RoomSheet(
@@ -95,10 +95,10 @@ internal class RoomSheet(
 
         // 제목 줄: "방 선택 5개" + 편집/완료
         val head = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(px(4), 0, px(4), 0) }
-        head.addView(label(if (editing) "방 편집" else "방 선택", 20f, ink, bold = true))
-        head.addView(label("${rows.size}개", 14f, sub), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = px(8) })
+        head.addView(label(if (editing) T.a.editRooms else T.a.pickRooms, 20f, ink, bold = true))
+        head.addView(label(T.a.countN(rows.size), 14f, sub), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = px(8) })
         if (anyDeletable) {
-            head.addView(label(if (editing) "완료" else "편집", 15f, blue, bold = true).apply {
+            head.addView(label(if (editing) T.s.done else T.a.edit, 15f, blue, bold = true).apply {
                 gravity = Gravity.CENTER; setPadding(px(12), 0, px(12), 0)
                 setOnClickListener { if (!deleting) { editing = !editing; pendingDelete = null; render() } }
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, px(44)))
@@ -110,7 +110,7 @@ internal class RoomSheet(
 
         // 방 목록
         val list = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
-        if (rows.isEmpty()) list.addView(label("들어갈 수 있는 방이 없어요. 지휘관이 방을 만들면 여기에 보여요.", 15f, sub).apply { setPadding(px(4), px(12), px(4), px(12)) })
+        if (rows.isEmpty()) list.addView(label(T.a.noRooms, 15f, sub).apply { setPadding(px(4), px(12), px(4), px(12)) })
         rows.forEach { r -> list.addView(if (editing) editRow(r) else pickRow(r), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(if (r.code == current) 60 else 56)).apply { topMargin = px(4) }) }
         root.addView(MaxHeightScrollView(activity).apply {
             maxHeightPx = (activity.resources.displayMetrics.heightPixels * 0.45f).toInt()
@@ -128,16 +128,16 @@ internal class RoomSheet(
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
             background = box(Color.WHITE, 16, blue)
             addView(icon(R.drawable.ic_add, blue, 18))
-            addView(label("새 방 만들기", 16f, blue, bold = true).apply { setPadding(px(8), 0, 0, 0) })
+            addView(label(T.a.newRoomTitle, 16f, blue, bold = true).apply { setPadding(px(8), 0, 0, 0) })
             setOnClickListener { dialog?.dismiss(); onNew() }
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(52)).apply { topMargin = px(14) })
-        if (showType) root.addView(label("번호 직접 입력", 15f, blue, bold = true).apply {
+        if (showType) root.addView(label(T.a.typeNumber, 15f, blue, bold = true).apply {
             gravity = Gravity.CENTER
             setOnClickListener { dialog?.dismiss(); onType() }
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(48)).apply { topMargin = px(6) })
     }
 
-    /** 고르는 줄: 현재 방은 파란 바탕에 ✓와 "현재 방", 나머지는 번호와 배정 수. */
+    /** 고르는 줄: 현재 방은 파란 바탕에 ✓와 T.a.currentRoom, 나머지는 번호와 배정 수. */
     private fun pickRow(r: Row): View {
         val isCurrent = r.code == current
         return LinearLayout(activity).apply {
@@ -149,7 +149,7 @@ internal class RoomSheet(
             addView(LinearLayout(activity).apply {
                 orientation = LinearLayout.VERTICAL
                 addView(label(r.code, 18f, ink, bold = isCurrent).apply { letterSpacing = 0.04f })
-                if (isCurrent) addView(label("현재 방", 12f, blue, bold = true))
+                if (isCurrent) addView(label(T.a.currentRoom, 12f, blue, bold = true))
             }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = px(10) })
             if (r.badge != null) addView(label(r.badge, 13f, if (isCurrent) Color.WHITE else sub, bold = isCurrent).apply {
                 gravity = Gravity.CENTER; setPadding(px(12), 0, px(12), 0)
@@ -170,16 +170,16 @@ internal class RoomSheet(
             addView(LinearLayout(activity).apply {
                 orientation = LinearLayout.VERTICAL
                 addView(label(r.code, 18f, ink, bold = isCurrent || picked).apply { letterSpacing = 0.04f })
-                if (isCurrent) addView(label("현재 방", 12f, blue, bold = true))
+                if (isCurrent) addView(label(T.a.currentRoom, 12f, blue, bold = true))
             }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             if (isCurrent) {
                 addView(icon(R.drawable.ic_lock, sub, 16))
-                addView(label("사용 중 · 삭제 불가", 13f, sub).apply { setPadding(px(6), 0, 0, 0) })
+                addView(label(T.a.inUse, 13f, sub).apply { setPadding(px(6), 0, 0, 0) })
             } else if (RoomChooser.canDelete(r.deletable, r.code, current)) {
                 addView(ImageView(activity).apply {
                     setImageResource(R.drawable.ic_delete); setColorFilter(if (picked) Color.WHITE else red)
                     setPadding(px(12), px(12), px(12), px(12))
-                    contentDescription = "방 ${r.code} 삭제"
+                    contentDescription = T.a.deleteRoomDesc(r.code)
                     if (picked) background = box(red, 12)
                     setOnClickListener { if (!deleting) { pendingDelete = if (picked) null else r.code; render() } }
                 }, LinearLayout.LayoutParams(px(44), px(44)))
@@ -192,15 +192,15 @@ internal class RoomSheet(
         orientation = LinearLayout.VERTICAL
         setPadding(px(16), px(18), px(16), px(16))
         background = box(Color.parseColor("#F2F3F5"), 20)
-        addView(label("방 ${code}를 삭제할까요?", 17f, ink, bold = true))
-        addView(label(if (deleting) "지우는 중…" else "방과 방 명단이 서버에서 지워져요. 되돌릴 수 없습니다.", 14f, sub).apply { setPadding(0, px(4), 0, 0) })
+        addView(label(T.a.deleteRoomQ(code), 17f, ink, bold = true))
+        addView(label(if (deleting) T.a.deleting else T.a.deleteRoomBody, 14f, sub).apply { setPadding(0, px(4), 0, 0) })
         addView(LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(label("취소", 16f, ink, bold = true).apply {
+            addView(label(T.s.cancel, 16f, ink, bold = true).apply {
                 gravity = Gravity.CENTER; background = box(Color.WHITE, 14, Color.parseColor("#C9CDD6"))
                 setOnClickListener { if (!deleting) { pendingDelete = null; render() } }
             }, LinearLayout.LayoutParams(0, px(50), 1f))
-            addView(label("삭제", 16f, Color.WHITE, bold = true).apply {
+            addView(label(T.a.delete, 16f, Color.WHITE, bold = true).apply {
                 gravity = Gravity.CENTER; background = box(red, 14)
                 alpha = if (deleting) 0.5f else 1f
                 setOnClickListener {

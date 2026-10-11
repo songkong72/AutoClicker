@@ -46,7 +46,7 @@ internal class SheetDialog(
         /** 확인/취소를 묻는 창. [danger]면 확인 버튼이 빨갛다. */
         fun confirm(activity: Activity, title: String, message: String, confirmLabel: String, danger: Boolean = false, onConfirm: () -> Unit) {
             SheetDialog(activity, title, message).actions(
-                act("취소"),
+                act(T.s.cancel),
                 act(confirmLabel, if (danger) Kind.DANGER_FILL else Kind.PRIMARY, onConfirm)
             ).show()
         }

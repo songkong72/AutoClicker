@@ -23,6 +23,9 @@ internal object T {
         if (want !== s) s = want
     }
 
+    /** 앱 화면(첫 화면·창·게임 위 막대)의 글자 표. [s]와 같은 언어를 따른다. */
+    val a: AppStr get() = if (s === StrEn) AppEn else AppKo
+
     /** 테스트용: 언어를 직접 고른다. */
     fun set(str: Str) { s = str }
 }

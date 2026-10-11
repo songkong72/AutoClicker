@@ -17,7 +17,7 @@
         android:layout_width="38dp"
         android:layout_height="38dp"
         android:background="@drawable/bg_floating_btn_circle"
-        android:contentDescription="Play or Pause"
+        android:contentDescription="@string/fc_play"
         android:padding="8dp"
         android:src="@drawable/ic_play"
         android:tint="#22C55E" />
@@ -38,7 +38,7 @@
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="Toggle Target Visibility"
+            android:contentDescription="@string/fc_target"
             android:padding="7dp"
             android:src="@drawable/ic_visibility_off"
             android:tint="#94A3B8" />
@@ -50,7 +50,7 @@
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="Open Rally Sync Settings"
+            android:contentDescription="@string/fc_rally"
             android:padding="7dp"
             android:src="@drawable/ic_rally"
             android:tint="#38BDF8" />
@@ -62,7 +62,7 @@
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="모드 고르기"
+            android:contentDescription="@string/fc_mode"
             android:padding="7dp"
             android:src="@drawable/ic_action_mode"
             android:tint="#CBD5E1" />
@@ -74,7 +74,7 @@
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="Open Settings"
+            android:contentDescription="@string/fc_settings"
             android:padding="7dp"
             android:src="@drawable/ic_settings"
             android:tint="#CBD5E1" />
@@ -86,7 +86,7 @@
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="Toggle Clock"
+            android:contentDescription="@string/fc_clock"
             android:padding="7.5dp"
             android:src="@drawable/ic_clock"
             android:tint="#CBD5E1" />
@@ -98,7 +98,7 @@
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="Close Overlays"
+            android:contentDescription="@string/fc_close"
             android:padding="8dp"
             android:src="@drawable/ic_close"
             android:tint="#EF4444" />
@@ -112,7 +112,7 @@
         android:layout_height="28dp"
         android:layout_marginTop="4dp"
         android:background="@drawable/bg_floating_btn_circle"
-        android:contentDescription="Collapse or Expand"
+        android:contentDescription="@string/fc_fold"
         android:paddingTop="3dp"
         android:paddingBottom="3dp"
         android:src="@drawable/ic_chevron_up"

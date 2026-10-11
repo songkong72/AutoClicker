@@ -37,11 +37,11 @@ data class RallyGroup(val server: String, val alliance: String) {
             val s = serverRaw.orEmpty().trim()
             val a = allianceRaw.orEmpty().trim()
             return when {
-                s.isEmpty() -> "서버 번호를 적어 주세요."
-                s.length > MAX_SERVER || !s.all { it in '0'..'9' } -> "서버 번호는 숫자만 ${MAX_SERVER}자리까지 적어 주세요."
-                a.isEmpty() -> "연맹을 적어 주세요."
-                a.length > MAX_ALLIANCE -> "연맹은 ${MAX_ALLIANCE}자까지 적어 주세요."
-                !a.all { it.isLetterOrDigit() } -> "연맹은 글자와 숫자만 적어 주세요. (띄어쓰기·기호 없이)"
+                s.isEmpty() -> T.a.gServerEmpty
+                s.length > MAX_SERVER || !s.all { it in '0'..'9' } -> T.a.gServerBad(MAX_SERVER)
+                a.isEmpty() -> T.a.gAllianceEmpty
+                a.length > MAX_ALLIANCE -> T.a.gAllianceLong(MAX_ALLIANCE)
+                !a.all { it.isLetterOrDigit() } -> T.a.gAllianceChars
                 else -> null
             }
         }

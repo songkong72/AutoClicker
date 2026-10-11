@@ -18,7 +18,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="연타 세부 설정"
+            android:text="@string/fs_title"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -28,7 +28,7 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:background="@drawable/bg_floating_btn_circle"
-            android:contentDescription="닫기"
+            android:contentDescription="@string/rp_close"
             android:padding="6dp"
             android:src="@drawable/ic_close"
             android:tint="#94A3B8" />
@@ -52,7 +52,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="클릭 주기"
+            android:text="@string/fs_interval"
             android:textColor="#CBD5E1"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -74,7 +74,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:text="초"
+            android:text="@string/fs_sec"
             android:textColor="#94A3B8"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -94,7 +94,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="0.1초"
+            android:text="@string/fs_p01"
             android:textColor="#E2E8F0"
             android:textSize="11.5sp"
             android:textStyle="bold" />
@@ -107,7 +107,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="0.2초"
+            android:text="@string/fs_p02"
             android:textColor="#E2E8F0"
             android:textSize="11.5sp"
             android:textStyle="bold" />
@@ -120,7 +120,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_selected"
             android:gravity="center"
-            android:text="0.5초"
+            android:text="@string/fs_p05"
             android:textColor="#FFFFFF"
             android:textSize="11.5sp"
             android:textStyle="bold" />
@@ -133,7 +133,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="1.0초"
+            android:text="@string/fs_p10"
             android:textColor="#E2E8F0"
             android:textSize="11.5sp"
             android:textStyle="bold" />
@@ -150,7 +150,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="반복 조건"
+        android:text="@string/fs_repeat"
         android:textColor="#CBD5E1"
         android:textSize="13sp"
         android:textStyle="bold" />
@@ -168,7 +168,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_selected"
             android:gravity="center"
-            android:text="무한"
+            android:text="@string/fs_infinite"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -181,7 +181,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="횟수"
+            android:text="@string/fs_count"
             android:textColor="#E2E8F0"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -194,7 +194,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
-            android:text="⏱️ 시간"
+            android:text="@string/fs_timer"
             android:textColor="#E2E8F0"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -208,7 +208,7 @@
         android:layout_height="38dp"
         android:layout_marginTop="8dp"
         android:gravity="center_vertical"
-        android:text="정지 버튼이나 스마트폰 볼륨 키를 누를 때까지 계속 연타합니다."
+        android:text="@string/fs_infinite_note"
         android:textColor="#94A3B8"
         android:textSize="11.5sp"
         android:visibility="visible" />
@@ -240,7 +240,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
-            android:text="회"
+            android:text="@string/fs_times"
             android:textColor="#CBD5E1"
             android:textSize="12sp" />
 
@@ -311,7 +311,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="3dp"
-            android:text="분"
+            android:text="@string/fs_min"
             android:textColor="#CBD5E1"
             android:textSize="12sp" />
 
@@ -333,7 +333,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="3dp"
-            android:text="초"
+            android:text="@string/fs_sec"
             android:textColor="#CBD5E1"
             android:textSize="12sp" />
 
@@ -345,7 +345,7 @@
             android:background="@drawable/bg_chip_selected"
             android:gravity="center"
             android:paddingHorizontal="6dp"
-            android:text="1분"
+            android:text="@string/fs_1min"
             android:textColor="#FFFFFF"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -358,7 +358,7 @@
             android:background="@drawable/bg_chip_normal"
             android:gravity="center"
             android:paddingHorizontal="6dp"
-            android:text="3분"
+            android:text="@string/fs_3min"
             android:textColor="#E2E8F0"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -382,7 +382,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="버튼 투명도"
+            android:text="@string/fs_opacity"
             android:textColor="#CBD5E1"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -459,7 +459,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="플로팅 바 위에서 위/아래 제스처로 실시간 조절도 가능합니다."
+        android:text="@string/fs_opacity_tip"
         android:textColor="#94A3B8"
         android:textSize="10.5sp" />
 
@@ -472,7 +472,7 @@
         android:backgroundTint="#2563EB"
         android:insetTop="0dp"
         android:insetBottom="0dp"
-        android:text="적용"
+        android:text="@string/fs_apply"
         android:textColor="#FFFFFF"
         android:textSize="15sp"
         android:textStyle="bold" />

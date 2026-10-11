@@ -30,6 +30,7 @@ class ManualActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        T.use(this)
         val dp = resources.displayMetrics.density
         fun px(v: Int) = (v * dp).toInt()
         val bg = getColor(R.color.background)
@@ -41,11 +42,11 @@ class ManualActivity : Activity() {
             setPadding(px(16), 0, px(8), 0)
         }
         bar.addView(TextView(this).apply {
-            text = "사용 설명서"; textSize = 18f; setTypeface(typeface, Typeface.BOLD)
+            text = T.a.manual; textSize = 18f; setTypeface(typeface, Typeface.BOLD)
             setTextColor(getColor(R.color.text_primary))
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         bar.addView(TextView(this).apply {
-            text = "닫기"; textSize = 15f; setTypeface(typeface, Typeface.BOLD); gravity = Gravity.CENTER
+            text = T.s.close; textSize = 15f; setTypeface(typeface, Typeface.BOLD); gravity = Gravity.CENTER
             setTextColor(getColor(R.color.primary))
             setPadding(px(14), 0, px(14), 0)
             setOnClickListener { finish() }

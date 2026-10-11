@@ -107,7 +107,7 @@ internal class InputSheet(
         root.addView(LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             if (showCancel) addView(TextView(activity).apply {
-                text = "취소"; textSize = 16f; setTextColor(ink); setTypeface(typeface, Typeface.BOLD); gravity = Gravity.CENTER
+                text = T.s.cancel; textSize = 16f; setTextColor(ink); setTypeface(typeface, Typeface.BOLD); gravity = Gravity.CENTER
                 background = box(Color.WHITE, 16, Color.parseColor("#C9CDD6"))
                 setOnClickListener { d.dismiss() }
             }, LinearLayout.LayoutParams(0, px(52), 1f))

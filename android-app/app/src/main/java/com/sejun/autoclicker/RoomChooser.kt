@@ -1,7 +1,7 @@
 package com.sejun.autoclicker
 
 /**
- * 앱 첫 화면의 "방 선택" 목록을 만든다. 방 번호를 치는 대신 서버의 방 목록에서 고르게 한다.
+ * 앱 첫 화면의 T.a.pickRooms 목록을 만든다. 방 번호를 치는 대신 서버의 방 목록에서 고르게 한다.
  * 안드로이드 클래스를 쓰지 않아 단위 테스트가 된다.
  */
 internal object RoomChooser {
@@ -28,7 +28,7 @@ internal object RoomChooser {
     }
 
     /** 방 줄 오른쪽의 한마디: "배정 2/3"(집결장이 배정된 군단 수 / 군단 수). */
-    fun badge(assigned: Int, teamCount: Int): String = "배정 $assigned/$teamCount"
+    fun badge(assigned: Int, teamCount: Int): String = T.a.badge(assigned, teamCount)
 
     /**
      * 저장해 둔 방 목록의 한 줄("1111 · 군단 3개 (배정 2)")에서 첫 화면에 보일 요약("군단 3개 · 배정 2/3")을 만든다.
@@ -37,7 +37,7 @@ internal object RoomChooser {
     fun summaryFromLine(line: String?): String? {
         val m = Regex("군단 (\\d+)개 \\(배정 (\\d+)\\)").find(line ?: return null) ?: return null
         val (teams, assigned) = m.destructured
-        return "군단 ${teams}개 · 배정 $assigned/$teams"
+        return T.a.roomSummary(teams, assigned)
     }
 
     /** 편집에서 휴지통을 보일 방인지: 지울 수 있는 목록이고, 지금 들어와 있는 방이 아니어야 한다(사용 중인 방은 잠근다). */
@@ -45,14 +45,14 @@ internal object RoomChooser {
 
     /** 방 선택 창의 제목 아래 안내: 목록을 제대로 받았으면 없다(null). */
     fun note(server: List<Pair<String, String>>?, error: String?): String? = when {
-        server == null -> "서버 방 목록을 불러오지 못했어요" + (if (error.isNullOrEmpty()) "" else " ($error)") + " · 이 기기가 들어갔던 방만 보여요"
+        server == null -> T.a.roomsFallbackNote(if (error.isNullOrEmpty()) "" else " ($error)")
         else -> null
     }
 
     fun title(server: List<Pair<String, String>>?, error: String?): String = when {
-        server == null -> "방 선택 · 서버 방 목록을 불러오지 못했어요" + (if (error.isNullOrEmpty()) "" else " ($error)")
-        server.isEmpty() -> "방 선택 · 만들어진 방이 없어요"
-        else -> "방 선택 (${server.size}개)"
+        server == null -> T.s.roomsFailed(error.orEmpty())
+        server.isEmpty() -> T.a.roomsNone
+        else -> T.s.roomsTitle(server.size)
     }
 
     enum class NewRoom { RANDOM, OK, TOO_SHORT, EXISTS }

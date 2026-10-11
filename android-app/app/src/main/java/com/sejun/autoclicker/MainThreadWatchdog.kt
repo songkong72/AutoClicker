@@ -25,7 +25,7 @@ object MainThreadWatchdog {
                     val delay = SystemClock.elapsedRealtime() - posted
                     if (delay >= STALL_MS) {
                         val wall = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
-                        lastStall = "화면 멈춤 감지: ${"%.1f".format(delay / 1000.0)}초 ($wall)"
+                        lastStall = T.a.stall("%.1f".format(delay / 1000.0), wall)
                     }
                 }
                 try { Thread.sleep(500) } catch (_: InterruptedException) { }

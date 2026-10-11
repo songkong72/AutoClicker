@@ -51,7 +51,7 @@
                         android:id="@+id/tvAppTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="오토클리커 Pro"
+                        android:text="@string/app_name"
                         android:maxLines="1"
                         android:ellipsize="end"
                         android:textColor="@color/text_primary"
@@ -62,7 +62,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="스마트 자동 터치 매크로"
+                        android:text="@string/am_tagline"
                         android:maxLines="1"
                         android:ellipsize="end"
                         android:textColor="@color/text_secondary"
@@ -78,7 +78,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
                     android:paddingHorizontal="10dp"
-                    android:text="설명서"
+                    android:text="@string/am_manual"
                     android:textColor="@color/primary"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -90,7 +90,7 @@
                     android:padding="8dp"
                     android:src="@drawable/ic_admin_key"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="지휘관 로그인"
+                    android:contentDescription="@string/am_admin_login"
                     app:tint="#64748B" />
             </LinearLayout>
 
@@ -112,7 +112,7 @@
                     android:layout_height="44dp"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="일반 화면"
+                    android:text="@string/am_seg_user"
                     android:textColor="@color/text_secondary"
                     android:textSize="15sp" />
 
@@ -122,7 +122,7 @@
                     android:layout_height="44dp"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="집결장"
+                    android:text="@string/am_seg_leader"
                     android:textColor="@color/text_secondary"
                     android:textSize="15sp" />
 
@@ -132,7 +132,7 @@
                     android:layout_height="44dp"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="지휘관"
+                    android:text="@string/am_seg_admin"
                     android:textColor="@color/text_secondary"
                     android:textSize="15sp" />
             </LinearLayout>
@@ -159,7 +159,7 @@
                         android:id="@+id/tvAuthStatusTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🔒 집결장 인증 필요"
+                        android:text="@string/am_auth_needed"
                         android:textColor="#F59E0B"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -169,7 +169,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="집결장 코드를 입력해 인증해 주세요."
+                        android:text="@string/am_auth_needed_sub"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -179,7 +179,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="38dp"
                     android:backgroundTint="#3B82F6"
-                    android:text="인증하기"
+                    android:text="@string/am_verify"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -194,7 +194,7 @@
                 android:drawablePadding="8dp"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="6dp"
-                android:text="화면 터치 허용됨"
+                android:text="@string/am_touch_ok"
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp"
                 android:visibility="gone"
@@ -222,7 +222,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="화면 터치 허용"
+                        android:text="@string/am_touch"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -232,7 +232,7 @@
                         android:layout_height="wrap_content"
                         android:id="@+id/tvAccessibilityHint"
                         android:layout_marginTop="2dp"
-                        android:text="접근성에서 오토클리커를 켜면 준비가 끝나요"
+                        android:text="@string/am_touch_hint"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -281,7 +281,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="집결 방"
+                        android:text="@string/am_room"
                         android:textColor="@color/text_secondary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -313,7 +313,7 @@
                         android:layout_marginEnd="-12dp"
                         android:layout_marginBottom="-12dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="집결 방 도움말"
+                        android:contentDescription="@string/am_room_help"
                         android:padding="12dp"
                         android:src="@drawable/ic_help" />
                 </LinearLayout>
@@ -389,7 +389,7 @@
                         android:background="@drawable/bg_btn_outline"
                         android:gravity="center"
                         android:maxLines="1"
-                        android:text="번호 공유"
+                        android:text="@string/am_share_no"
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"
                         android:textStyle="bold"
@@ -403,7 +403,7 @@
                         android:background="@drawable/bg_btn_outline"
                         android:gravity="center"
                         android:maxLines="1"
-                        android:text="방 바꾸기"
+                        android:text="@string/am_change_room"
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"
                         android:textStyle="bold"
@@ -417,7 +417,7 @@
                         android:background="@drawable/bg_btn_outline"
                         android:gravity="center"
                         android:maxLines="1"
-                        android:text="관리"
+                        android:text="@string/am_manage"
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"
                         android:textStyle="bold"
@@ -433,7 +433,7 @@
                     android:layout_marginTop="12dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
-                    android:text="방 선택"
+                    android:text="@string/am_pick_room"
                     android:textSize="15sp"
                     android:visibility="gone"
                     app:cornerRadius="14dp" />
@@ -462,7 +462,7 @@
                         android:id="@+id/tvGeneralModeTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="일반 연타 모드"
+                        android:text="@string/am_general_mode"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -490,7 +490,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:backgroundTint="@color/primary"
-                android:text="🚀 오토클리커 띄우기"
+                android:text="@string/am_show_floater"
                 android:textColor="@color/text_on_primary"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -503,7 +503,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="💡 연타 중 스마트폰 볼륨 키를 누르면 즉시 긴급 정지됩니다."
+                android:text="@string/am_volume_tip"
                 android:textColor="@color/text_tertiary"
                 android:layout_marginBottom="20dp"
                 android:textSize="12sp" />
@@ -515,7 +515,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:backgroundTint="@color/danger"
-                android:text="🛑 치료 연타 즉시 정지"
+                android:text="@string/am_emergency"
                 android:textColor="@color/text_on_primary"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -550,7 +550,7 @@
             android:backgroundTint="@color/primary"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text="집결 화면 열기"
+            android:text="@string/am_open_panel"
             android:textColor="@color/text_on_primary"
             android:textSize="17sp"
             android:textStyle="bold"

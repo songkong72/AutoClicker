@@ -14,5 +14,5 @@ object RoomLimit {
         else -> Verdict.ALLOW
     }
 
-    fun fullMessage(): String = "방은 최대 ${MAX_ROOMS}개까지 만들 수 있어요. 안 쓰는 방을 먼저 삭제해 주세요."
+    fun fullMessage(): String = T.a.roomsFull(MAX_ROOMS)
 }
