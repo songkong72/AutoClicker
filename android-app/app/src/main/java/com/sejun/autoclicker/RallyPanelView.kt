@@ -606,7 +606,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             }
             else -> {
                 // 대기·취소·도착 뒤: "1분 뒤 도착 · 시작 후 7:00"
-                h.value.text = listOfNotNull(label, if (arriveAt == null || folded) null else "시작 후 " + RallyScreenModel.formatMmSs(arriveAt)).joinToString(" · ")
+                // 진행 중과 같은 자리 나눔: 오른쪽에 "20초 뒤 도착", 왼쪽 작은 글씨에 "시작 후 6:25"(이어 쓰면 길어서 잘렸다).
+                h.value.text = label
+                if (!folded && arriveAt != null) h.count.text = "시작 후 " + RallyScreenModel.formatMmSs(arriveAt)
                 h.value.setTextColor(Color.parseColor("#A9B4C7"))
                 h.value.setTypeface(null, android.graphics.Typeface.NORMAL)
             }
