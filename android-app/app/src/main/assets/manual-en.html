@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoClicker Pro User Guide</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F3F5; --card:#FFFFFF; --ink:#16181D; --sub:#5B6270; --line:#E2E8F0;
+  --blue:#1F3FA6; --blue-soft:#EAF0FF; --soft:#F1F5F9;
+  --wait:#B45309; --panel:#121A2C; --panel2:#18223A; --panel-line:#2E3B5A; --panel-ink:#F1F5F9; --panel-sub:#A9B4C7;
+  --y:#FBBF24; --b:#3B82F6; --p:#A78BFA; --t:#2DD4BF;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:sans-serif; font-size:16px; line-height:1.65; overflow-wrap:anywhere}
+a{color:var(--blue); text-decoration:none}
+.wrap{max-width:640px; margin:0 auto; padding:0 16px 48px}
+
+.top{padding:22px 0 6px}
+.top h1{margin:0; font-size:24px; line-height:1.3}
+.top p{margin:6px 0 0; color:var(--sub); font-size:14px}
+
+.nav{position:sticky; top:0; z-index:5; background:var(--bg); margin:0 -16px; padding:8px 16px; border-bottom:1px solid var(--line); display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch}
+.nav a{flex:0 0 auto; height:36px; padding:0 14px; border-radius:18px; background:var(--card); border:1px solid var(--line); color:var(--ink); font-size:14px; font-weight:700; display:flex; align-items:center; white-space:nowrap}
+
+.roles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px}
+.role{display:block; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; color:var(--ink)}
+.role b{display:block; font-size:16px}
+.role span{display:block; font-size:13px; color:var(--sub); line-height:1.45; margin-top:2px}
+.role i{display:block; font-style:normal; font-size:13px; font-weight:700; color:var(--blue); margin-top:8px}
+
+section{scroll-margin-top:60px; margin-top:28px}
+h2{margin:0 0 4px; font-size:20px; line-height:1.35; display:flex; align-items:center; gap:8px}
+h2 .n{flex:0 0 auto; width:28px; height:28px; border-radius:9px; background:var(--blue); color:#fff; font-size:14px; display:flex; align-items:center; justify-content:center}
+h3{margin:18px 0 6px; font-size:16px}
+.lead{margin:0 0 10px; color:var(--sub); font-size:14px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-top:10px}
+.card > :first-child{margin-top:0}
+.card > :last-child{margin-bottom:0}
+p{margin:8px 0}
+ul{margin:8px 0; padding-left:20px}
+li{margin:4px 0}
+b.k{background:var(--soft); border-radius:6px; padding:1px 6px; font-weight:700; white-space:nowrap}
+.who{display:inline-block; font-size:12px; font-weight:700; border-radius:6px; padding:0 6px; margin-right:4px; background:var(--blue-soft); color:var(--blue); white-space:nowrap}
+
+ol.steps{list-style:none; margin:8px 0; padding:0; counter-reset:s}
+ol.steps li{counter-increment:s; position:relative; padding:0 0 12px 40px; margin:0}
+ol.steps li:last-child{padding-bottom:0}
+ol.steps li::before{content:counter(s); position:absolute; left:0; top:1px; width:26px; height:26px; border-radius:13px; background:var(--blue-soft); color:var(--blue); font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center}
+ol.steps li::after{content:""; position:absolute; left:12.5px; top:30px; bottom:2px; width:1px; background:var(--line)}
+ol.steps li:last-child::after{display:none}
+
+.tip, .warn{border-radius:12px; padding:10px 12px; font-size:14px; margin-top:10px}
+.tip{background:var(--blue-soft)}
+.warn{background:var(--soft); border:1px solid var(--line)}
+.warn b:first-child{color:var(--wait)}
+
+.tbl{overflow-x:auto; margin-top:10px; border:1px solid var(--line); border-radius:12px; background:var(--card)}
+table{border-collapse:collapse; width:100%; font-size:14px}
+th,td{padding:9px 10px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{background:var(--soft); font-size:13px; white-space:nowrap}
+td.c, th.c{text-align:center; white-space:nowrap}
+th.c{font-size:12px; padding-left:4px; padding-right:4px}
+td.c{padding-left:4px; padding-right:4px}
+
+.fig{background:var(--panel); color:var(--panel-ink); border-radius:18px; padding:14px; margin-top:10px; font-size:13px; line-height:1.4}
+.fig .cap{color:var(--panel-sub); font-size:12px; margin-bottom:8px}
+.fig .box{background:var(--panel2); border:1px solid var(--panel-line); border-radius:12px; overflow:hidden}
+.fig .box + .box{margin-top:8px}
+.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#222E4B; border-bottom:1px solid var(--panel-line)}
+.fig .tag{background:#F1F5F9; color:#121A2C; font-weight:700; border-radius:7px; padding:1px 8px}
+.fig .grow{flex:1; color:var(--panel-sub); font-size:12px}
+.fig .row{display:flex; align-items:center; gap:8px; padding:9px 10px}
+.fig .row + .row{border-top:1px solid #2A3653}
+.fig .row b{font-size:15px}
+.fig .row .who2{flex:1; color:#CBD5E1}
+.fig .row .t{text-align:right; font-weight:700}
+.fig .row .t small{display:block; font-weight:400; color:var(--panel-sub); font-size:11px}
+.fig .me{background:#2F5FE3; border-radius:9px; padding:0 7px; font-size:11px; font-weight:700}
+.phases{display:flex; gap:6px; margin-top:4px}
+.phases div{flex:1; border-radius:10px; padding:8px 4px; text-align:center; font-weight:700; font-size:13px; color:#121A2C}
+.phases small{display:block; font-weight:400; font-size:11px}
+.bar{display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:10px}
+.bar i{display:block; height:100%}
+.legend{display:flex; justify-content:space-between; color:var(--panel-sub); font-size:11px; margin-top:4px}
+.calc{display:grid; grid-template-columns:auto 1fr auto; gap:6px 10px; align-items:center; margin-top:10px}
+.calc .l{font-weight:700}
+.calc .tr{height:10px; border-radius:5px; background:#2A3653; position:relative; overflow:hidden}
+.calc .tr i{position:absolute; top:0; bottom:0; border-radius:5px}
+.calc .r{color:var(--panel-sub); font-size:12px; white-space:nowrap}
+
+.up{display:inline-block; margin-top:12px; font-size:13px; font-weight:700}
+.foot{margin-top:32px; color:var(--sub); font-size:12px; text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="top">
+
+<div class="top">
+  <h1>AutoClicker Pro User Guide</h1>
+  <p>Each phone taps the rally button at its own set moment, so that several teams <b>arrive at the castle at the same instant</b>.</p>
+</div>
+
+<div class="nav">
+  <a href="#ready">Setup</a>
+  <a href="#general">Auto-tap</a>
+  <a href="#rally">How rally works</a>
+  <a href="#leader">Rally leader</a>
+  <a href="#commander">Commander</a>
+  <a href="#waves">Waves</a>
+  <a href="#rep">Alliance rep</a>
+  <a href="#group">Group</a>
+  <a href="#faq">Troubleshooting</a>
+</div>
+
+<div class="roles">
+  <a class="role" href="#general"><b>User</b><span>Uses auto-tap only. No verification needed.</span><i>See Auto-tap ›</i></a>
+  <a class="role" href="#leader"><b>Rally leader</b><span>Leads one team and joins the rally.</span><i>See Rally leader ›</i></a>
+  <a class="role" href="#commander"><b>Commander</b><span>Creates the room and starts the rally.</span><i>See Commander ›</i></a>
+  <a class="role" href="#rep"><b>Alliance rep</b><span>Appoints the alliance's commanders.</span><i>See Alliance rep ›</i></a>
+</div>
+
+<div class="tbl">
+<table>
+  <tr><th>What you can do</th><th class="c">User</th><th class="c">Leader</th><th class="c">Commander</th><th class="c">Rep</th></tr>
+  <tr><td>Auto-tap</td><td class="c">O</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>Join a room and see the rally panel</td><td class="c">-</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>Change my team's march time</td><td class="c">-</td><td class="c">O</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>Create rooms, edit and assign teams</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>Start and cancel a rally</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>Issue rally leader codes</td><td class="c">-</td><td class="c">-</td><td class="c">O</td><td class="c">O</td></tr>
+  <tr><td>Appoint our alliance's commanders</td><td class="c">-</td><td class="c">-</td><td class="c">-</td><td class="c">O</td></tr>
+</table>
+</div>
+
+<!-- 1 -->
+<section id="ready">
+  <h2><span class="n">1</span>Setup</h2>
+  <p class="lead">The app needs one permission to tap the game for you. Every role does this the same way.</p>
+  <div class="card">
+    <ol class="steps">
+      <li>On the app's home screen, tap <b class="k">Set up</b> on the <b class="k">Allow screen taps</b> card.</li>
+      <li>Read the notice and agree. The phone's <b>Accessibility</b> settings open.</li>
+      <li>Find <b>AutoClicker</b> in the list and turn its switch on.</li>
+      <li>Go back to the app. When you see <b class="k">Screen taps allowed</b>, you are done.</li>
+    </ol>
+    <div class="tip">The switch can turn off after a restart or an app update. If buttons stop responding, turn it <b>off and on again</b> in Accessibility.</div>
+  </div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<!-- 2 -->
+<section id="general">
+  <h2><span class="n">2</span>Auto-tap</h2>
+  <p class="lead">Taps one spot again and again at a steady interval. Anyone can use it without verification.</p>
+  <div class="card">
+    <ol class="steps">
+      <li>Tap the <b class="k">Auto-tap mode</b> card to open <b>Auto-tap settings</b>.</li>
+      <li>Choose the <b>Tap interval</b> (0.1s, 0.2s, 0.5s, 1.0s, or type your own).</li>
+      <li>Choose <b>Repeat</b>: <b class="k">Endless</b> keeps going, <b class="k">Count</b> stops after a number of taps, <b class="k">Timer</b> stops after a set time.</li>
+      <li>Tap <b class="k">Apply</b>, then <b class="k">Show AutoClicker</b>.</li>
+      <li>Drag the <b>target</b> that appears over the game to the spot you want tapped.</li>
+      <li>Tap <b>▶</b> on the bar to start. Tap it again to stop.</li>
+    </ol>
+    <div class="warn"><b>Emergency stop</b> · Press a <b>volume key</b> while it is tapping and it stops at once.</div>
+  </div>
+  <h3>The bar on top of the game</h3>
+  <div class="tbl">
+  <table>
+    <tr><th>Button</th><th>What it does</th></tr>
+    <tr><td>▶ / ■</td><td>Starts and stops tapping.</td></tr>
+    <tr><td>Target</td><td>Hides or shows the target. <b>Long-press</b> to bring the target back to the center of the screen.</td></tr>
+    <tr><td>Flag</td><td>Opens and closes the rally panel.</td></tr>
+    <tr><td>Gear</td><td>Changes the auto-tap settings without leaving the game.</td></tr>
+    <tr><td>Clock</td><td>Shows a clock with seconds.</td></tr>
+    <tr><td>✕</td><td>Closes the bar and the target.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<!-- 3 -->
+<section id="rally">
+  <h2><span class="n">3</span>How rally works</h2>
+  <p class="lead">Each team needs a different time to reach the castle (its march time). To arrive together, the far team must tap first and the near team last. The app does that math and the tapping.</p>
+
+  <div class="fig">
+    <div class="cap">The 4 stages each team goes through · the panel uses these colors</div>
+    <div class="phases">
+      <div style="background:var(--y)">Wait<small>before tap</small></div>
+      <div style="background:var(--b);color:#fff">Rally<small>gathering</small></div>
+      <div style="background:var(--p)">March<small>to the castle</small></div>
+      <div style="background:var(--t)">Arrive<small>done</small></div>
+    </div>
+    <div class="calc">
+      <div class="cap" style="grid-column:1/-1;margin:10px 0 0">Example: prep 15s, march Team 1 10s · Team 2 30s · Team 3 50s</div>
+      <div class="l">Team 3</div><div class="tr"><i style="left:0;width:15%;background:var(--y)"></i><i style="left:15%;width:35%;background:var(--b)"></i><i style="left:50%;width:50%;background:var(--p)"></i></div><div class="r">taps after 15s</div>
+      <div class="l">Team 2</div><div class="tr"><i style="left:0;width:35%;background:var(--y)"></i><i style="left:35%;width:35%;background:var(--b)"></i><i style="left:70%;width:30%;background:var(--p)"></i></div><div class="r">taps after 35s</div>
+      <div class="l">Team 1</div><div class="tr"><i style="left:0;width:55%;background:var(--y)"></i><i style="left:55%;width:35%;background:var(--b)"></i><i style="left:90%;width:10%;background:var(--p)"></i></div><div class="r">taps after 55s</div>
+    </div>
+    <div class="legend"><span>Rally start</span><span>All arrive at the same moment →</span></div>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td><b>March time</b></td><td>How long the rally takes from departure to the castle. Enter the value the game shows.</td></tr>
+    <tr><td><b>Rally time</b></td><td>The wait between tapping the rally button and departure. It must match what you choose in the game (3, 5 or 10 minutes).</td></tr>
+    <tr><td><b>Prep time</b></td><td>Spare time after the start signal to get to the screen with the rally button. It is added equally to every team.</td></tr>
+    <tr><td><b>Offset</b></td><td>Moves a phone or team earlier or later in 0.5s steps when it runs a little late or early (− earlier, + later).</td></tr>
+    <tr><td><b>Room</b></td><td>Where the teams that will arrive at the same castle gather. The math covers only the teams in the room.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<!-- 4 -->
+<section id="leader">
+  <h2><span class="n">4</span>Rally leader</h2>
+  <p class="lead">Get a code from your commander, verify, join the room and lead your team.</p>
+
+  <h3>Once: verify and join a room</h3>
+  <div class="card">
+    <ol class="steps">
+      <li><span class="who">Leader</span>Tell your commander your <b>ID</b>. An email or a nickname both work.</li>
+      <li><span class="who">Commander</span>Makes a code and sends you a message. It contains the ID, rally leader code, group and room number.</li>
+      <li><span class="who">Leader</span><b>Copy the whole message</b>, then tap <b class="k">Verify</b> on the app's home screen. The fields are already filled in, so check them and tap the button.</li>
+      <li>On the <b class="k">Rally room</b> card, tap <b class="k">Pick a room</b> and choose the room your commander told you.</li>
+      <li>Enter your in-game <b>character name</b>. It appears on the commander's list.</li>
+      <li><span class="who">Commander</span>Assigns you to a team. Your row then shows a <b class="k">Me</b> badge.</li>
+    </ol>
+    <div class="tip">A rally leader code is <b>AC-</b> plus 6 characters and is <b>tied to your ID and group</b>. Enter the ID exactly as given. After verifying, your group is locked to the commander's group.</div>
+  </div>
+
+  <h3>Before the rally: save the tap position</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>Tap <b class="k">Open rally panel</b> at the bottom of the app and go to the game.</li>
+      <li>In the game, go to the <b>screen that shows the rally button</b>.</li>
+      <li>Drag the <b>target</b> onto the rally button.</li>
+      <li>At the bottom of the rally panel, open <b class="k">My device ▾</b> and tap <b class="k">Save position</b>. You are set when you see <b class="k">✓ Position saved</b>.</li>
+      <li>Set your team's <b>march time</b> to the value the game shows (−/+ changes 1s, tap the number to type).</li>
+    </ol>
+    <div class="warn"><b>Check this</b> · If you see the yellow text "Save the tap position first" or "Set your character name first", tap it. It takes you straight there.</div>
+  </div>
+
+  <h3>When the rally starts</h3>
+  <div class="card">
+    <ul>
+      <li>When the commander starts, the big number counts down to <b>your tap</b>.</li>
+      <li>Meanwhile you must be on the <b>screen that shows the rally button</b>. The app only taps the saved spot.</li>
+      <li>At 0 the app taps for you. Afterwards you see "✓ Tapped" and the time.</li>
+      <li>If the panel is in the way, tap <b>–</b> at the top to fold it into a pill. The countdown stays visible.</li>
+    </ul>
+  </div>
+
+  <h3>The My device row</h3>
+  <div class="tbl">
+  <table>
+    <tr><th>Field</th><th>What it does</th></tr>
+    <tr><td>Room</td><td>Moves you to another room.</td></tr>
+    <tr><td>Name</td><td>Changes the name shown on the list.</td></tr>
+    <tr><td>Offset −/+</td><td>Moves this phone's tap earlier or later in 0.5s steps (−5s to +5s). Tap the number to type.</td></tr>
+    <tr><td>Save position</td><td>Saves where the target is now as the rally tap position.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<!-- 5 -->
+<section id="commander">
+  <h2><span class="n">5</span>Commander</h2>
+  <p class="lead">Creates the room, sets up the teams and starts the rally. Makes codes for rally leaders.</p>
+
+  <h3>Becoming a commander</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>Get a <b>commander code</b> (<b>AD-</b> plus 8 characters) from your alliance rep.</li>
+      <li>Tap the <b>key</b> at the top right of the app's home screen to open <b class="k">Commander login</b>.</li>
+      <li>Enter the code and tap OK. The <b class="k">Rally leader</b> / <b class="k">Commander</b> tabs appear at the top.</li>
+      <li>From then on, just tap the <b class="k">Commander</b> tab. No code needed.</li>
+    </ol>
+    <div class="tip">A commander code works <b>once</b> and expires (24 hours for codes made by a rep). The group is inside the code, so it is set automatically and cannot be changed.</div>
+  </div>
+
+  <h3>Create a room and set up teams</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>Tap <b class="k">Pick a room</b> → <b class="k">Create room</b>. Each group can have up to 10 rooms.</li>
+      <li>Tap <b class="k">Share number</b> to send the room number to your rally leaders.</li>
+      <li>Tap <b class="k">Open rally panel</b>, then the <b>pencil</b> at the top of the panel to edit.</li>
+      <li>Tap <b class="k">+ Add team</b> to make teams (up to 10 per room).</li>
+      <li>Tap a team row to expand it, choose <b>who leads it</b> and enter its <b>march time</b>.</li>
+      <li>Under <b>Room settings</b>, set <b>Rally time</b> (3, 5 or 10 min) and <b>Prep time</b> (1s steps).</li>
+      <li>Tap <b class="k">Done</b> to close editing. Every change is saved and sent to everyone as you make it.</li>
+    </ol>
+    <div class="tip">The list shows <b>5 teams</b> at a time. Scroll inside the list for the rest. Tap <b class="k">Room settings ▾</b> to fold it and the list gets that much longer. The folded line still shows the values.</div>
+  </div>
+
+  <div class="fig">
+    <div class="cap">Team rows while editing</div>
+    <div class="box">
+      <div class="row"><b>Team 1</b><span class="who2">Moon <span class="me">Me</span></span><span class="t">10s<small>+20s</small></span></div>
+      <div class="row"><b>Team 2</b><span class="who2">AngryBird</span><span class="t">30s<small>Taps first</small></span></div>
+      <div class="row"><b>Team 3</b><span class="who2" style="color:var(--y)">Unassigned</span><span class="t">50s</span></div>
+    </div>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>What you see</th><th>Meaning</th></tr>
+    <tr><td>Blue check</td><td>The team joins this rally. Uncheck it and the team is <b>Out</b>, shown as a thin row. The order does not change.</td></tr>
+    <tr><td>Big number (10s)</td><td>That team's march time.</td></tr>
+    <tr><td>Small text</td><td>How many seconds after the first-tapping team it taps. In a room with waves, it compares <b>within the same wave</b>.</td></tr>
+    <tr><td>Yellow "Unassigned"</td><td>No one leads it. With no phone to tap, that team does not depart.</td></tr>
+    <tr><td>Team offset</td><td>In the expanded row, moves only that team earlier or later in 0.5s steps (−5s to +5s).</td></tr>
+    <tr><td>"Delete Team N"</td><td>At the bottom of the expanded row. Tap twice to delete.</td></tr>
+  </table>
+  </div>
+
+  <h3>Start and cancel</h3>
+  <div class="card">
+    <ul>
+      <li>Tap <b class="k">Start rally</b> and every phone starts counting at the same time. One start is enough.</li>
+      <li>If a joining team is unassigned, the app asks: <b>Start without unassigned teams</b> / <b>Start anyway</b> / Cancel.</li>
+      <li>While running, the same button becomes <b class="k">Cancel rally</b>. Phones that have not tapped yet will not tap.</li>
+      <li>After arrival or a cancel it becomes <b class="k">Rally again</b>. No need to enter the settings again.</li>
+      <li>Teams and times cannot be changed while a rally is running.</li>
+    </ul>
+    <div class="warn"><b>Mis-tap guard</b> · For 1.5 seconds after a cancel, "Rally again" in the same spot does not respond.</div>
+  </div>
+
+  <h3>Making codes for rally leaders</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>Get the rally leader's <b>ID</b>.</li>
+      <li>On the <b class="k">Rally room</b> card, tap <b class="k">Manage</b> → <b class="k">Issue rally leader code</b>.</li>
+      <li>Enter the ID and tap <b class="k">Make rally leader code</b>.</li>
+      <li>Send the message. The receiver copies the whole message and verifies.</li>
+    </ol>
+    <div class="warn"><b>Good to know</b> · Rally leader codes never expire and <b>cannot be taken back</b>. To remove someone, take them off their team.</div>
+  </div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<!-- 6 -->
+<section id="waves">
+  <h2><span class="n">6</span>Waves <span class="who">Commander</span></h2>
+  <p class="lead">Group teams into waves that arrive <b>some time apart</b>. Teams in one wave arrive together, and from Wave 2 on each wave arrives a set time after Wave 1.</p>
+
+  <div class="fig">
+    <div class="cap">Editing a room that uses waves</div>
+    <div class="box">
+      <div class="band"><span class="tag">Wave 1</span><span class="grow">2 teams</span><span>Arrives first (base)</span></div>
+      <div class="row"><b>Team 1</b><span class="who2">Moon</span><span class="t">10s</span></div>
+      <div class="row"><b>Team 2</b><span class="who2">AngryBird</span><span class="t">30s</span></div>
+    </div>
+    <div class="box">
+      <div class="band"><span class="tag">Wave 2</span><span class="grow">1 team</span><span>− &nbsp;<b>2m later</b>&nbsp; +</span></div>
+      <div class="row"><b>Team 3</b><span class="who2">Cart</span><span class="t">50s</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <ol class="steps">
+      <li>Open editing and tap <b class="k">Split waves</b> to group teams in number order, <b>2, 3 or 5 per wave</b>. Choose <b>All in Wave 1</b> to remove waves.</li>
+      <li>To move one team, expand its row and choose <b class="k">Wave 1</b> to <b class="k">Wave 5</b>.</li>
+      <li>Use <b>−/+</b> on a wave's header to set its delay: <b>10s steps</b>, from 0s to 10 minutes. Tap the value to type.</li>
+      <li>Tap <b class="k">Start rally</b> only once. Phones in later waves tap that much later.</li>
+    </ol>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>Rule</th><th>Value</th></tr>
+    <tr><td>Number of waves</td><td>Wave 1 to Wave 5. Any number of teams per wave (10 teams per room in total).</td></tr>
+    <tr><td>What the delay is measured from</td><td>Always <b>Wave 1</b>. "2m later" means 2 minutes after Wave 1.</td></tr>
+    <tr><td>March time</td><td>Not touched. Keep the value the game shows.</td></tr>
+    <tr><td>Big number</td><td>Commander with no team: the next wave to arrive. Rally leader: your own team.</td></tr>
+    <tr><td>All teams in Wave 1</td><td>No wave headers are shown.</td></tr>
+    <tr><td>Folding a wave</td><td>Tap a wave's header to fold its team rows, tap again to unfold. It folds only on your phone.</td></tr>
+  </table>
+  </div>
+  <div class="warn"><b>Check this</b> · To use waves, commanders and rally leaders must <b>all be on the latest version</b>. An old version does not know the delay and taps early.</div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<!-- 7 -->
+<section id="rep">
+  <h2><span class="n">7</span>Alliance rep</h2>
+  <p class="lead">One per alliance. Does everything a commander does, and also adds and removes the alliance's commanders.</p>
+
+  <h3>Applying to be the rep</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>Home screen: <b>key</b> at the top right → <b class="k">Commander login</b> → <b class="k">Apply as our alliance rep</b>.</li>
+      <li>Enter the server number, alliance and your in-game character name. You can add a note (up to 60 characters, e.g. I lead WBI).</li>
+      <li>Tap <b class="k">Apply</b>. The home screen shows that the request is pending. You can cancel it there.</li>
+      <li>After approval, open the request window again and it switches to the commander screen.</li>
+    </ol>
+    <div class="tip">There is no approval notification. Open the app now and then to check. One request per phone.</div>
+  </div>
+
+  <h3>Appointing our alliance's commanders</h3>
+  <div class="card">
+    <ol class="steps">
+      <li>Tap <b class="k">Manage</b> → <b class="k">Our alliance commanders</b>.</li>
+      <li>Tap <b class="k">+ Make commander code</b>, enter a label, make the code and send it.</li>
+      <li>The receiver becomes a commander by entering the code in Commander login <b>within 24 hours</b>.</li>
+      <li>To remove someone, tap <b class="k">Delete</b> on the list. That phone goes back to the rally leader screen the next time the app opens.</li>
+    </ol>
+  </div>
+  <div class="tbl">
+  <table>
+    <tr><th>Rule</th><th>Value</th></tr>
+    <tr><td>Commanders per alliance</td><td>Up to 5, including the rep.</td></tr>
+    <tr><td>What the rep manages</td><td>Their own alliance only. Other alliances are not visible.</td></tr>
+    <tr><td>Commanders appointing commanders</td><td>Not possible. Only the rep appoints.</td></tr>
+    <tr><td>Changing the rep</td><td>Someone else in the alliance applies, and once approved the rep changes. The former rep becomes a regular commander.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<!-- 8 -->
+<section id="group">
+  <h2><span class="n">8</span>Group (server · alliance)</h2>
+  <p class="lead">Rooms belong to a group. Only people in the same group meet in the same room. It looks like <b class="k">2000 · WBI</b> on screen.</p>
+  <div class="card">
+    <ul>
+      <li>Server number: up to 6 digits. Alliance: up to 8 letters and digits.</li>
+      <li><b>Alliance is case-sensitive.</b> WBI and wbi are different groups.</li>
+      <li>Room numbers are separate for each group. Another alliance using the same number does not clash.</li>
+      <li>Changing your group takes you out of the room you were in.</li>
+    </ul>
+  </div>
+  <div class="tbl">
+  <table>
+    <tr><th>Role</th><th>How the group is set</th></tr>
+    <tr><td>Rally leader</td><td>Copy the invite and verify: the group in the invite is used and locked. To move to another alliance, get a new code from that alliance's commander.</td></tr>
+    <tr><td>Commander, rep</td><td>It is inside the commander code. It shows a lock and cannot be changed.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<!-- 9 -->
+<section id="faq">
+  <h2><span class="n">9</span>Troubleshooting</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>Problem</th><th>What to do</th></tr>
+    <tr><td>Buttons work but the game is not tapped</td><td>Turn AutoClicker <b>off and on again</b> in Accessibility. <a href="#ready">See Setup</a></td></tr>
+    <tr><td>"Available after you verify with a rally leader code."</td><td>You have not verified yet. <a href="#leader">See Rally leader</a></td></tr>
+    <tr><td>The code does not match</td><td>Check that the ID is exactly as given and that the alliance's upper and lower case match. Old-style codes are not accepted, so get a new one.</td></tr>
+    <tr><td>Our room is not in the list</td><td>Check that your group (server · alliance) is the same as the commander's. <a href="#group">See Group</a></td></tr>
+    <tr><td>My name is not on the commander's list</td><td>Check that you joined the room and entered a character name. If it is still missing, leave the room and join again.</td></tr>
+    <tr><td>The time came but nothing was tapped</td><td>Check that the tap position is saved, that you are assigned to a team ("Me" on your row), and that the team is not Out.</td></tr>
+    <tr><td>A little later or earlier than the others</td><td>Adjust the Offset under <b>My device</b> in 0.5s steps. − is earlier, + is later.</td></tr>
+    <tr><td>"Start rally" is dimmed</td><td>No team is joining. The red text below tells you why.</td></tr>
+    <tr><td>I chose a wave but it goes back to Wave 1</td><td>If you see "Could not save waves", the server is not set up for it yet. Tell the person who runs the app.</td></tr>
+    <tr><td>The connection dot is orange or red</td><td>Green is live, orange checks every second, red is disconnected. Check your internet.</td></tr>
+    <tr><td>I uninstalled and reinstalled the app</td><td>Commanders and reps need a new code and must register again. An update (installing over the old one) keeps everything.</td></tr>
+  </table>
+  </div>
+  <a class="up" href="#top">↑ Back to top</a>
+</section>
+
+<div class="foot">AutoClicker Pro User Guide</div>
+</div>
+</body>
+</html>

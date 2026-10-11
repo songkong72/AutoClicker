@@ -15,14 +15,17 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
- * 앱 안의 사용 설명서. 앱에 함께 들어 있는 `assets/manual.html`을 그대로 보여 준다(인터넷 없이 열린다).
+ * 앱 안의 사용 설명서. 앱에 함께 들어 있는 `assets/manual.html`(영어 폰은 `manual-en.html`)을 그대로 보여 준다(인터넷 없이 열린다).
  * 문서 안의 차례 링크(#자리)만 따라가고, 바깥 주소는 열지 않는다. 스크립트는 쓰지 않는다.
  */
 class ManualActivity : Activity() {
     companion object {
         const val PAGE = "file:///android_asset/manual.html"
+        const val PAGE_EN = "file:///android_asset/manual-en.html"
+        /** 폰(또는 이 앱)의 언어에 맞는 설명서. 영어만 영어판이고 나머지는 한국어판. */
+        fun pageFor(lang: String?): String = if (lang == "en") PAGE_EN else PAGE
         /** 설명서 안에서 움직이는 주소인지(바깥 주소는 막는다). */
-        fun isInside(url: String?): Boolean = url != null && url.substringBefore('#') == PAGE
+        fun isInside(url: String?): Boolean = url != null && url.substringBefore('#').let { it == PAGE || it == PAGE_EN }
         fun open(context: Context) = context.startActivity(Intent(context, ManualActivity::class.java))
     }
 
@@ -60,7 +63,7 @@ class ManualActivity : Activity() {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = !isInside(request.url?.toString())
             }
-            loadUrl(PAGE)
+            loadUrl(pageFor(resources.configuration.locales[0]?.language))
         }
         root.addView(web, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setContentView(root)
