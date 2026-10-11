@@ -36,9 +36,13 @@ jobs:
         if: always()
         shell: bash
         run: |
-          { echo '```'; tail -n 80 ../gradle.log || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          MSG=$(grep -E 'FAILED|What went wrong|Could not|error:|BUILD|tests completed|Exception' ../gradle.log | head -n 15 | cut -c1-220 | sed ':a;N;$!ba;s/\n/%0A/g')
+          # 요약이 실패해서 정작 오류가 안 보이는 일이 없게, 여기서는 어떤 명령이 실패해도 멈추지 않는다.
+          set +e
+          { echo '```'; tail -n 80 ../gradle.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          # 컴파일 오류(e: 로 시작)를 먼저, 그다음 빌드·테스트 결과 줄.
+          MSG=$( { grep -E '^e: ' ../gradle.log | sed -E 's#file://[^ ]*/##' | head -n 12; grep -E 'FAILED|What went wrong|Could not|error:|BUILD|tests completed' ../gradle.log | head -n 8; } | cut -c1-240 | sed ':a;N;$!ba;s/\n/%0A/g')
           echo "::error title=gradle-log::${MSG}"
+          exit 0
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
