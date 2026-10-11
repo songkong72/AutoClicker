@@ -597,8 +597,10 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                 val startWall = startWallShown
                 val clock = if (startWall == null || arriveAt == null) null
                     else java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(RallyArrivalNote.arriveAtMs(startWall, arriveAt)))
-                // 접힌 줄은 "군단 N개"와 함께 한 줄에 들어가야 하니 시각을 뺀다.
-                h.value.text = listOfNotNull(if (phase >= 3) "도착" else "도착까지 " + RallyScreenModel.formatMmSs(remaining), clock.takeUnless { folded }).joinToString(" · ")
+                // 오른쪽에는 남은 시간 하나만 굵게. 도착 시각은 왼쪽에 작은 회색 글씨로 따로 둔다
+                // (둘을 한 줄에 이어 쓰면 길어서 잘렸고, 숫자 두 개가 붙어 무엇인지 헷갈렸다). 접힌 줄은 그 자리에 "군단 N개".
+                h.value.text = if (phase >= 3) "도착" else "도착까지 " + RallyScreenModel.formatMmSs(remaining)
+                if (!folded && clock != null) h.count.text = "$clock 도착"
                 h.value.setTextColor(Color.parseColor(PHASE_COLORS[phase]))
                 h.value.setTypeface(null, android.graphics.Typeface.BOLD)
             }
@@ -675,7 +677,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         for ((wave, h) in waveHeads) bindWaveHead(h, wave, waves.firstOrNull { it.wave == wave }, editing, list.count { it.wave == wave })
         if (expandedId != null && list.none { it.id == expandedId }) expandedId = null
         // 머리글: 숫자의 뜻을 한 번만 적는다. 편집 모드에서는 줄 자체가 설명이 되므로 숨겨 높이를 아낀다.
-        rowsHeadRight.text = if (editable) "행군 시간 · 위에서부터 차례로 클릭" else "행군 시간 · 클릭까지 남은 시간"
+        // 진행 중의 줄 오른쪽 숫자는 그 군단의 "지금 단계가 끝날 때까지"다(클릭 전 → 클릭까지, 집결 중 → 출발까지, 행군 → 도착까지).
+        rowsHeadRight.text = if (editable) "행군 시간 · 위에서부터 차례로 클릭" else "행군 시간 · 단계가 끝날 때까지"
         // 머리글 줄을 보일지는 render()에서 정한다(편집 중에는 여기에 "+ 군단 추가"가 놓인다).
         // 내 줄에는 이 폰의 "내 보정"(내 기기)도 더한다. 다른 집결장 폰의 보정은 방 데이터에 없어 알 수 없다.
         // 조를 쓰는 방에서는 같은 조 안에서만 견준다(조 사이의 차이는 머리띠의 "N분 뒤 도착"이 말한다).
