@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#243357" />
-    <corners android:radius="12dp" />
-</shape>
+<!-- 내 군단 줄: 바탕은 조금만 밝게, 왼쪽에 파란 띠. 줄 전체를 밝게 칠하면 조 머리띠와 헷갈렸다 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="rectangle"><solid android:color="#1B2848" /></shape></item>
+    <item android:gravity="start|fill_vertical" android:width="3dp"><shape android:shape="rectangle"><solid android:color="#3B82F6" /></shape></item>
+</layer-list>

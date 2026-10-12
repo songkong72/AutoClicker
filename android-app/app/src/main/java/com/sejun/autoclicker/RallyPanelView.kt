@@ -22,7 +22,9 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         /** 군단 목록이 한 번에 보여 주는 줄 수. 그보다 많으면 목록 안에서 스크롤한다. */
         const val VISIBLE_ROWS = 5
         /** 조 상자 사이의 간격(dp) */
-        const val CARD_GAP_DP = 8
+        const val CARD_GAP_DP = 14
+        /** 조 상자 안에서 군단 줄을 들이는 폭 */
+        const val WAVE_INDENT_DP = 16
         /** 방 설정을 접었을 때 목록에 더 주는 높이(dp): 군단 두 줄쯤 */
         const val FOLDED_SETUP_BONUS_DP = 104
         const val UI_PREFS = "rally_panel_ui"
@@ -148,7 +150,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         (root as RallyDragLayout).visibleListHeight = {
             // 군단 줄만 5줄까지 센다(조 머리띠는 세지 않는다). 접힌 조의 줄은 보이지 않으니 빼고,
             // 방 설정을 접어 두었으면 그만큼(군단 두 줄쯤) 목록을 더 길게 보여 준다.
-            val lines = lineViews.indices.filter { lineViews[it].visibility == View.VISIBLE }
+            val lines = lineViews.indices.filter { shownInList(lineViews[it]) }
                 .map { ListLine(lineViews[it].measuredHeight, lineViews[it] in rowViews, lineCard.getOrElse(it) { 0 }) }
             val extra = if (setupShown && setupFolded) dpx(FOLDED_SETUP_BONUS_DP) else 0
             if (lines.isEmpty()) 0 else RallyListHeight.limit(lines, VISIBLE_ROWS, dpx(CARD_GAP_DP), extra + dpx(VISIBLE_ROWS))
@@ -506,6 +508,27 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpx(1))
     }
 
+    /** 목록 안에서 보이는 줄인가. 군단 줄은 조 상자 안의 묶음에 들어 있어, 조를 접으면 묶음째 숨는다. */
+    private fun shownInList(v: View): Boolean {
+        var cur: View? = v
+        while (cur != null && cur !== rows) {
+            if (cur.visibility != View.VISIBLE) return false
+            cur = cur.parent as? View
+        }
+        return true
+    }
+
+    /** 조 상자 안에서 군단 줄을 담는 묶음: 안으로 들여 놓고 왼쪽 세로 선으로 머리띠와 잇는다(A안). */
+    private fun newWaveBody(): LinearLayout = LinearLayout(themed).apply {
+        orientation = LinearLayout.VERTICAL
+        setBackgroundResource(R.drawable.bg_wave_body)
+        setPadding(dpx(3), 0, 0, 0)
+    }
+
+    /** 군단 줄을 넣을 곳: 조 상자면 그 안의 묶음, 아니면 상자 자체. */
+    private fun bodyOf(card: LinearLayout): LinearLayout =
+        (card.getChildAt(card.childCount - 1) as? LinearLayout)?.takeIf { it.tag == "waveBody" } ?: card
+
     /** 조 상자의 머리띠를 코드로 만든다: [2조] 군단 3개 ...... (−) 1분 뒤 도착 (+) */
     private fun newWaveHead(): WaveHead {
         fun small(t: String) = TextView(themed).apply {
@@ -520,7 +543,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             orientation = LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER_VERTICAL
             minimumHeight = dpx(44)
-            setBackgroundColor(Color.parseColor("#222E4B"))
+            // 군단 줄(내 군단 줄 포함)보다 한 단계 진하게 해서 조 제목이 줄과 섞이지 않게 한다
+            setBackgroundColor(Color.parseColor("#2B3A5C"))
             setPadding(dpx(6), 0, dpx(8), 0)
         }
         val name = TextView(themed).apply {
@@ -534,7 +558,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
         }
         val count = TextView(themed).apply {
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTextColor(Color.parseColor("#A9B4C7"))
+            setTextColor(Color.parseColor("#CBD5E1"))
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
         }
@@ -663,12 +687,17 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
                     if (waveMode) {
                         val h = newWaveHead(); waveHeads[r.wave] = h; waveCards[r.wave] = box
                         box.addView(h.root); lines += h.root; cardOf += rows.childCount - 1
-                        box.addView(newDivider())
+                        box.addView(newDivider().apply { setBackgroundColor(Color.parseColor("#3A4A70")) })
+                        // 군단 줄은 묶음에 담아 안으로 들인다. 조를 접으면 이 묶음째 숨는다.
+                        val body = newWaveBody()
+                        box.addView(body, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginStart = dpx(WAVE_INDENT_DP) })
+                        body.tag = "waveBody"
                     }
                     last = r.wave
-                } else box.addView(newDivider())
-                val v = inflater.inflate(R.layout.item_rally_team_row, box, false)
-                box.addView(v)
+                } else bodyOf(box).addView(newDivider())
+                val target = bodyOf(box)
+                val v = inflater.inflate(R.layout.item_rally_team_row, target, false)
+                target.addView(v)
                 made += v; lines += v; cardOf += rows.childCount - 1
             }
             rowViews = made
@@ -706,6 +735,7 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
             when {
                 // 상자 안이라 테두리 없이 한 단계 밝은 바탕만 깐다
                 editOpen -> v.setBackgroundColor(Color.parseColor("#1F2B48"))
+                // 내 군단: 왼쪽 파란 띠와 조금 밝은 바탕(줄 전체를 밝게 칠하면 조 머리띠와 헷갈렸다)
                 r.isMine && !editing -> v.setBackgroundResource(R.drawable.bg_row_mine)
                 else -> v.background = null
             }

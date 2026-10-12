@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 조 상자 안의 군단 줄 묶음(A안): 머리띠보다 어두운 바탕, 왼쪽에 머리띠와 잇는 세로 선 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="rectangle"><solid android:color="#141D33" /></shape></item>
+    <item android:gravity="start|fill_vertical" android:width="3dp"><shape android:shape="rectangle"><solid android:color="#5B6E99" /></shape></item>
+</layer-list>
