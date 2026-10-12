@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 바탕은 불투명. 비침은 설정의 "버튼 투명도"(창 전체의 투명도)로만 정한다 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#F20F172A" />
+    <solid android:color="#FF0F172A" />
     <corners android:radius="24dp" />
     <stroke
         android:width="1dp"
