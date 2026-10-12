@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 내 군단 줄: 바탕은 조금만 밝게, 왼쪽에 파란 띠. 줄 전체를 밝게 칠하면 조 머리띠와 헷갈렸다 -->
+<!-- 내 군단 줄: 바탕은 조금만 밝게, 왼쪽에 파란 띠. 줄 전체를 밝게 칠하면 조 머리띠와 헷갈렸다.
+     조 상자 안에서는 이 띠가 머리띠와 잇는 회색 세로 선(bg_wave_body, 3dp)을 덮는다 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item><shape android:shape="rectangle"><solid android:color="#1B2848" /></shape></item>
-    <item android:gravity="start|fill_vertical" android:width="3dp"><shape android:shape="rectangle"><solid android:color="#3B82F6" /></shape></item>
+    <item android:gravity="start|fill_vertical" android:width="4dp"><shape android:shape="rectangle"><solid android:color="#3B82F6" /></shape></item>
 </layer-list>

@@ -521,8 +521,8 @@ class RallyPanelView(context: Context, private val callbacks: Callbacks) {
     /** 조 상자 안에서 군단 줄을 담는 묶음: 안으로 들여 놓고 왼쪽 세로 선으로 머리띠와 잇는다(A안). */
     private fun newWaveBody(): LinearLayout = LinearLayout(themed).apply {
         orientation = LinearLayout.VERTICAL
+        // 왼쪽 세로 선은 바탕에 그리고 줄은 그 위에 겹쳐 놓는다. 내 군단 줄은 그 자리를 파란 띠로 덮어, 선 위에 내 자리가 보인다.
         setBackgroundResource(R.drawable.bg_wave_body)
-        setPadding(dpx(3), 0, 0, 0)
     }
 
     /** 군단 줄을 넣을 곳: 조 상자면 그 안의 묶음, 아니면 상자 자체. */
