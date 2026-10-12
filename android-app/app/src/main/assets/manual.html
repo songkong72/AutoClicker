@@ -74,7 +74,8 @@ td.c, th.c{text-align:center; white-space:nowrap}
 .fig .cap{color:var(--panel-sub); font-size:12px; margin-bottom:8px}
 .fig .box{background:var(--panel2); border:1px solid var(--panel-line); border-radius:12px; overflow:hidden}
 .fig .box + .box{margin-top:8px}
-.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#222E4B; border-bottom:1px solid var(--panel-line)}
+.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#2B3A5C; border-bottom:1px solid #3A4A70}
+.fig .body{margin-left:16px; background:#141D33; box-shadow:inset 3px 0 0 #5B6E99}
 .fig .tag{background:#F1F5F9; color:#121A2C; font-weight:700; border-radius:7px; padding:1px 8px}
 .fig .grow{flex:1; color:var(--panel-sub); font-size:12px}
 .fig .row{display:flex; align-items:center; gap:8px; padding:9px 10px}
@@ -234,7 +235,7 @@ td.c, th.c{text-align:center; white-space:nowrap}
       <li><span class="who">집결장</span>받은 글을 <b>통째로 복사</b>한 뒤 앱 첫 화면의 <b class="k">인증하기</b>를 누릅니다. 칸이 저절로 채워져 있으니 확인하고 버튼을 누릅니다.</li>
       <li>첫 화면 <b class="k">집결 방</b> 카드의 <b class="k">방 선택</b>에서 지휘관이 알려 준 방을 고릅니다.</li>
       <li>게임 <b>캐릭터명</b>을 적습니다. 지휘관의 명단에 이 이름이 올라갑니다.</li>
-      <li><span class="who">지휘관</span>나를 군단에 배정합니다. 배정되면 내 줄에 <b class="k">나</b> 표시가 붙습니다.</li>
+      <li><span class="who">지휘관</span>나를 군단에 배정합니다. 배정되면 내 줄에 <b class="k">나</b> 표시와 왼쪽 파란 띠가 붙어 한눈에 찾을 수 있습니다.</li>
     </ol>
     <div class="tip">집결장 코드는 <b>AC-</b> 뒤에 6자리이고, <b>ID와 소속에 묶여</b> 있습니다. 받은 ID 그대로 적어야 맞고, 인증하면 소속이 지휘관의 소속으로 잠깁니다.</div>
   </div>
@@ -359,12 +360,16 @@ td.c, th.c{text-align:center; white-space:nowrap}
     <div class="cap">조를 쓰는 방의 편집 화면</div>
     <div class="box">
       <div class="band"><span class="tag">1조</span><span class="grow">군단 2개</span><span>먼저 도착 (기준)</span></div>
-      <div class="row"><b>1군</b><span class="who2">문</span><span class="t">10초</span></div>
-      <div class="row"><b>2군</b><span class="who2">앵그리버드</span><span class="t">30초</span></div>
+      <div class="body">
+        <div class="row"><b>1군</b><span class="who2">문</span><span class="t">10초</span></div>
+        <div class="row"><b>2군</b><span class="who2">앵그리버드</span><span class="t">30초</span></div>
+      </div>
     </div>
     <div class="box">
       <div class="band"><span class="tag">2조</span><span class="grow">군단 1개</span><span>− &nbsp;<b>2분 뒤 도착</b>&nbsp; +</span></div>
-      <div class="row"><b>3군</b><span class="who2">달구지</span><span class="t">50초</span></div>
+      <div class="body">
+        <div class="row"><b>3군</b><span class="who2">달구지</span><span class="t">50초</span></div>
+      </div>
     </div>
   </div>
 
@@ -385,6 +390,7 @@ td.c, th.c{text-align:center; white-space:nowrap}
     <tr><td>행군 시간</td><td>건드리지 않습니다. 게임에 보이는 값 그대로 둡니다.</td></tr>
     <tr><td>큰 숫자</td><td>군단이 없는 지휘관: 다음에 도착할 조. 집결장: 내 군단 기준.</td></tr>
     <tr><td>모두 1조일 때</td><td>조 머리띠가 보이지 않습니다.</td></tr>
+    <tr><td>조 상자</td><td>조 머리띠는 군단 줄보다 진하게 보이고, 그 조의 군단 줄은 안으로 들어가 왼쪽 세로 선으로 머리띠와 이어집니다. 다음 조는 간격을 두고 새 상자로 시작합니다.</td></tr>
     <tr><td>조 접기</td><td>조 머리띠를 누르면 그 조의 군단 줄이 접히고, 다시 누르면 펴집니다. 내 폰에서만 접히고 다른 사람 화면은 그대로입니다.</td></tr>
   </table>
   </div>
@@ -468,6 +474,7 @@ td.c, th.c{text-align:center; white-space:nowrap}
     <tr><td>조를 골랐는데 1조로 돌아온다</td><td>"조를 저장하지 못했어요"가 뜨면 서버 설정이 아직 준비되지 않은 것입니다. 앱을 만든 사람에게 알려 주세요.</td></tr>
     <tr><td>연결 점이 주황이나 빨강이다</td><td>초록은 실시간, 주황은 1초마다 확인, 빨강은 끊김입니다. 인터넷을 확인합니다.</td></tr>
     <tr><td>앱을 지우고 다시 깔았다</td><td>지휘관과 대표는 새 코드를 받아 다시 등록해야 합니다. 업데이트(덮어 설치)는 그대로 유지됩니다.</td></tr>
+    <tr><td>화면이 다른 언어로 나와요</td><td>앱은 폰의 언어를 따릅니다(한국어·영어·중국어 간체·번체, 그 밖의 언어는 한국어). 안드로이드 13 이상은 설정 → 앱 → 오토클리커 Pro → 언어에서 이 앱만 바꿀 수 있습니다.</td></tr>
   </table>
   </div>
   <a class="up" href="#top">↑ 맨 위로</a>

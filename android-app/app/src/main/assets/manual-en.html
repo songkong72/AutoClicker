@@ -70,7 +70,8 @@ td.c{padding-left:4px; padding-right:4px}
 .fig .cap{color:var(--panel-sub); font-size:12px; margin-bottom:8px}
 .fig .box{background:var(--panel2); border:1px solid var(--panel-line); border-radius:12px; overflow:hidden}
 .fig .box + .box{margin-top:8px}
-.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#222E4B; border-bottom:1px solid var(--panel-line)}
+.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#2B3A5C; border-bottom:1px solid #3A4A70}
+.fig .body{margin-left:16px; background:#141D33; box-shadow:inset 3px 0 0 #5B6E99}
 .fig .tag{background:#F1F5F9; color:#121A2C; font-weight:700; border-radius:7px; padding:1px 8px}
 .fig .grow{flex:1; color:var(--panel-sub); font-size:12px}
 .fig .row{display:flex; align-items:center; gap:8px; padding:9px 10px}
@@ -230,7 +231,7 @@ td.c{padding-left:4px; padding-right:4px}
       <li><span class="who">Leader</span><b>Copy the whole message</b>, then tap <b class="k">Verify</b> on the app's home screen. The fields are already filled in, so check them and tap the button.</li>
       <li>On the <b class="k">Rally room</b> card, tap <b class="k">Pick a room</b> and choose the room your commander told you.</li>
       <li>Enter your in-game <b>character name</b>. It appears on the commander's list.</li>
-      <li><span class="who">Commander</span>Assigns you to a team. Your row then shows a <b class="k">Me</b> badge.</li>
+      <li><span class="who">Commander</span>Assigns you to a team. Your row then shows a <b class="k">Me</b> badge and a blue strip on its left edge, so you can find it at a glance.</li>
     </ol>
     <div class="tip">A rally leader code is <b>AC-</b> plus 6 characters and is <b>tied to your ID and group</b>. Enter the ID exactly as given. After verifying, your group is locked to the commander's group.</div>
   </div>
@@ -355,12 +356,16 @@ td.c{padding-left:4px; padding-right:4px}
     <div class="cap">Editing a room that uses waves</div>
     <div class="box">
       <div class="band"><span class="tag">Wave 1</span><span class="grow">2 teams</span><span>Arrives first (base)</span></div>
-      <div class="row"><b>Team 1</b><span class="who2">Moon</span><span class="t">10s</span></div>
-      <div class="row"><b>Team 2</b><span class="who2">AngryBird</span><span class="t">30s</span></div>
+      <div class="body">
+        <div class="row"><b>Team 1</b><span class="who2">Moon</span><span class="t">10s</span></div>
+        <div class="row"><b>Team 2</b><span class="who2">AngryBird</span><span class="t">30s</span></div>
+      </div>
     </div>
     <div class="box">
       <div class="band"><span class="tag">Wave 2</span><span class="grow">1 team</span><span>− &nbsp;<b>2m later</b>&nbsp; +</span></div>
-      <div class="row"><b>Team 3</b><span class="who2">Cart</span><span class="t">50s</span></div>
+      <div class="body">
+        <div class="row"><b>Team 3</b><span class="who2">Cart</span><span class="t">50s</span></div>
+      </div>
     </div>
   </div>
 
@@ -381,6 +386,7 @@ td.c{padding-left:4px; padding-right:4px}
     <tr><td>March time</td><td>Not touched. Keep the value the game shows.</td></tr>
     <tr><td>Big number</td><td>Commander with no team: the next wave to arrive. Rally leader: your own team.</td></tr>
     <tr><td>All teams in Wave 1</td><td>No wave headers are shown.</td></tr>
+    <tr><td>Wave boxes</td><td>A wave's header is darker than its team rows. The team rows are indented and joined to the header by a line on the left. The next wave starts a new box after a gap.</td></tr>
     <tr><td>Folding a wave</td><td>Tap a wave's header to fold its team rows, tap again to unfold. It folds only on your phone.</td></tr>
   </table>
   </div>
@@ -464,6 +470,7 @@ td.c{padding-left:4px; padding-right:4px}
     <tr><td>I chose a wave but it goes back to Wave 1</td><td>If you see "Could not save waves", the server is not set up for it yet. Tell the person who runs the app.</td></tr>
     <tr><td>The connection dot is orange or red</td><td>Green is live, orange checks every second, red is disconnected. Check your internet.</td></tr>
     <tr><td>I uninstalled and reinstalled the app</td><td>Commanders and reps need a new code and must register again. An update (installing over the old one) keeps everything.</td></tr>
+    <tr><td>The app shows another language</td><td>The app follows the phone's language (Korean, English, Simplified or Traditional Chinese; other languages show Korean). On Android 13 and later you can change it for this app only: Settings → Apps → AutoClicker Pro → Language.</td></tr>
   </table>
   </div>
   <a class="up" href="#top">↑ Back to top</a>

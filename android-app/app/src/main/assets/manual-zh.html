@@ -70,7 +70,8 @@ td.c{padding-left:4px; padding-right:4px}
 .fig .cap{color:var(--panel-sub); font-size:12px; margin-bottom:8px}
 .fig .box{background:var(--panel2); border:1px solid var(--panel-line); border-radius:12px; overflow:hidden}
 .fig .box + .box{margin-top:8px}
-.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#222E4B; border-bottom:1px solid var(--panel-line)}
+.fig .band{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#2B3A5C; border-bottom:1px solid #3A4A70}
+.fig .body{margin-left:16px; background:#141D33; box-shadow:inset 3px 0 0 #5B6E99}
 .fig .tag{background:#F1F5F9; color:#121A2C; font-weight:700; border-radius:7px; padding:1px 8px}
 .fig .grow{flex:1; color:var(--panel-sub); font-size:12px}
 .fig .row{display:flex; align-items:center; gap:8px; padding:9px 10px}
@@ -230,7 +231,7 @@ td.c{padding-left:4px; padding-right:4px}
       <li><span class="who">队长</span><b>把文字整段复制</b>，然后在应用首页点 <b class="k">验证</b>。各项已经自动填好，确认后点按钮。</li>
       <li>在 <b class="k">集结房间</b> 卡片上点 <b class="k">请选择房间</b>，选择指挥官告诉你的房间。</li>
       <li>输入游戏里的<b>角色名</b>。它会显示在指挥官的名单上。</li>
-      <li><span class="who">指挥官</span>把你分配到一支队伍。你的那一行会显示 <b class="k">我</b> 标记。</li>
+      <li><span class="who">指挥官</span>把你分配到一支队伍。你的那一行会显示 <b class="k">我</b> 标记，左边还有一条蓝色竖条，一眼就能找到。</li>
     </ol>
     <div class="tip">集结队长代码是 <b>AC-</b> 加6个字符，并且<b>与你的 ID 和所属绑定</b>。ID 请按原样填写。验证后，你的所属会锁定为指挥官的所属。</div>
   </div>
@@ -355,12 +356,16 @@ td.c{padding-left:4px; padding-right:4px}
     <div class="cap">编辑使用分波的房间</div>
     <div class="box">
       <div class="band"><span class="tag">第1波</span><span class="grow">2支队伍</span><span>最先到达（基准）</span></div>
-      <div class="row"><b>1队</b><span class="who2">Moon</span><span class="t">10秒</span></div>
-      <div class="row"><b>2队</b><span class="who2">AngryBird</span><span class="t">30秒</span></div>
+      <div class="body">
+        <div class="row"><b>1队</b><span class="who2">Moon</span><span class="t">10秒</span></div>
+        <div class="row"><b>2队</b><span class="who2">AngryBird</span><span class="t">30秒</span></div>
+      </div>
     </div>
     <div class="box">
       <div class="band"><span class="tag">第2波</span><span class="grow">1支队伍</span><span>− &nbsp;<b>2分后到达</b>&nbsp; +</span></div>
-      <div class="row"><b>3队</b><span class="who2">Cart</span><span class="t">50秒</span></div>
+      <div class="body">
+        <div class="row"><b>3队</b><span class="who2">Cart</span><span class="t">50秒</span></div>
+      </div>
     </div>
   </div>
 
@@ -381,6 +386,7 @@ td.c{padding-left:4px; padding-right:4px}
     <tr><td>行军时间</td><td>不受影响。保持游戏里显示的数值。</td></tr>
     <tr><td>大数字</td><td>没有队伍的指挥官：下一波到达。集结队长：自己的队伍。</td></tr>
     <tr><td>所有队伍都在第1波</td><td>不显示波的标题。</td></tr>
+    <tr><td>波的方框</td><td>波的标题比队伍行颜色更深。这一波的队伍行向内缩进，左边有一条竖线连到标题。下一波隔开一段距离，从新的方框开始。</td></tr>
     <tr><td>收起一波</td><td>点某一波的标题收起它的队伍，再点一次展开。只在你的手机上收起。</td></tr>
   </table>
   </div>
@@ -464,6 +470,7 @@ td.c{padding-left:4px; padding-right:4px}
     <tr><td>选了波却又回到第1波</td><td>如果看到“无法保存分波”，说明服务器还没有做好相应的设置。请告诉应用的管理者。</td></tr>
     <tr><td>连接状态的圆点是橙色或红色</td><td>绿色是实时，橙色是每秒检查一次，红色是已断开。请检查网络。</td></tr>
     <tr><td>卸载后重新安装了应用</td><td>指挥官和代表需要拿新的代码重新登记。更新（覆盖安装）则全部保留。</td></tr>
+    <tr><td>画面显示成了其他语言</td><td>应用跟随手机的语言（韩语、英语、简体中文、繁体中文；其他语言显示韩语）。Android 13 及以上可以只改这个应用的语言：设置 → 应用 → AutoClicker Pro → 语言。</td></tr>
   </table>
   </div>
   <a class="up" href="#top">↑ 回到顶部</a>
