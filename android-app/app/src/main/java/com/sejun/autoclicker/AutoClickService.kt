@@ -1562,16 +1562,17 @@ class AutoClickService : AccessibilityService() {
         val wm = windowManager ?: return
         val dp = resources.displayMetrics.density
         val v = android.widget.TextView(this).apply {
-            textSize = 18f
-            typeface = android.graphics.Typeface.MONOSPACE
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            // 게임 화면의 남은 시간 글자와 비슷하게(조금 크게): 바탕 없이 흰 굵은 글자에 진한 그림자를 둘러 어느 화면에서도 읽힌다.
+            // 숫자 폭을 고르게 해(tnum) 초가 바뀌어도 글자가 흔들리지 않는다.
+            textSize = 16f
+            setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+            fontFeatureSettings = "tnum"
             setTextColor(Color.WHITE)
+            setShadowLayer(3 * dp, 0f, 1 * dp, Color.parseColor("#E6000000"))
             gravity = android.view.Gravity.CENTER
-            setPadding((12 * dp).toInt(), (6 * dp).toInt(), (12 * dp).toInt(), (6 * dp).toInt())
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.parseColor("#E60F172A")); cornerRadius = 12 * dp
-                setStroke((1 * dp).toInt(), Color.parseColor("#3338BDF8"))
-            }
+            // 바탕은 없지만 끌어 옮기기 쉽게 누를 자리는 넉넉히 둔다
+            setPadding((10 * dp).toInt(), (8 * dp).toInt(), (10 * dp).toInt(), (8 * dp).toInt())
+            background = null
         }
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
