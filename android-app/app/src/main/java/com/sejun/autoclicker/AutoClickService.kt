@@ -1511,6 +1511,8 @@ class AutoClickService : AccessibilityService() {
         val fired = HunterModeManager.fire(this, repeatCount,
             beforeTap = { setTargetTouchable(false) },
             afterTap = { setTargetTouchable(true) })
+        // 실제로 발사했을 때만 떨린다. 막힌 누름까지 떨리면 발사된 줄 알게 된다.
+        if (fired) vibrate(30)
         if (fired && count > 1) showFiredOnButton(firedIdx)
     }
 
@@ -1664,7 +1666,7 @@ class AutoClickService : AccessibilityService() {
                     // 옮긴 자리를 기억해 다음에 켤 때 그 자리에서 연다
                     getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).edit()
                         .putInt("hunter_fire_x", lp.x).putInt("hunter_fire_y", lp.y).apply()
-                } else { vibrate(30); fireHunter(0) }
+                } else fireHunter(0)
             }
             true
         }

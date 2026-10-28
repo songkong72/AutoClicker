@@ -14,7 +14,7 @@ class HunterFirePolicyTest {
         assertEquals(false, HunterFirePolicy.allow(hasTargets = true, repeatCount = 3, nowMs = 10_000, lastFireMs = 0))
 
     @Test fun pressesWithinCooldownAreIgnored() {
-        assertEquals(false, HunterFirePolicy.allow(true, 0, nowMs = 10_000 + 1_499, lastFireMs = 10_000))
-        assertEquals(true, HunterFirePolicy.allow(true, 0, nowMs = 10_000 + 1_500, lastFireMs = 10_000))
+        assertEquals(false, HunterFirePolicy.allow(true, 0, nowMs = 10_000 + 399, lastFireMs = 10_000))
+        assertEquals(true, HunterFirePolicy.allow(true, 0, nowMs = 10_000 + 400, lastFireMs = 10_000))
     }
 }
