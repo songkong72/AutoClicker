@@ -10,7 +10,7 @@ import android.widget.Toast
 
 /**
  * 곰 사냥 수동 발사. 화면을 분석하지 않는다.
- * 사용자가 집결 목록에서 직접 고른 뒤 🐻 발사 버튼을 누르면, 미리 저장한 "쓸 부대" 위치를 곧바로 누르고 [GAP_MS] 뒤 "출정" 위치를 누른다.
+ * 사용자가 집결 목록에서 직접 고른 뒤 🐻 발사 버튼을 누르면, [timing]의 쉬는 시간 뒤 "쓸 부대" 위치를 누르고, 간격 뒤 "출정" 위치를 누른다.
  * 부대는 최대 7곳까지 저장하고, 누를 때마다 1번 → 2번 → … 순서로 쓴다. 저장한 마지막 부대 다음에는 다시 1번이다.
  * 저장하는 좌표는 화면 픽셀 기준 중심점이다.
  */
@@ -23,6 +23,10 @@ object HunterModeManager {
     var dispatchY: Int = 0
 
     private var lastFireMs = 0L
+
+    /** 발사 시간(헌터 위치 잡기 창에서 정한다). */
+    var timing = HunterTiming()
+        private set
 
     /** 다음 발사에 쓸 부대 번호(0부터). 저장 값이 아니라 이번 실행 중에만 기억한다. */
     var nextTroop = 0
@@ -45,6 +49,16 @@ object HunterModeManager {
         nextTroop = 0
         dispatchX = p.getInt("dispatchCX", 0)
         dispatchY = p.getInt("dispatchCY", 0)
+        timing = HunterTiming(
+            HunterTiming.clampReady(p.getLong("readyMs", HunterTiming.DEFAULT_READY_MS)),
+            HunterTiming.clampGap(p.getLong("gapMs", HunterTiming.DEFAULT_GAP_MS)))
+    }
+
+    /** 발사 시간을 바꾸고 바로 저장한다(다음 발사부터 적용). */
+    fun setTiming(service: AutoClickService, t: HunterTiming) {
+        timing = HunterTiming(HunterTiming.clampReady(t.readyMs), HunterTiming.clampGap(t.gapMs))
+        service.getSharedPreferences("HunterPrefs", Context.MODE_PRIVATE).edit()
+            .putLong("readyMs", timing.readyMs).putLong("gapMs", timing.gapMs).apply()
     }
 
     fun saveSettings(service: AutoClickService) {
@@ -69,7 +83,8 @@ object HunterModeManager {
             Toast.makeText(service, T.x.hunterSaveFirst, Toast.LENGTH_SHORT).show()
             return false
         }
-        if (!HunterFirePolicy.allow(hasTargets, repeatCount, now, lastFireMs)) return false
+        val t = timing
+        if (!HunterFirePolicy.allow(hasTargets, repeatCount, now, lastFireMs, SETTLE_MS + t.busyMs)) return false
         lastFireMs = now
         val list = troops
         val idx = HunterTroops.current(nextTroop, list.size)
@@ -77,30 +92,25 @@ object HunterModeManager {
         nextTroop = HunterTroops.next(idx, list.size) // 다음 발사는 다음 부대. 마지막이면 1번으로.
         beforeTap()
         val main = Handler(Looper.getMainLooper())
-        val first = SETTLE_MS
+        // 과녁이 투과로 바뀌는 시간(SETTLE_MS)은 쉬는 시간 안에 들어간다
+        val first = maxOf(SETTLE_MS, t.readyMs)
         main.postDelayed({ tap(service, troop.x.toFloat(), troop.y.toFloat()) }, first)
         main.postDelayed({
             tap(service, dispatchX.toFloat(), dispatchY.toFloat())
             val label = if (list.size > 1) T.x.hunterMarchN(idx + 1, list.size) else T.x.hunterFire
             Toast.makeText(service, label, Toast.LENGTH_SHORT).show()
-        }, first + GAP_MS)
-        main.postDelayed({ afterTap() }, first + GAP_MS + 150L)
+        }, first + t.gapMs)
+        main.postDelayed({ afterTap() }, first + t.gapMs + 150L)
         return true
     }
 
     /** 오버레이가 투과 상태로 바뀔 시간. */
     private const val SETTLE_MS = 40L
-    /**
-     * 부대 클릭과 출정 클릭 사이 간격.
-     * (2026-10-24에 첫 클릭 전 0.4초 대기와 간격 0.25초로 늘렸더니 한 박자 늦고 실패가 더 늘어 되돌렸다.
-     *  클릭이 늦어질수록 사용자의 다음 손가락이 게임을 누르는 때와 겹쳐, 앱이 보낸 클릭이 끊긴다.)
-     */
-    const val GAP_MS = 150L
 
     private fun tap(service: AccessibilityService, x: Float, y: Float) {
         val path = Path().apply { moveTo(x, y) }
         service.dispatchGesture(
-            GestureDescription.Builder().addStroke(GestureDescription.StrokeDescription(path, 0, 50)).build(), null, null
+            GestureDescription.Builder().addStroke(GestureDescription.StrokeDescription(path, 0, HunterTiming.TAP_MS)).build(), null, null
         )
     }
 }

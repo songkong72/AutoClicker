@@ -195,6 +195,12 @@ internal interface MoreStr {
     val troopMore: String
     val hunterSave: String
     val hunterReadFailed: String
+    val hunterReadyTitle: String
+    val hunterReadySub: String
+    val hunterGapTitle: String
+    val hunterGapSub: String
+    val hunterReadyShorter: String
+    val hunterReadyLonger: String
     val runIdle: String
     val runRunning: String
     val runCancelled: String
@@ -396,6 +402,12 @@ internal object MoreKo : MoreStr {
     override val troopMore = "부대 늘리기"
     override val hunterSave = "헌터 위치 저장"
     override val hunterReadFailed = "⚠ 위치를 읽지 못했어요. 과녁과 부대 표시가 보이는지 확인하세요"
+    override val hunterReadyTitle = "🐻 누른 뒤 쉬는 시간"
+    override val hunterReadySub = "부대 누르기 전 · 0.05초씩"
+    override val hunterGapTitle = "부대 → 출정 간격"
+    override val hunterGapSub = "부대 뒤 출정까지 · 0.05초씩"
+    override val hunterReadyShorter = "쉬는 시간 줄이기"
+    override val hunterReadyLonger = "쉬는 시간 늘리기"
     override val runIdle = "대기 중"
     override val runRunning = "진행 중"
     override val runCancelled = "취소됨"
@@ -597,6 +609,12 @@ internal object MoreEn : MoreStr {
     override val troopMore = "More squads"
     override val hunterSave = "Save Hunter positions"
     override val hunterReadFailed = "⚠ Could not read the positions. Check that the target and squad markers are visible"
+    override val hunterReadyTitle = "🐻 Wait after tap"
+    override val hunterReadySub = "Before the squad tap · 0.05s steps"
+    override val hunterGapTitle = "Squad → march"
+    override val hunterGapSub = "From squad to march · 0.05s steps"
+    override val hunterReadyShorter = "Shorter wait"
+    override val hunterReadyLonger = "Longer wait"
     override val runIdle = "idle"
     override val runRunning = "running"
     override val runCancelled = "cancelled"
@@ -798,6 +816,12 @@ internal object MoreZh : MoreStr {
     override val troopMore = "增加部队"
     override val hunterSave = "保存猎人位置"
     override val hunterReadFailed = "⚠ 无法读取位置。请确认准星和部队标记是否显示"
+    override val hunterReadyTitle = "🐻 按下后停顿"
+    override val hunterReadySub = "点部队之前 · 每次0.05秒"
+    override val hunterGapTitle = "部队 → 出征间隔"
+    override val hunterGapSub = "部队之后到出征 · 每次0.05秒"
+    override val hunterReadyShorter = "缩短停顿"
+    override val hunterReadyLonger = "延长停顿"
     override val runIdle = "待机中"
     override val runRunning = "进行中"
     override val runCancelled = "已取消"
@@ -999,6 +1023,12 @@ internal object MoreZhTw : MoreStr {
     override val troopMore = "增加部隊"
     override val hunterSave = "儲存獵人位置"
     override val hunterReadFailed = "⚠ 無法讀取位置。請確認準星和部隊標記是否顯示"
+    override val hunterReadyTitle = "🐻 按下後停頓"
+    override val hunterReadySub = "點部隊之前 · 每次0.05秒"
+    override val hunterGapTitle = "部隊 → 出征間隔"
+    override val hunterGapSub = "部隊之後到出征 · 每次0.05秒"
+    override val hunterReadyShorter = "縮短停頓"
+    override val hunterReadyLonger = "延長停頓"
     override val runIdle = "待機中"
     override val runRunning = "進行中"
     override val runCancelled = "已取消"

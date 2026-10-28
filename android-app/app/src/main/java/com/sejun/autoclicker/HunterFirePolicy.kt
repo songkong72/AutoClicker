@@ -8,6 +8,7 @@ object HunterFirePolicy {
      */
     const val COOLDOWN_MS = 400L
 
-    fun allow(hasTargets: Boolean, repeatCount: Int, nowMs: Long, lastFireMs: Long): Boolean =
-        hasTargets && repeatCount == 0 && nowMs - lastFireMs >= COOLDOWN_MS
+    /** [busyMs]: 이번 설정에서 한 번 발사가 끝나는 데 걸리는 시간. 그보다 짧게 막으면 두 발사가 겹친다. */
+    fun allow(hasTargets: Boolean, repeatCount: Int, nowMs: Long, lastFireMs: Long, busyMs: Long = 0L): Boolean =
+        hasTargets && repeatCount == 0 && nowMs - lastFireMs >= maxOf(COOLDOWN_MS, busyMs + 60L)
 }

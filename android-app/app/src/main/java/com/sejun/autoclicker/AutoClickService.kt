@@ -1789,6 +1789,59 @@ class AutoClickService : AccessibilityService() {
                     addView(stepButton("+", T.x.troopMore, 1), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
                 }, android.widget.LinearLayout.LayoutParams(match, px(44)).apply { topMargin = px(12) })
 
+                // 발사 시간 두 줄: 누르면 바로 저장되고 다음 발사부터 적용된다(위치 저장과 따로).
+                addView(View(ctx).apply { setBackgroundColor(Color.parseColor("#2A3653")) },
+                    android.widget.LinearLayout.LayoutParams(match, Math.max(1, px(1))).apply { topMargin = px(14) })
+                fun timingRow(title: String, sub: String, read: () -> Long, write: (Long) -> Unit) = android.widget.LinearLayout(ctx).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    addView(android.widget.LinearLayout(ctx).apply {
+                        orientation = android.widget.LinearLayout.VERTICAL
+                        addView(android.widget.TextView(ctx).apply {
+                            text = title
+                            setTextColor(Color.parseColor("#F1F5F9"))
+                            textSize = 14f
+                            typeface = android.graphics.Typeface.DEFAULT_BOLD
+                        })
+                        addView(android.widget.TextView(ctx).apply {
+                            text = sub
+                            setTextColor(Color.parseColor("#8190A8"))
+                            textSize = 11f
+                        })
+                    }, android.widget.LinearLayout.LayoutParams(0, wrap, 1f))
+                    val value = android.widget.TextView(ctx).apply {
+                        setTextColor(Color.parseColor("#F1F5F9"))
+                        textSize = 16f
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
+                        gravity = android.view.Gravity.CENTER
+                        text = T.a.secs(HunterTiming.label(read()))
+                    }
+                    fun btn(label: String, desc: String, delta: Long) = android.widget.TextView(ctx).apply {
+                        text = label
+                        contentDescription = desc
+                        setTextColor(Color.parseColor("#F1F5F9"))
+                        textSize = 20f
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
+                        gravity = android.view.Gravity.CENTER
+                        background = round("#0B1220", 22, "#475569")
+                        setOnClickListener {
+                            write(read() + delta)
+                            value.text = T.a.secs(HunterTiming.label(read()))
+                        }
+                    }
+                    addView(btn("−", T.x.hunterReadyShorter, -HunterTiming.STEP_MS), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
+                    addView(value, android.widget.LinearLayout.LayoutParams(px(64), wrap))
+                    addView(btn("+", T.x.hunterReadyLonger, HunterTiming.STEP_MS), android.widget.LinearLayout.LayoutParams(px(44), px(44)))
+                }
+                addView(timingRow(T.x.hunterReadyTitle, T.x.hunterReadySub,
+                    { HunterModeManager.timing.readyMs },
+                    { HunterModeManager.setTiming(ctx, HunterModeManager.timing.copy(readyMs = it)) }),
+                    android.widget.LinearLayout.LayoutParams(match, wrap).apply { topMargin = px(12) })
+                addView(timingRow(T.x.hunterGapTitle, T.x.hunterGapSub,
+                    { HunterModeManager.timing.gapMs },
+                    { HunterModeManager.setTiming(ctx, HunterModeManager.timing.copy(gapMs = it)) }),
+                    android.widget.LinearLayout.LayoutParams(match, wrap).apply { topMargin = px(12) })
+
                 addView(android.widget.TextView(ctx).apply {
                     text = T.x.hunterSave
                     setTextColor(Color.WHITE)
