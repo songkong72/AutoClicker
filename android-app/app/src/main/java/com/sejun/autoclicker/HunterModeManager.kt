@@ -91,11 +91,12 @@ object HunterModeManager {
     /** 오버레이가 투과 상태로 바뀔 시간. */
     private const val SETTLE_MS = 40L
     /**
-     * 부대 클릭과 출정 클릭 사이 간격.
+     * 부대 클릭과 출정 클릭 사이 간격. 사용자 요청(2026-10-28): 부대를 누르면 출정은 바로 누른다.
+     * 부대 클릭(누름 0.05초)이 끝나자마자 출정을 누르도록 0.06초로 둔다(0.15초에서 줄임).
      * (2026-10-24에 첫 클릭 전 0.4초 대기와 간격 0.25초로 늘렸더니 한 박자 늦고 실패가 더 늘어 되돌렸다.
      *  클릭이 늦어질수록 사용자의 다음 손가락이 게임을 누르는 때와 겹쳐, 앱이 보낸 클릭이 끊긴다.)
      */
-    const val GAP_MS = 150L
+    const val GAP_MS = 60L
 
     private fun tap(service: AccessibilityService, x: Float, y: Float) {
         val path = Path().apply { moveTo(x, y) }
