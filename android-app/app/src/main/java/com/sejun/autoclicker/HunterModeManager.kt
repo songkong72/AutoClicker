@@ -10,7 +10,7 @@ import android.widget.Toast
 
 /**
  * 곰 사냥 수동 발사. 화면을 분석하지 않는다.
- * 사용자가 집결 목록에서 직접 고른 뒤 🐻 발사 버튼을 누르면, 미리 저장한 "쓸 부대" 위치를 곧바로 누르고 [GAP_MS] 뒤 "출정" 위치를 누른다.
+ * 사용자가 집결 목록에서 직접 고른 뒤 🐻 발사 버튼을 누르면, 잠깐([READY_MS]) 쉬었다가 "쓸 부대" 위치를 누르고 [GAP_MS] 뒤 곧바로 "출정"을 누른다.
  * 부대는 최대 7곳까지 저장하고, 누를 때마다 1번 → 2번 → … 순서로 쓴다. 저장한 마지막 부대 다음에는 다시 1번이다.
  * 저장하는 좌표는 화면 픽셀 기준 중심점이다.
  */
@@ -77,7 +77,7 @@ object HunterModeManager {
         nextTroop = HunterTroops.next(idx, list.size) // 다음 발사는 다음 부대. 마지막이면 1번으로.
         beforeTap()
         val main = Handler(Looper.getMainLooper())
-        val first = SETTLE_MS
+        val first = SETTLE_MS + READY_MS
         main.postDelayed({ tap(service, troop.x.toFloat(), troop.y.toFloat()) }, first)
         main.postDelayed({
             tap(service, dispatchX.toFloat(), dispatchY.toFloat())
@@ -91,11 +91,12 @@ object HunterModeManager {
     /** 오버레이가 투과 상태로 바뀔 시간. */
     private const val SETTLE_MS = 40L
     /**
-     * 부대 클릭과 출정 클릭 사이 간격.
-     * (2026-10-24에 첫 클릭 전 0.4초 대기와 간격 0.25초로 늘렸더니 한 박자 늦고 실패가 더 늘어 되돌렸다.
-     *  클릭이 늦어질수록 사용자의 다음 손가락이 게임을 누르는 때와 겹쳐, 앱이 보낸 클릭이 끊긴다.)
+     * 🐻를 누른 뒤 부대를 누르기까지 쉬는 시간. 사용자 요청(2026-10-28): "곰을 누르면 약간 텀을 두고, 부대·출정은 빨리".
+     * (2026-10-24의 0.4초는 한 박자 늦어 실패가 늘었다.)
      */
-    const val GAP_MS = 150L
+    const val READY_MS = 200L
+    /** 부대 클릭과 출정 클릭 사이 간격. 부대 클릭(누름 0.05초)이 끝나자마자 출정을 누른다. */
+    const val GAP_MS = 60L
 
     private fun tap(service: AccessibilityService, x: Float, y: Float) {
         val path = Path().apply { moveTo(x, y) }
