@@ -76,8 +76,10 @@ object HunterModeManager {
     /**
      * 화면 발사 버튼이 눌렸을 때 호출. 발사했으면 true.
      * [beforeTap]은 첫 클릭 전에, [afterTap]은 모든 클릭이 끝난 뒤에 부른다. 과녁 오버레이가 클릭을 가로채지 않게 투과시키는 데 쓴다.
+     * [onTroopTap]·[onMarchTap]은 부대·출정을 누르는 바로 그때 부른다(사용자가 진동으로 누른 때를 알 수 있게).
      */
-    fun fire(service: AutoClickService, repeatCount: Int, beforeTap: () -> Unit = {}, afterTap: () -> Unit = {}): Boolean {
+    fun fire(service: AutoClickService, repeatCount: Int, beforeTap: () -> Unit = {}, afterTap: () -> Unit = {},
+             onTroopTap: () -> Unit = {}, onMarchTap: () -> Unit = {}): Boolean {
         val now = System.currentTimeMillis()
         if (!hasTargets) {
             Toast.makeText(service, T.x.hunterSaveFirst, Toast.LENGTH_SHORT).show()
@@ -94,9 +96,10 @@ object HunterModeManager {
         val main = Handler(Looper.getMainLooper())
         // 과녁이 투과로 바뀌는 시간(SETTLE_MS)은 쉬는 시간 안에 들어간다
         val first = maxOf(SETTLE_MS, t.readyMs)
-        main.postDelayed({ tap(service, troop.x.toFloat(), troop.y.toFloat()) }, first)
+        main.postDelayed({ tap(service, troop.x.toFloat(), troop.y.toFloat()); onTroopTap() }, first)
         main.postDelayed({
             tap(service, dispatchX.toFloat(), dispatchY.toFloat())
+            onMarchTap()
             val label = if (list.size > 1) T.x.hunterMarchN(idx + 1, list.size) else T.x.hunterFire
             Toast.makeText(service, label, Toast.LENGTH_SHORT).show()
         }, first + t.gapMs)

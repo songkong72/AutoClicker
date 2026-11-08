@@ -61,6 +61,10 @@ import kotlin.coroutines.resume
 class AutoClickService : AccessibilityService() {
 
     companion object {
+        /** 곰 사냥: 부대를 누를 때 짧은 진동 */
+        const val HUNTER_BUZZ_TROOP_MS = 25L
+        /** 곰 사냥: 출정을 누를 때 긴 진동(부대 진동과 구별되게) */
+        const val HUNTER_BUZZ_MARCH_MS = 80L
         private const val TAG = "AutoClickService"
         private const val CHANNEL_ID = "AutoClickerNotificationChannel"
         private const val NOTIFICATION_ID = 2002
@@ -1510,9 +1514,11 @@ class AutoClickService : AccessibilityService() {
         val firedIdx = HunterTroops.current(HunterModeManager.nextTroop, count)
         val fired = HunterModeManager.fire(this, repeatCount,
             beforeTap = { setTargetTouchable(false) },
-            afterTap = { setTargetTouchable(true) })
-        // 실제로 발사했을 때만 떨린다. 막힌 누름까지 떨리면 발사된 줄 알게 된다.
-        if (fired) vibrate(30)
+            afterTap = { setTargetTouchable(true) },
+            // 진동은 버튼을 누를 때가 아니라 실제로 누르는 때: 부대는 짧게 한 번, 출정은 길게 한 번.
+            // 막힌 누름은 떨리지 않는다(발사되지 않은 것).
+            onTroopTap = { vibrate(HUNTER_BUZZ_TROOP_MS) },
+            onMarchTap = { vibrate(HUNTER_BUZZ_MARCH_MS) })
         if (fired && count > 1) showFiredOnButton(firedIdx)
     }
 
