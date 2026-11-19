@@ -249,5 +249,72 @@ class HiddenObjectFinderTest {
         assertTrue(HiddenObjectFinder.isZeroQuotaError("""{"error":{"message":"Quota exceeded for metric: generate_content_free_tier_requests, limit: 0"}}"""))
         assertFalse(HiddenObjectFinder.isZeroQuotaError("""{"error":{"message":"Resource has been exhausted (e.g. check quota)."}}"""))
     }
+
+    @Test
+    fun `detectIllustrationRect는 좁은 화면에서 왼쪽 플로팅 막대가 테두리 중간을 가려도 감지한다`() {
+        val w = 540
+        val h = 1170
+        val rect = HiddenObjectFinder.detectIllustrationRect(w, h) { x, y ->
+            val onVert = (x in 52..54 || x in 486..488) && y in 70..960
+            val onHoriz = (y in 70..72 || y in 958..960) && x in 52..488
+            // 왼쪽 플로팅 막대가 y=25%~58% 구간에서 왼쪽 흰색 테두리를 완전히 가린 상황 재현
+            val coveredBySidebar = x in 52..54 && y in 290..680
+            (onVert || onHoriz) && !coveredBySidebar
+        }
+        assertNotNull(rect)
+        assertEquals(54, rect!!.x)
+        assertEquals(72, rect.y)
+    }
+
+    @Test
+    fun `pickAlternateModels는 서로 다른 할당량 버킷(Gemini 3·2_5·2_0 Flash·Lite 및 Gemma 멀티모달)을 가족별 1개씩 반환한다`() {
+        val json = """
+            {"models":[
+              {"name":"models/gemini-flash-latest","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-3-flash-preview","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-2.5-flash","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-2.5-flash-preview-05-20","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-2.5-flash-lite","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-2.0-flash","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemma-3-27b-it","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemma-3-1b-it","supportedGenerationMethods":["generateContent"]}
+            ]}
+        """.trimIndent()
+        val alts = HiddenObjectFinder.pickAlternateModels(json, setOf("gemini-flash-latest", "gemini-flash-lite-latest"))
+        assertEquals(
+            listOf("gemini-2.5-flash", "gemini-2.0-flash", "gemini-3-flash-preview", "gemini-2.5-flash-lite", "gemma-3-27b-it"),
+            alts,
+        )
+    }
+
+    @Test
+    fun `parseApiKeys는 쉼표와 줄바꿈으로 구분된 여러 키를 중복 없이 분리한다`() {
+        assertEquals(listOf("AIza111", "AIza222", "AIza333"), HiddenObjectFinder.parseApiKeys(" AIza111, AIza222\nAIza111\r\nAIza333 "))
+        assertTrue(HiddenObjectFinder.parseApiKeys("   ").isEmpty())
+    }
+
+    @Test
+    fun `classifyQuotaError는 일일 한도·무료한도 0·분당 한도를 구분해 한국어로 안내한다`() {
+        assertTrue(HiddenObjectFinder.classifyQuotaError("GenerateRequestsPerDayPerProjectPerModel-FreeTier").contains("일일 무료한도"))
+        assertTrue(HiddenObjectFinder.classifyQuotaError("limit: 0 for free_tier").contains("무료 한도 0"))
+        assertTrue(HiddenObjectFinder.classifyQuotaError("GenerateRequestsPerMinutePerProject").contains("분당 한도"))
+    }
+
+    @Test
+    fun `buildDualCropRequestJson은 Gemma용 일반 모드에서 responseMimeType과 schema를 제외한다`() {
+        val json = HiddenObjectFinder.buildDualCropRequestJson(
+            "W", "S",
+            includeThinking = false,
+            thinkingBudget = 0,
+            includeMediaResolution = false,
+            includeSchema = false,
+            includeResponseMimeType = false,
+        )
+        assertFalse(json.contains("responseMimeType"))
+        assertFalse(json.contains("responseSchema"))
+        assertFalse(json.contains("thinkingConfig"))
+        assertFalse(json.contains("mediaResolution"))
+    }
 }
+
 

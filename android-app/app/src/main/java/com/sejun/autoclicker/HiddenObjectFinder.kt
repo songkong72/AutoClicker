@@ -22,16 +22,18 @@ internal object HiddenObjectFinder {
     const val MODEL_LITE = "gemini-flash-lite-latest"
     const val MODEL_PRO = "gemini-pro-latest"
 
-    private const val MAX_SCENE_DIM = 1024
-    private const val MAX_WORDS_DIM = 640
-    private const val JPEG_QUALITY = 85
-    private const val WORDS_JPEG_QUALITY = 80
-    private const val CONNECT_TIMEOUT_MS = 5000
-    private const val READ_TIMEOUT_MS = 30000
+    private const val MAX_SCENE_DIM = 832
+    private const val MAX_WORDS_DIM = 512
+    private const val JPEG_QUALITY = 80
+    private const val WORDS_JPEG_QUALITY = 75
+    private const val CONNECT_TIMEOUT_MS = 4000
+    private const val READ_TIMEOUT_MS = 12000
     private const val MAX_OUTPUT_TOKENS = 2048
     private const val MODELS_CACHE_TTL_MS = 10 * 60 * 1000L
     private const val COOLDOWN_RATE_LIMIT_MS = 45 * 1000L
+    private const val COOLDOWN_DAILY_QUOTA_MS = 5 * 60 * 1000L
     private const val COOLDOWN_ZERO_QUOTA_MS = 10 * 60 * 1000L
+    private const val FALLBACK_BUDGET_MS = 10 * 1000L
 
     @Volatile private var cachedLiteModel: String? = null
     @Volatile private var cachedFlashModel: String? = null
@@ -40,6 +42,7 @@ internal object HiddenObjectFinder {
     @Volatile private var cachedModelsFetchedAt: Long = 0L
 
     private val quotaCooldownUntil = ConcurrentHashMap<String, Long>()
+    private val lastWorkingModelByKey = ConcurrentHashMap<String, String>()
 
     data class CropRect(val x: Int, val y: Int, val w: Int, val h: Int)
 
@@ -62,7 +65,8 @@ internal object HiddenObjectFinder {
 
     /**
      * 숨은그림찾기 게임의 흰색 사각형 그림 액자 테두리를 픽셀에서 자동 감지한다.
-     * 바깥쪽에서 안쪽으로 스캔해 그림 안의 눈/하늘에 속지 않고 정확한 그림 영역만 분리한다.
+     * 바깥쪽에서 안쪽으로 스캔해 그림 안의 눈/하늘에 속지 않고 정확한 그림 영역만 분리하며,
+     * 좁은 화면에서 왼쪽 플로팅 막대가 테두리 중간을 가려도 위·아래 노출 구간으로 안정적으로 감지한다.
      */
     fun detectIllustrationRect(
         width: Int,
@@ -72,7 +76,7 @@ internal object HiddenObjectFinder {
         if (width < 100 || height < 100) return null
 
         val sampleYs = IntArray(25) { i ->
-            (height * (0.18 + i * 0.025)).toInt().coerceIn(0, height - 1)
+            (height * (0.10 + i * 0.029)).toInt().coerceIn(0, height - 1)
         }
 
         val leftLimit = (width * 0.45).toInt()
@@ -80,7 +84,7 @@ internal object HiddenObjectFinder {
         for (x in 0 until leftLimit) {
             var cnt = 0
             for (y in sampleYs) if (isBrightWhite(x, y)) cnt++
-            if (cnt >= 16) {
+            if (cnt >= 10) {
                 left = x
                 break
             }
@@ -91,7 +95,7 @@ internal object HiddenObjectFinder {
         for (x in (width - 1) downTo (rightLimit + 1)) {
             var cnt = 0
             for (y in sampleYs) if (isBrightWhite(x, y)) cnt++
-            if (cnt >= 16) {
+            if (cnt >= 10) {
                 right = x
                 break
             }
@@ -110,7 +114,7 @@ internal object HiddenObjectFinder {
         for (y in topStart until topEnd) {
             var cnt = 0
             for (x in sampleXs) if (isBrightWhite(x, y)) cnt++
-            if (cnt >= 14) {
+            if (cnt >= 13) {
                 top = y
                 break
             }
@@ -122,7 +126,7 @@ internal object HiddenObjectFinder {
         for (y in botStart downTo (botEnd + 1)) {
             var cnt = 0
             for (x in sampleXs) if (isBrightWhite(x, y)) cnt++
-            if (cnt >= 14) {
+            if (cnt >= 13) {
                 bottom = y
                 break
             }
@@ -240,10 +244,12 @@ internal object HiddenObjectFinder {
         thinkingBudget: Int,
         includeMediaResolution: Boolean,
         includeSchema: Boolean,
+        includeResponseMimeType: Boolean = true,
     ): String {
         val sb = StringBuilder()
-        sb.append(""""temperature":0.0,"maxOutputTokens":$MAX_OUTPUT_TOKENS,"responseMimeType":"application/json"""")
-        if (includeSchema) sb.append(""","responseSchema":$RESPONSE_SCHEMA_JSON""")
+        sb.append(""""temperature":0.0,"maxOutputTokens":$MAX_OUTPUT_TOKENS""")
+        if (includeResponseMimeType) sb.append(""","responseMimeType":"application/json"""")
+        if (includeSchema && includeResponseMimeType) sb.append(""","responseSchema":$RESPONSE_SCHEMA_JSON""")
         if (includeMediaResolution) sb.append(""","mediaResolution":"MEDIA_RESOLUTION_HIGH"""")
         if (includeThinking) sb.append(""","thinkingConfig":{"thinkingBudget":$thinkingBudget}""")
         return sb.toString()
@@ -255,9 +261,16 @@ internal object HiddenObjectFinder {
         thinkingBudget: Int = 256,
         includeMediaResolution: Boolean = true,
         includeSchema: Boolean = true,
+        includeResponseMimeType: Boolean = true,
     ): String {
         val cleanB64 = base64Jpeg.replace("\r", "").replace("\n", "")
-        val genCfg = buildGenerationConfig(includeThinkingZero, thinkingBudget, includeMediaResolution, includeSchema)
+        val genCfg = buildGenerationConfig(
+            includeThinkingZero,
+            thinkingBudget,
+            includeMediaResolution,
+            includeSchema,
+            includeResponseMimeType,
+        )
         return """{"contents":[{"parts":[{"text":"$SINGLE_PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{$genCfg}}"""
     }
 
@@ -272,12 +285,29 @@ internal object HiddenObjectFinder {
         thinkingBudget: Int = 256,
         includeMediaResolution: Boolean = true,
         includeSchema: Boolean = true,
+        includeResponseMimeType: Boolean = true,
     ): String {
         val cleanWords = wordsBase64Jpeg.replace("\r", "").replace("\n", "")
         val cleanScene = sceneBase64Jpeg.replace("\r", "").replace("\n", "")
-        val genCfg = buildGenerationConfig(includeThinking, thinkingBudget, includeMediaResolution, includeSchema)
+        val genCfg = buildGenerationConfig(
+            includeThinking,
+            thinkingBudget,
+            includeMediaResolution,
+            includeSchema,
+            includeResponseMimeType,
+        )
         return """{"contents":[{"parts":[{"text":"$DUAL_WORDS_PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanWords"}},{"text":"$DUAL_SCENE_PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanScene"}}]}],"generationConfig":{$genCfg}}"""
     }
+
+    /**
+     * API 키 입력칸에 쉼표나 줄바꿈으로 여러 프로젝트 키가 들어 있으면 순서대로 분리해
+     * 429 한도 초과 시 다음 키로 자동 순환한다.
+     */
+    fun parseApiKeys(raw: String): List<String> =
+        raw.split(',', '\n', '\r', ';', ' ', '\t')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
 
     fun buildFallbackChain(targetModel: String): List<String> = when (targetModel) {
         MODEL_PRO -> listOf(MODEL_PRO, MODEL_FLASH, MODEL_LITE)
@@ -291,20 +321,44 @@ internal object HiddenObjectFinder {
             (lower.contains("free_tier") && lower.contains("quota"))
     }
 
+    fun isDailyQuotaError(errorBody: String): Boolean {
+        val lower = errorBody.lowercase()
+        return lower.contains("perday") || lower.contains("per_day") ||
+            lower.contains("daily") || lower.contains("requestsperday")
+    }
+
+    fun classifyQuotaError(errorBody: String): String {
+        val lower = errorBody.lowercase()
+        return when {
+            isDailyQuotaError(errorBody) -> "일일 무료한도 소진 (오후5시 초기화)"
+            lower.contains("limit: 0") || lower.contains("limit:0") -> "무료 한도 0 (새 프로젝트 키 필요)"
+            lower.contains("perminute") || lower.contains("per_minute") || lower.contains("rpm") -> "분당 한도 초과 (1분 후 재시도)"
+            else -> "HTTP 429 한도초과 (잠시 후 재시도)"
+        }
+    }
+
     fun pickBestModelFromList(modelsJson: String, preferLite: Boolean): String? =
         pickBestModelForMode(modelsJson, if (preferLite) MODEL_LITE else MODEL_FLASH)
 
-    private fun extractVisionCandidates(modelsJson: String): List<String> {
+    private fun extractVisionCandidates(modelsJson: String, includeGemma: Boolean = false): List<String> {
         val blockRegex = Regex("""\{[^{}]*"name"\s*:\s*"models/([^"]+)"[^{}]*"supportedGenerationMethods"\s*:\s*\[([^\]]*)\][^{}]*\}""")
-        val excluded = listOf("tts", "image", "live", "audio", "embedding", "robotics", "computer-use", "deep-research", "veo", "imagen", "lyria", "aqa")
+        val excluded = listOf(
+            "tts", "image", "live", "audio", "embedding", "robotics",
+            "computer-use", "deep-research", "veo", "imagen", "lyria", "aqa", "thinking-exp",
+        )
         val out = ArrayList<String>()
         for (m in blockRegex.findAll(modelsJson)) {
             val id = m.groupValues[1].trim()
             val methods = m.groupValues[2]
             if (!methods.contains("generateContent")) continue
             val lower = id.lowercase()
-            if (!lower.startsWith("gemini-")) continue
             if (excluded.any { lower.contains(it) }) continue
+            val isGemini = lower.startsWith("gemini-")
+            val isVisionGemma = includeGemma && (
+                lower.startsWith("gemma-4-") ||
+                    (lower.startsWith("gemma-3-") && (lower.contains("27b") || lower.contains("12b")))
+                )
+            if (!isGemini && !isVisionGemma) continue
             out.add(id)
         }
         return out
@@ -316,7 +370,7 @@ internal object HiddenObjectFinder {
     fun pickBestModelForMode(modelsJson: String, targetModel: String): String? {
         val wantPro = targetModel == MODEL_PRO
         val wantLite = targetModel == MODEL_LITE
-        val candidates = extractVisionCandidates(modelsJson).filter { id ->
+        val candidates = extractVisionCandidates(modelsJson, includeGemma = false).filter { id ->
             val lower = id.lowercase()
             if (wantPro) lower.contains("pro") else lower.contains("flash")
         }
@@ -329,20 +383,55 @@ internal object HiddenObjectFinder {
         }
     }
 
+    private fun modelFamilyKey(id: String): String {
+        val lower = id.lowercase()
+        val gemMatch = Regex("""^(gemini-\d+(?:\.\d+)?)-(flash-lite|flash|pro)""").find(lower)
+        if (gemMatch != null) return "${gemMatch.groupValues[1]}-${gemMatch.groupValues[2]}"
+        val gemmaMatch = Regex("""^(gemma-\d+-\d+b)""").find(lower)
+        if (gemmaMatch != null) return gemmaMatch.groupValues[1]
+        return lower
+    }
+
+    /**
+     * 이미 시도해 429/503을 받은 모델들을 제외하고, 서로 다른 할당량 버킷을 가진
+     * 대체 Vision 모델들(Gemini 3/2.5/2.0 Flash·Lite, Gemma 4/3 멀티모달)을 우선순위대로 반환한다.
+     */
+    fun pickAlternateModels(modelsJson: String, triedModels: Set<String>, maxCount: Int = 6): List<String> {
+        val triedLower = triedModels.map { it.lowercase() }.toSet()
+        val all = extractVisionCandidates(modelsJson, includeGemma = true)
+            .filter { id ->
+                val lower = id.lowercase()
+                !lower.contains("latest") &&
+                    lower !in triedLower &&
+                    (lower.contains("flash") || lower.startsWith("gemma-"))
+            }
+
+        fun sortWithinGroup(list: List<String>): List<String> = list.sortedWith(
+            compareByDescending<String> { !it.lowercase().contains("preview") && !it.lowercase().contains("exp") }
+                .thenByDescending { it },
+        )
+
+        val geminiFlash = sortWithinGroup(all.filter { it.lowercase().startsWith("gemini-") && !it.lowercase().contains("lite") })
+        val geminiLite = sortWithinGroup(all.filter { it.lowercase().startsWith("gemini-") && it.lowercase().contains("lite") })
+        val gemmaVision = sortWithinGroup(all.filter { it.lowercase().startsWith("gemma-") })
+
+        val picked = ArrayList<String>()
+        val seenFamilies = HashSet<String>()
+        for (id in geminiFlash + geminiLite + gemmaVision) {
+            val fam = modelFamilyKey(id)
+            if (seenFamilies.add(fam)) {
+                picked.add(id)
+                if (picked.size >= maxCount) break
+            }
+        }
+        return picked
+    }
+
     /**
      * 이미 시도해 429/503을 받은 모델들을 제외하고 별도 할당량 버킷을 가진 다른 Flash/Lite 모델을 고른다.
      */
-    fun pickAlternateModel(modelsJson: String, triedModels: Set<String>): String? {
-        val triedLower = triedModels.map { it.lowercase() }.toSet()
-        val candidates = extractVisionCandidates(modelsJson)
-            .filter { id ->
-                val lower = id.lowercase()
-                lower.contains("flash") && !lower.contains("latest") && lower !in triedLower
-            }
-            .sortedDescending()
-        if (candidates.isEmpty()) return null
-        return candidates.firstOrNull { !it.lowercase().contains("lite") } ?: candidates.first()
-    }
+    fun pickAlternateModel(modelsJson: String, triedModels: Set<String>): String? =
+        pickAlternateModels(modelsJson, triedModels, maxCount = 1).firstOrNull()
 
     fun parseResponse(responseBody: String, filterBottomButtons: Boolean = true): List<FoundObject> {
         val rawText = extractBestPartText(responseBody) ?: return emptyList()
@@ -561,16 +650,17 @@ internal object HiddenObjectFinder {
     }
 
     private fun thinkingBudgetFor(tier: String): Int = when (tier) {
-        MODEL_PRO -> 512
+        MODEL_PRO -> 256
         MODEL_LITE -> 0
-        else -> 256
+        else -> 64
     }
 
-    private fun highResFor(tier: String): Boolean = tier != MODEL_LITE
+    // 순수 그림 영역만 잘라 보내므로 Flash/Lite는 기본 해상도(~258토큰/장)로도 선명하며 토큰과 지연이 4배 줄어든다.
+    private fun highResFor(tier: String): Boolean = tier == MODEL_PRO
 
     fun analyzeBitmap(bitmap: Bitmap, apiKey: String, model: String = MODEL_FLASH): Result<List<FoundObject>> {
-        val cleanKey = apiKey.trim()
-        if (cleanKey.isEmpty()) return Result.failure(IllegalArgumentException("API key is empty"))
+        val keys = parseApiKeys(apiKey)
+        if (keys.isEmpty()) return Result.failure(IllegalArgumentException("API key is empty"))
         val safeTarget = when (model) {
             MODEL_PRO -> MODEL_PRO
             MODEL_LITE -> MODEL_LITE
@@ -587,128 +677,210 @@ internal object HiddenObjectFinder {
             val useDualCrop = illustrationRect != null && wordsRect != null
 
             val coordCrop: CropRect
-            val buildBody: (includeThinking: Boolean, budget: Int, highRes: Boolean, schema: Boolean) -> String
+            val buildBody: (includeThinking: Boolean, budget: Int, highRes: Boolean, schema: Boolean, mimeJson: Boolean) -> String
             if (useDualCrop) {
                 coordCrop = illustrationRect!!
                 val wordsB64 = encodeBitmapToBase64Jpeg(bitmap, wordsRect, MAX_WORDS_DIM, WORDS_JPEG_QUALITY)
                 val sceneB64 = encodeBitmapToBase64Jpeg(bitmap, illustrationRect, MAX_SCENE_DIM, JPEG_QUALITY)
-                buildBody = { incThink, budget, highRes, schema ->
-                    buildDualCropRequestJson(wordsB64, sceneB64, incThink, budget, highRes, schema)
+                buildBody = { incThink, budget, highRes, schema, mimeJson ->
+                    buildDualCropRequestJson(wordsB64, sceneB64, incThink, budget, highRes, schema, mimeJson)
                 }
             } else {
                 coordCrop = computeGameCrop(origW, origH)
                 val singleB64 = encodeBitmapToBase64Jpeg(bitmap, coordCrop, MAX_SCENE_DIM, JPEG_QUALITY)
-                buildBody = { incThink, budget, highRes, schema ->
-                    buildRequestJson(singleB64, incThink, budget, highRes, schema)
+                buildBody = { incThink, budget, highRes, schema, mimeJson ->
+                    buildRequestJson(singleB64, incThink, budget, highRes, schema, mimeJson)
                 }
             }
 
-            fun executeModel(modelId: String, tier: String, allowDiscover: Boolean): Triple<Int, String, String> {
+            fun cooldownKey(key: String, modelId: String): String = "${key.hashCode()}:$modelId"
+
+            fun isCooledDown(key: String, modelId: String, nowMs: Long): Boolean =
+                (quotaCooldownUntil[cooldownKey(key, modelId)] ?: 0L) > nowMs
+
+            fun markCooldown(key: String, modelId: String, tier: String, code: Int, body: String) {
+                val ms = when {
+                    code == 429 && (tier == MODEL_PRO || isZeroQuotaError(body)) -> COOLDOWN_ZERO_QUOTA_MS
+                    code == 429 && isDailyQuotaError(body) -> COOLDOWN_DAILY_QUOTA_MS
+                    else -> COOLDOWN_RATE_LIMIT_MS
+                }
+                quotaCooldownUntil[cooldownKey(key, modelId)] = System.currentTimeMillis() + ms
+            }
+
+            fun executeModel(
+                cleanKey: String,
+                modelId: String,
+                tier: String,
+                allowDiscover: Boolean,
+            ): Triple<Int, String, String> {
                 var active = modelId
-                val budget = thinkingBudgetFor(tier)
-                val highRes = highResFor(tier)
-                var (code, body) = postGenerate(cleanKey, active, buildBody(true, budget, highRes, true))
+                val isGemma = active.lowercase().startsWith("gemma-")
+                val budget = if (isGemma) 0 else thinkingBudgetFor(tier)
+                val highRes = !isGemma && highResFor(tier)
+                var (code, body) = if (isGemma) {
+                    postGenerate(cleanKey, active, buildBody(false, 0, false, false, false))
+                } else {
+                    postGenerate(cleanKey, active, buildBody(true, budget, highRes, true, true))
+                }
 
                 if (code == 404 && allowDiscover) {
                     val discovered = discoverModel(cleanKey, tier)
                     if (discovered != null && discovered != active) {
                         active = discovered
                         cacheTierModel(tier, discovered)
-                        val retry = postGenerate(cleanKey, active, buildBody(true, budget, highRes, true))
+                        val retry = postGenerate(cleanKey, active, buildBody(true, budget, highRes, true, true))
                         code = retry.first
                         body = retry.second
                     }
                 }
 
-                if (code == 400) {
+                if (code == 400 && !isGemma) {
                     // mediaResolution만 미지원하는 모델이면 thinking/schema는 유지한 채 먼저 재시도한다.
                     if (highRes && body.lowercase().contains("resolution")) {
-                        val retryNoRes = postGenerate(cleanKey, active, buildBody(true, budget, false, true))
+                        val retryNoRes = postGenerate(cleanKey, active, buildBody(true, budget, false, true, true))
                         code = retryNoRes.first
                         body = retryNoRes.second
                     }
                     if (code == 400) {
-                        val retryPlain = postGenerate(cleanKey, active, buildBody(false, 0, false, false))
-                        code = retryPlain.first
-                        body = retryPlain.second
+                        val retryPlainJson = postGenerate(cleanKey, active, buildBody(false, 0, false, false, true))
+                        code = retryPlainJson.first
+                        body = retryPlainJson.second
+                    }
+                    if (code == 400) {
+                        val retryBare = postGenerate(cleanKey, active, buildBody(false, 0, false, false, false))
+                        code = retryBare.first
+                        body = retryBare.second
                     }
                 }
                 return Triple(code, body, active)
             }
 
+            fun finishSuccess(cleanKey: String, usedModel: String, body: String): Result<List<FoundObject>> {
+                quotaCooldownUntil.remove(cooldownKey(cleanKey, usedModel))
+                lastWorkingModelByKey[cleanKey] = usedModel
+                val remapped = parseResponse(body, filterBottomButtons = !useDualCrop).map { obj ->
+                    val (ox, oy) = remapNormToOriginal(obj.normX, obj.normY, coordCrop, origW, origH)
+                    obj.copy(normX = ox, normY = oy)
+                }
+                return Result.success(remapped)
+            }
+
+            val startedAt = System.currentTimeMillis()
             val chain = buildFallbackChain(safeTarget)
-            val now = System.currentTimeMillis()
-            val triedModels = LinkedHashSet<String>()
             var lastCode = 0
             var lastBody = ""
+            var lastQuotaBody: String? = null
 
-            // 쿨다운이 아닌 모델이 하나라도 있으면 쿨다운 중인 모델(예: 무료 한도 0인 Pro)을 즉시 건너뛴다.
-            val hasFreshTier = chain.any { tier ->
-                val m = resolveTierModel(tier)
-                (quotaCooldownUntil[m] ?: 0L) <= now
-            }
+            for (cleanKey in keys) {
+                val now = System.currentTimeMillis()
+                val triedForKey = LinkedHashSet<String>()
+                var attemptsOnKey = 0
+                var keyAuthFailed = false
 
-            for (tier in chain) {
-                val active = resolveTierModel(tier)
-                if (hasFreshTier && (quotaCooldownUntil[active] ?: 0L) > now) continue
-                if (!triedModels.add(active)) continue
-
-                val (code, body, usedModel) = executeModel(active, tier, allowDiscover = true)
-                triedModels.add(usedModel)
-                lastCode = code
-                lastBody = body
-
-                if (code in 200..299) {
-                    quotaCooldownUntil.remove(usedModel)
-                    val remapped = parseResponse(body, filterBottomButtons = !useDualCrop).map { obj ->
-                        val (ox, oy) = remapNormToOriginal(obj.normX, obj.normY, coordCrop, origW, origH)
-                        obj.copy(normX = ox, normY = oy)
+                // 직전에 성공했던 모델이 있고 기본 선택 모델이 쿨다운 중이면 성공 모델부터 바로 호출한다.
+                val primaryModel = resolveTierModel(chain.first())
+                val sticky = lastWorkingModelByKey[cleanKey]
+                if (sticky != null && !isCooledDown(cleanKey, sticky, now) && isCooledDown(cleanKey, primaryModel, now)) {
+                    triedForKey.add(sticky)
+                    attemptsOnKey++
+                    val stickyTier = when {
+                        sticky.lowercase().contains("pro") -> MODEL_PRO
+                        sticky.lowercase().contains("lite") -> MODEL_LITE
+                        else -> MODEL_FLASH
                     }
-                    return Result.success(remapped)
-                }
-
-                if (code == 429 || code == 503) {
-                    val cooldown = if (code == 429 && (tier == MODEL_PRO || isZeroQuotaError(body))) {
-                        COOLDOWN_ZERO_QUOTA_MS
-                    } else {
-                        COOLDOWN_RATE_LIMIT_MS
-                    }
-                    val until = System.currentTimeMillis() + cooldown
-                    quotaCooldownUntil[usedModel] = until
-                    quotaCooldownUntil[active] = until
-                    continue
-                }
-
-                // 401/403 등 키 오류는 다른 모델로 재시도해도 동일하므로 즉시 중단한다.
-                if (code == 401 || code == 403) break
-            }
-
-            // 기본 체인이 모두 429/503이면 별도 할당량을 가진 구체 모델 ID(예: gemini-2.5-flash)를 1회 추가 시도한다.
-            if (lastCode == 429 || lastCode == 503) {
-                val modelsJson = fetchModelsJson(cleanKey)
-                val alt = modelsJson?.let { pickAlternateModel(it, triedModels) }
-                if (alt != null && (quotaCooldownUntil[alt] ?: 0L) <= System.currentTimeMillis()) {
-                    val altTier = if (alt.lowercase().contains("lite")) MODEL_LITE else MODEL_FLASH
-                    val (code, body, usedModel) = executeModel(alt, altTier, allowDiscover = false)
+                    val (code, body, usedModel) = executeModel(cleanKey, sticky, stickyTier, allowDiscover = false)
+                    triedForKey.add(usedModel)
                     lastCode = code
                     lastBody = body
-                    if (code in 200..299) {
-                        quotaCooldownUntil.remove(usedModel)
-                        val remapped = parseResponse(body, filterBottomButtons = !useDualCrop).map { obj ->
-                            val (ox, oy) = remapNormToOriginal(obj.normX, obj.normY, coordCrop, origW, origH)
-                            obj.copy(normX = ox, normY = oy)
+                    if (code in 200..299) return finishSuccess(cleanKey, usedModel, body)
+                    if (code == 429 || code == 503) {
+                        if (code == 429) lastQuotaBody = body
+                        markCooldown(cleanKey, usedModel, stickyTier, code, body)
+                        lastWorkingModelByKey.remove(cleanKey)
+                    } else if (code == 401 || code == 403) {
+                        keyAuthFailed = true
+                    }
+                }
+
+                // 기본 모델 체인(Pro -> Flash -> Lite) 중 쿨다운이 아닌 것부터 시도한다.
+                if (!keyAuthFailed) {
+                    for (tier in chain) {
+                        if (attemptsOnKey > 0 && System.currentTimeMillis() - startedAt > FALLBACK_BUDGET_MS) break
+                        val active = resolveTierModel(tier)
+                        if (isCooledDown(cleanKey, active, System.currentTimeMillis())) continue
+                        if (!triedForKey.add(active)) continue
+                        attemptsOnKey++
+
+                        val (code, body, usedModel) = executeModel(cleanKey, active, tier, allowDiscover = true)
+                        triedForKey.add(usedModel)
+                        lastCode = code
+                        lastBody = body
+
+                        if (code in 200..299) return finishSuccess(cleanKey, usedModel, body)
+                        if (code == 429 || code == 503) {
+                            if (code == 429) lastQuotaBody = body
+                            markCooldown(cleanKey, usedModel, tier, code, body)
+                            markCooldown(cleanKey, active, tier, code, body)
+                            continue
                         }
-                        return Result.success(remapped)
-                    } else if (code == 429 || code == 503) {
-                        quotaCooldownUntil[usedModel] = System.currentTimeMillis() + COOLDOWN_RATE_LIMIT_MS
+                        if (code == 401 || code == 403) {
+                            keyAuthFailed = true
+                            break
+                        }
+                    }
+                }
+
+                // 기본 체인이 429/503 또는 모두 쿨다운이면 별도 할당량 버킷(Gemini 3/2.5/2.0 Flash·Lite, Gemma 4/3)을 순서대로 시도한다.
+                if (!keyAuthFailed && (attemptsOnKey == 0 || lastCode == 429 || lastCode == 503)) {
+                    val modelsJson = fetchModelsJson(cleanKey)
+                    val alts = modelsJson?.let { pickAlternateModels(it, triedForKey, maxCount = 6) }.orEmpty()
+                    for (alt in alts) {
+                        if (attemptsOnKey > 0 && System.currentTimeMillis() - startedAt > FALLBACK_BUDGET_MS) break
+                        if (isCooledDown(cleanKey, alt, System.currentTimeMillis())) continue
+                        if (!triedForKey.add(alt)) continue
+                        attemptsOnKey++
+
+                        val altTier = if (alt.lowercase().contains("lite")) MODEL_LITE else MODEL_FLASH
+                        val (code, body, usedModel) = executeModel(cleanKey, alt, altTier, allowDiscover = false)
+                        triedForKey.add(usedModel)
+                        if (code in 200..299) return finishSuccess(cleanKey, usedModel, body)
+                        if (code == 429 || code == 503) {
+                            lastCode = code
+                            lastBody = body
+                            if (code == 429) lastQuotaBody = body
+                            markCooldown(cleanKey, usedModel, altTier, code, body)
+                        } else if (code == 401 || code == 403) {
+                            lastCode = code
+                            lastBody = body
+                            keyAuthFailed = true
+                            break
+                        } else if (lastQuotaBody == null) {
+                            lastCode = code
+                            lastBody = body
+                        }
+                    }
+                }
+
+                // 모든 모델이 이미 쿨다운이라 1번도 못 불렀으면 가장 가벼운 모델 1개만 빠르게 프로브한다(연속 10초 지연 방지).
+                if (!keyAuthFailed && attemptsOnKey == 0) {
+                    val probeTier = if (safeTarget == MODEL_PRO) MODEL_FLASH else safeTarget
+                    val probeModel = sticky ?: resolveTierModel(probeTier)
+                    val (code, body, usedModel) = executeModel(cleanKey, probeModel, probeTier, allowDiscover = false)
+                    lastCode = code
+                    lastBody = body
+                    if (code in 200..299) return finishSuccess(cleanKey, usedModel, body)
+                    if (code == 429 || code == 503) {
+                        if (code == 429) lastQuotaBody = body
+                        markCooldown(cleanKey, usedModel, probeTier, code, body)
                     }
                 }
             }
 
-            val friendlyErr = when (lastCode) {
-                429 -> "HTTP 429 한도초과 (잠시 후 재시도)"
-                401, 403 -> "HTTP $lastCode API 키 확인 필요"
-                503 -> "HTTP 503 서버 혼잡 (재시도)"
+            val friendlyErr = when {
+                lastQuotaBody != null -> classifyQuotaError(lastQuotaBody)
+                lastCode == 429 -> classifyQuotaError(lastBody)
+                lastCode == 401 || lastCode == 403 -> "HTTP $lastCode API 키 확인 필요"
+                lastCode == 503 -> "HTTP 503 서버 혼잡 (재시도)"
                 else -> {
                     val msg = Regex(""""message"\s*:\s*"((?:[^"\\]|\\.)*)"""")
                         .find(lastBody)?.groupValues?.get(1)?.let { unescapeJsonString(it) }.orEmpty()
@@ -721,4 +893,5 @@ internal object HiddenObjectFinder {
         }
     }
 }
+
 

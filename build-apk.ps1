@@ -1,4 +1,4 @@
-﻿# build-apk.ps1 [branch] - build a debug APK of origin/<branch> (default: main) in a SEPARATE folder (_build).
+# build-apk.ps1 [branch] - build a debug APK of origin/<branch> (default: main) in a SEPARATE folder (_build).
 # Your current working folder, branch and uncommitted changes are NOT touched.
 param([string]$Branch = 'main')
 $ErrorActionPreference = 'Continue'
@@ -53,7 +53,7 @@ if ($code -eq 0 -and (Test-Path $apk)) {
     Log ""
     Log "APK copied to: $dest"
     # also copy it to the shared Google Drive folder (skipped if the folder is not there on this PC)
-    $share = 'G:\내 드라이브\공유'
+    $share = 'G:\내 드라이브\AI\AutoClicker'
     if (Test-Path -LiteralPath $share) {
         try {
             # the shared copy is named as a work-in-progress build so it is not mistaken for a finished release

@@ -1252,7 +1252,7 @@ class MainActivity : AppCompatActivity() {
         val sheet = SheetDialog(this, T.x.hiddenObjKeyTitle, T.x.hiddenObjModelLabel)
         val etKey = sheet.field(
             hint = T.x.hiddenObjKeyHint,
-            maxLength = 200,
+            maxLength = 500,
             initial = currentKey,
         )
         sheet.wideButton(T.x.hiddenObjPaste, SheetDialog.Kind.OUTLINE, top = 8) {

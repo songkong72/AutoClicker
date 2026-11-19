@@ -42,6 +42,8 @@ internal class HiddenObjectController(
     var isActive: Boolean = false
         private set
     private var isAnalyzing: Boolean = false
+    private var analyzeSeq: Int = 0
+    private var analyzeTimeoutRunnable: Runnable? = null
 
     private var runBtn: LinearLayout? = null
     private var runFindLabel: TextView? = null
@@ -109,6 +111,10 @@ internal class HiddenObjectController(
     }
 
     fun deactivate() {
+        analyzeSeq++
+        analyzeTimeoutRunnable?.let { handler.removeCallbacks(it) }
+        analyzeTimeoutRunnable = null
+        handler.removeCallbacks(resetLabelRunnable)
         clearMarkers()
         hideRunButton()
         hideSettingsPopup()
@@ -256,6 +262,11 @@ internal class HiddenObjectController(
 
     // ---------- 화면 캡처 + 빠른 분석 + 마커 표시 ----------
 
+    private fun clearAnalyzeTimeout() {
+        analyzeTimeoutRunnable?.let { handler.removeCallbacks(it) }
+        analyzeTimeoutRunnable = null
+    }
+
     private fun captureAndFind() {
         if (isAnalyzing) return
         if (!hasApiKey()) {
@@ -269,75 +280,130 @@ internal class HiddenObjectController(
         }
 
         clearMarkers()
+        clearAnalyzeTimeout()
+        val mySeq = ++analyzeSeq
         setFindingState(true)
         val startedAt = System.currentTimeMillis()
         // 캡처 이미지에 실행 버튼이 겹치지 않게 순간적으로만 숨긴다.
         runBtn?.visibility = View.INVISIBLE
 
+        val watchdog = Runnable {
+            if (mySeq != analyzeSeq || !isAnalyzing) return@Runnable
+            analyzeSeq++
+            analyzeTimeoutRunnable = null
+            runBtn?.visibility = View.VISIBLE
+            setFindingState(false)
+            showRunStatus("❌ 응답 지연(재시도)", "#B91C1C", "#F87171")
+            toast(T.x.hiddenObjFailed("timeout"))
+        }
+        analyzeTimeoutRunnable = watchdog
+        handler.postDelayed(watchdog, ANALYZE_WATCHDOG_MS)
+
         handler.postDelayed({
+            if (mySeq != analyzeSeq || !isActive) {
+                runBtn?.visibility = View.VISIBLE
+                return@postDelayed
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                service.takeScreenshot(
-                    Display.DEFAULT_DISPLAY,
-                    service.mainExecutor,
-                    object : AccessibilityService.TakeScreenshotCallback {
-                        override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
-                            runBtn?.visibility = View.VISIBLE
-                            val hwBuffer = screenshot.hardwareBuffer
-                            val colorSpace = screenshot.colorSpace
-                            var swBitmap: Bitmap? = null
-                            try {
-                                val hwBitmap = Bitmap.wrapHardwareBuffer(hwBuffer, colorSpace)
-                                if (hwBitmap != null) {
-                                    swBitmap = hwBitmap.copy(Bitmap.Config.ARGB_8888, false)
-                                    hwBitmap.recycle()
+                try {
+                    service.takeScreenshot(
+                        Display.DEFAULT_DISPLAY,
+                        service.mainExecutor,
+                        object : AccessibilityService.TakeScreenshotCallback {
+                            override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
+                                runBtn?.visibility = View.VISIBLE
+                                if (mySeq != analyzeSeq || !isActive) {
+                                    try { screenshot.hardwareBuffer.close() } catch (_: Throwable) { }
+                                    return
                                 }
-                            } finally {
-                                hwBuffer.close()
-                            }
-
-                            val bmp = swBitmap
-                            if (bmp == null) {
-                                setFindingState(false)
-                                toast(T.x.hiddenObjFailed("capture"))
-                                return
-                            }
-
-                            val apiKey = getApiKey()
-                            val model = getModel()
-                            Thread {
-                                val res = HiddenObjectFinder.analyzeBitmap(bmp, apiKey, model)
-                                bmp.recycle()
-                                handler.post {
-                                    if (!isActive) return@post
-                                    setFindingState(false)
-                                    res.onSuccess { list ->
-                                        if (list.isEmpty()) {
-                                            showRunStatus("⚠️ 0", "#B45309", "#FCD34D")
-                                            toast(T.x.hiddenObjNoneFound)
-                                        } else {
-                                            showMarkers(list)
-                                            vibrate(30)
-                                            val sec = String.format("%.1f", (System.currentTimeMillis() - startedAt) / 1000.0)
-                                            showRunStatus("✅ ${list.size} (${sec}s)", "#047857", "#34D399")
-                                            toast("${T.x.hiddenObjFoundN(list.size)} (${sec}s)")
+                                var swBitmap: Bitmap? = null
+                                try {
+                                    val hwBuffer = screenshot.hardwareBuffer
+                                    val colorSpace = screenshot.colorSpace
+                                    try {
+                                        val hwBitmap = Bitmap.wrapHardwareBuffer(hwBuffer, colorSpace)
+                                        if (hwBitmap != null) {
+                                            try {
+                                                swBitmap = hwBitmap.copy(Bitmap.Config.ARGB_8888, false)
+                                            } finally {
+                                                hwBitmap.recycle()
+                                            }
                                         }
-                                    }.onFailure { err ->
-                                        val msg = err.message ?: "error"
-                                        showRunStatus("❌ ${msg.take(18)}", "#B91C1C", "#F87171")
-                                        toast(T.x.hiddenObjFailed(msg))
+                                    } finally {
+                                        hwBuffer.close()
                                     }
+                                } catch (t: Throwable) {
+                                    clearAnalyzeTimeout()
+                                    setFindingState(false)
+                                    showRunStatus("❌ 캡처 메모리 오류", "#B91C1C", "#F87171")
+                                    toast(T.x.hiddenObjFailed(t.javaClass.simpleName))
+                                    return
                                 }
-                            }.start()
-                        }
 
-                        override fun onFailure(errorCode: Int) {
-                            runBtn?.visibility = View.VISIBLE
-                            setFindingState(false)
-                            showRunStatus("❌ cap $errorCode", "#B91C1C", "#F87171")
-                            toast(T.x.hiddenObjFailed("code $errorCode"))
+                                val bmp = swBitmap
+                                if (bmp == null) {
+                                    clearAnalyzeTimeout()
+                                    setFindingState(false)
+                                    showRunStatus("❌ capture", "#B91C1C", "#F87171")
+                                    toast(T.x.hiddenObjFailed("capture"))
+                                    return
+                                }
+
+                                val apiKey = getApiKey()
+                                val model = getModel()
+                                Thread {
+                                    val res = try {
+                                        HiddenObjectFinder.analyzeBitmap(bmp, apiKey, model)
+                                    } catch (t: Throwable) {
+                                        Result.failure(RuntimeException(t.message ?: t.javaClass.simpleName))
+                                    } finally {
+                                        try {
+                                            if (!bmp.isRecycled) bmp.recycle()
+                                        } catch (_: Throwable) { }
+                                    }
+                                    handler.post {
+                                        if (mySeq != analyzeSeq || !isActive) return@post
+                                        clearAnalyzeTimeout()
+                                        setFindingState(false)
+                                        res.onSuccess { list ->
+                                            if (list.isEmpty()) {
+                                                showRunStatus("⚠️ 0", "#B45309", "#FCD34D")
+                                                toast(T.x.hiddenObjNoneFound)
+                                            } else {
+                                                showMarkers(list)
+                                                vibrate(30)
+                                                val sec = String.format("%.1f", (System.currentTimeMillis() - startedAt) / 1000.0)
+                                                showRunStatus("✅ ${list.size} (${sec}s)", "#047857", "#34D399")
+                                                toast("${T.x.hiddenObjFoundN(list.size)} (${sec}s)")
+                                            }
+                                        }.onFailure { err ->
+                                            val msg = err.message ?: "error"
+                                            showRunStatus("❌ ${msg.take(24)}", "#B91C1C", "#F87171")
+                                            toast(T.x.hiddenObjFailed(msg))
+                                        }
+                                    }
+                                }.start()
+                            }
+
+                            override fun onFailure(errorCode: Int) {
+                                runBtn?.visibility = View.VISIBLE
+                                if (mySeq != analyzeSeq) return
+                                clearAnalyzeTimeout()
+                                setFindingState(false)
+                                showRunStatus("❌ cap $errorCode", "#B91C1C", "#F87171")
+                                toast(T.x.hiddenObjFailed("code $errorCode"))
+                            }
                         }
+                    )
+                } catch (t: Throwable) {
+                    runBtn?.visibility = View.VISIBLE
+                    if (mySeq == analyzeSeq) {
+                        clearAnalyzeTimeout()
+                        setFindingState(false)
+                        showRunStatus("❌ 캡처 실패", "#B91C1C", "#F87171")
+                        toast(T.x.hiddenObjFailed(t.message ?: t.javaClass.simpleName))
                     }
-                )
+                }
             }
         }, 50L)
     }
@@ -447,5 +513,6 @@ internal class HiddenObjectController(
         private const val KEY_MODEL = "hidden_object_model"
         private const val KEY_BTN_X = "hidden_object_btn_x"
         private const val KEY_BTN_Y = "hidden_object_btn_y"
+        private const val ANALYZE_WATCHDOG_MS = 12_000L
     }
 }
