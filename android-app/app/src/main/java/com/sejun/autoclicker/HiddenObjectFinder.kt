@@ -20,24 +20,24 @@ internal object HiddenObjectFinder {
     const val MODEL_FLASH = "gemini-flash-latest"
     const val MODEL_LITE = "gemini-flash-lite-latest"
 
-    private const val MAX_IMAGE_DIM = 720
-    private const val JPEG_QUALITY = 70
+    private const val MAX_IMAGE_DIM = 1024
+    private const val JPEG_QUALITY = 80
     private const val CONNECT_TIMEOUT_MS = 4000
-    private const val READ_TIMEOUT_MS = 8000
+    private const val READ_TIMEOUT_MS = 10000
 
     @Volatile private var cachedLiteModel: String? = null
     @Volatile private var cachedFlashModel: String? = null
 
     private const val PROMPT =
-        "Hidden-object game screen. Read the 3 target words in the first row at the bottom (y > 800). " +
-            "Locate each actual object inside the upper illustration ONLY (ymin >= 80, ymax <= 790). " +
-            "NEVER mark the bottom text buttons. " +
+        "Hidden-object game screen. Look at the target word buttons at the bottom (y > 800). " +
+            "Pick up to 3 target words starting from the BACK (the LAST/bottom-most row, or rightmost words if there is only 1 row). " +
+            "Carefully inspect the upper illustration ONLY (ymin >= 80, ymax <= 790) to find each exact item—do NOT guess randomly or mark bottom text buttons. " +
             "Return JSON array [{\\\"label\\\":\\\"word\\\",\\\"box_2d\\\":[ymin,xmin,ymax,xmax]}] with 0-1000 coordinates."
 
     fun buildRequestJson(base64Jpeg: String, includeThinkingZero: Boolean = true): String {
         val cleanB64 = base64Jpeg.replace("\r", "").replace("\n", "")
-        val thinkingPart = if (includeThinkingZero) ""","thinkingConfig":{"thinkingBudget":0}""" else ""
-        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":220,"responseMimeType":"application/json"$thinkingPart}}"""
+        val thinkingPart = if (includeThinkingZero) ""","thinkingConfig":{"thinkingBudget":256}""" else ""
+        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":450,"responseMimeType":"application/json"$thinkingPart}}"""
     }
 
     /**
@@ -87,6 +87,8 @@ internal object HiddenObjectFinder {
                 val xmin = boxMatch.groupValues[2].toIntOrNull() ?: continue
                 val ymax = boxMatch.groupValues[3].toIntOrNull() ?: continue
                 val xmax = boxMatch.groupValues[4].toIntOrNull() ?: continue
+                // 방 전체 등 지나치게 큰 박스는 오답으로 제외한다.
+                if (ymax - ymin > 450 || xmax - xmin > 450) continue
                 ((xmin + xmax) / 2) to ((ymin + ymax) / 2)
             } else {
                 val x = xRegex.find(block)?.groupValues?.get(1)?.toIntOrNull() ?: continue

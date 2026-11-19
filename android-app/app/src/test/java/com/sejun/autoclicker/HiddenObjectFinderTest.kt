@@ -16,9 +16,9 @@ class HiddenObjectFinderTest {
     }
 
     @Test
-    fun `buildRequestJson은 thinkingBudget 0과 application json을 포함한다`() {
+    fun `buildRequestJson은 thinkingBudget 256과 application json을 포함한다`() {
         val json = HiddenObjectFinder.buildRequestJson("AAAA")
-        assertTrue(json.contains("\"thinkingBudget\":0"))
+        assertTrue(json.contains("\"thinkingBudget\":256"))
         assertTrue(json.contains("\"responseMimeType\":\"application/json\""))
         assertTrue(json.contains("\"data\":\"AAAA\""))
     }
