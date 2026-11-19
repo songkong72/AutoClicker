@@ -29,16 +29,15 @@ internal object HiddenObjectFinder {
     @Volatile private var cachedFlashModel: String? = null
 
     private const val PROMPT =
-        "Look at the hidden-object game screenshot. " +
-            "1) Read the target item names in the buttons at the bottom (y > 800). " +
-            "2) Find the ACTUAL DRAWN OBJECTS inside the upper illustration (y MUST be between 80 and 780, x between 150 and 850). " +
-            "NEVER return the coordinates of the bottom text buttons themselves. " +
-            "Return JSON array [{\\\"label\\\":\\\"item\\\",\\\"x\\\":0-1000,\\\"y\\\":80-780}]."
+        "Hidden-object game screen. Read the 3 target words in the first row at the bottom (y > 800). " +
+            "Locate each actual object inside the upper illustration ONLY (ymin >= 80, ymax <= 790). " +
+            "NEVER mark the bottom text buttons. " +
+            "Return JSON array [{\\\"label\\\":\\\"word\\\",\\\"box_2d\\\":[ymin,xmin,ymax,xmax]}] with 0-1000 coordinates."
 
     fun buildRequestJson(base64Jpeg: String, includeThinkingZero: Boolean = true): String {
         val cleanB64 = base64Jpeg.replace("\r", "").replace("\n", "")
         val thinkingPart = if (includeThinkingZero) ""","thinkingConfig":{"thinkingBudget":0}""" else ""
-        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":200,"responseMimeType":"application/json"$thinkingPart}}"""
+        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":220,"responseMimeType":"application/json"$thinkingPart}}"""
     }
 
     /**
@@ -71,6 +70,7 @@ internal object HiddenObjectFinder {
         val jsonArray = extractJsonArray(rawText) ?: return emptyList()
         val itemRegex = Regex("""\{[^{}]*\}""")
         val labelRegex = Regex(""""label"\s*:\s*"((?:[^"\\]|\\.)*)"""")
+        val boxRegex = Regex(""""box_2d"\s*:\s*\[\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\]""")
         val xRegex = Regex(""""x"\s*:\s*(-?\d+)""")
         val yRegex = Regex(""""y"\s*:\s*(-?\d+)""")
 
@@ -79,12 +79,24 @@ internal object HiddenObjectFinder {
             val block = match.value
             val labelRaw = labelRegex.find(block)?.groupValues?.get(1) ?: continue
             val label = unescapeJsonString(labelRaw).trim()
-            val x = xRegex.find(block)?.groupValues?.get(1)?.toIntOrNull() ?: continue
-            val y = yRegex.find(block)?.groupValues?.get(1)?.toIntOrNull() ?: continue
             if (label.isEmpty()) continue
+
+            val boxMatch = boxRegex.find(block)
+            val (cx, cy) = if (boxMatch != null) {
+                val ymin = boxMatch.groupValues[1].toIntOrNull() ?: continue
+                val xmin = boxMatch.groupValues[2].toIntOrNull() ?: continue
+                val ymax = boxMatch.groupValues[3].toIntOrNull() ?: continue
+                val xmax = boxMatch.groupValues[4].toIntOrNull() ?: continue
+                ((xmin + xmax) / 2) to ((ymin + ymax) / 2)
+            } else {
+                val x = xRegex.find(block)?.groupValues?.get(1)?.toIntOrNull() ?: continue
+                val y = yRegex.find(block)?.groupValues?.get(1)?.toIntOrNull() ?: continue
+                x to y
+            }
+
             // 하단 제시어 버튼 영역(y > 800)은 실제 그림이 아니므로 제외한다.
-            if (y > 800) continue
-            out.add(FoundObject(label = label, normX = x.coerceIn(0, 1000), normY = y.coerceIn(0, 1000)))
+            if (cy > 800) continue
+            out.add(FoundObject(label = label, normX = cx.coerceIn(0, 1000), normY = cy.coerceIn(0, 1000)))
         }
         return out
     }

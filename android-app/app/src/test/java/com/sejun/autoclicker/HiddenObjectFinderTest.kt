@@ -103,4 +103,13 @@ class HiddenObjectFinderTest {
         val list = HiddenObjectFinder.parseResponse(body)
         assertEquals(listOf(FoundObject("가면", 740, 440)), list)
     }
+
+    @Test
+    fun `parseResponse는 box_2d 바운딩 박스의 중심 좌표를 계산한다`() {
+        val body = """
+            {"candidates":[{"content":{"parts":[{"text":"[{\"label\":\"우편함\",\"box_2d\":[500,600,560,680]}]"}]}}]}
+        """.trimIndent()
+        val list = HiddenObjectFinder.parseResponse(body)
+        assertEquals(listOf(FoundObject("우편함", 640, 530)), list)
+    }
 }
