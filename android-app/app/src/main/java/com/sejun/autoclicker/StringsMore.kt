@@ -162,6 +162,7 @@ internal interface MoreStr {
     val hiddenObjModelLabel: String
     val hiddenObjModelFlash: String
     val hiddenObjModelLite: String
+    val hiddenObjModelPro: String
     val hiddenObjKeySaved: String
     val hiddenObjOnToast: String
     val hiddenObjNeedApi30: String
@@ -387,6 +388,7 @@ internal object MoreKo : MoreStr {
     override val hiddenObjModelLabel = "속도 / 모델"
     override val hiddenObjModelFlash = "2.5 Flash (추천)"
     override val hiddenObjModelLite = "2.5 Flash-Lite (초고속)"
+    override val hiddenObjModelPro = "Pro (초정밀)"
     override val hiddenObjKeySaved = "API 키를 저장했어요"
     override val hiddenObjOnToast = "숨은그림찾기를 켰어요. [찾기]를 누르면 위치를 표시해요."
     override val hiddenObjNeedApi30 = "화면 캡처는 안드로이드 11 이상에서 지원돼요"
@@ -612,6 +614,7 @@ internal object MoreEn : MoreStr {
     override val hiddenObjModelLabel = "Speed / Model"
     override val hiddenObjModelFlash = "2.5 Flash (Best)"
     override val hiddenObjModelLite = "2.5 Flash-Lite (Fastest)"
+    override val hiddenObjModelPro = "Pro (Accurate)"
     override val hiddenObjKeySaved = "API key saved"
     override val hiddenObjOnToast = "Hidden Object mode on. Tap [Find] to mark targets."
     override val hiddenObjNeedApi30 = "Screen capture requires Android 11 or higher"
@@ -837,6 +840,7 @@ internal object MoreZh : MoreStr {
     override val hiddenObjModelLabel = "速度 / 模型"
     override val hiddenObjModelFlash = "2.5 Flash (推荐)"
     override val hiddenObjModelLite = "2.5 Flash-Lite (极速)"
+    override val hiddenObjModelPro = "Pro (高精度)"
     override val hiddenObjKeySaved = "已保存 API 密钥"
     override val hiddenObjOnToast = "已开启隐藏物品查找。点击[查找]即可标记位置。"
     override val hiddenObjNeedApi30 = "截屏功能需要 Android 11 或更高版本"
@@ -1062,6 +1066,7 @@ internal object MoreZhTw : MoreStr {
     override val hiddenObjModelLabel = "速度 / 模型"
     override val hiddenObjModelFlash = "2.5 Flash (推薦)"
     override val hiddenObjModelLite = "2.5 Flash-Lite (極速)"
+    override val hiddenObjModelPro = "Pro (高精度)"
     override val hiddenObjKeySaved = "已儲存 API 金鑰"
     override val hiddenObjOnToast = "已開啟隱藏物品尋找。點擊[尋找]即可標記位置。"
     override val hiddenObjNeedApi30 = "截圖功能需要 Android 11 或更高版本"

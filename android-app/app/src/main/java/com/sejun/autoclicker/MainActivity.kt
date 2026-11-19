@@ -1266,10 +1266,11 @@ class MainActivity : AppCompatActivity() {
 
         lateinit var btnFlash: TextView
         lateinit var btnLite: TextView
+        lateinit var btnPro: TextView
         fun refreshModelButtons() {
-            val isLite = selectedModel == HiddenObjectFinder.MODEL_LITE
-            btnFlash.text = (if (!isLite) "✓ " else "") + T.x.hiddenObjModelFlash
-            btnLite.text = (if (isLite) "✓ " else "") + T.x.hiddenObjModelLite
+            btnFlash.text = (if (selectedModel == HiddenObjectFinder.MODEL_FLASH) "✓ " else "") + T.x.hiddenObjModelFlash
+            btnLite.text = (if (selectedModel == HiddenObjectFinder.MODEL_LITE) "✓ " else "") + T.x.hiddenObjModelLite
+            btnPro.text = (if (selectedModel == HiddenObjectFinder.MODEL_PRO) "✓ " else "") + T.x.hiddenObjModelPro
         }
         btnFlash = sheet.wideButton(T.x.hiddenObjModelFlash, SheetDialog.Kind.OUTLINE, top = 12) {
             selectedModel = HiddenObjectFinder.MODEL_FLASH
@@ -1277,6 +1278,10 @@ class MainActivity : AppCompatActivity() {
         }
         btnLite = sheet.wideButton(T.x.hiddenObjModelLite, SheetDialog.Kind.OUTLINE, top = 8) {
             selectedModel = HiddenObjectFinder.MODEL_LITE
+            refreshModelButtons()
+        }
+        btnPro = sheet.wideButton(T.x.hiddenObjModelPro, SheetDialog.Kind.OUTLINE, top = 8) {
+            selectedModel = HiddenObjectFinder.MODEL_PRO
             refreshModelButtons()
         }
         refreshModelButtons()

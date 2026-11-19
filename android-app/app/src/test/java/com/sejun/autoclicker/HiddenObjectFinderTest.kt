@@ -112,4 +112,25 @@ class HiddenObjectFinderTest {
         val list = HiddenObjectFinder.parseResponse(body)
         assertEquals(listOf(FoundObject("우편함", 640, 530)), list)
     }
+
+    @Test
+    fun `computeGameCrop과 remapNormToOriginal은 넓은 화면의 가운데 영역을 잘라내고 원본 좌표로 정확히 복원한다`() {
+        val crop = HiddenObjectFinder.computeGameCrop(1800, 2000)
+        // 2000 * 0.62 = 1240 -> cropX = (1800 - 1240) / 2 = 280, cropY = 100
+        assertEquals(HiddenObjectFinder.CropRect(280, 100, 1240, 1900), crop)
+        val (ox, oy) = HiddenObjectFinder.remapNormToOriginal(500, 500, crop, 1800, 2000)
+        assertEquals(500, ox)
+        assertEquals(525, oy)
+    }
+
+    @Test
+    fun `pickBestModelForMode는 MODEL_PRO 요청 시 최신 Pro 모델을 고른다`() {
+        val json = """
+            {"models":[
+              {"name":"models/gemini-3.5-flash","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-3.5-pro","supportedGenerationMethods":["generateContent"]}
+            ]}
+        """.trimIndent()
+        assertEquals("gemini-3.5-pro", HiddenObjectFinder.pickBestModelForMode(json, HiddenObjectFinder.MODEL_PRO))
+    }
 }
