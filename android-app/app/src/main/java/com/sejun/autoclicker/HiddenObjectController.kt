@@ -233,10 +233,25 @@ internal class HiddenObjectController(
         runFindLabel = null
     }
 
+    private val resetLabelRunnable = Runnable {
+        if (!isAnalyzing && runBtn != null) {
+            runFindLabel?.text = "🔍 ${T.x.hiddenObjFindBtn}"
+            runBtn?.background = round("#D97706", 24, "#FCD34D", strokeDp = 1.2f)
+        }
+    }
+
     private fun setFindingState(finding: Boolean) {
+        handler.removeCallbacks(resetLabelRunnable)
         isAnalyzing = finding
         runFindLabel?.text = if (finding) "⏳ ${T.x.hiddenObjFinding}" else "🔍 ${T.x.hiddenObjFindBtn}"
         runBtn?.background = round(if (finding) "#475569" else "#D97706", 24, if (finding) "#94A3B8" else "#FCD34D", strokeDp = 1.2f)
+    }
+
+    private fun showRunStatus(labelText: String, bgColor: String, strokeColor: String) {
+        handler.removeCallbacks(resetLabelRunnable)
+        runFindLabel?.text = labelText
+        runBtn?.background = round(bgColor, 24, strokeColor, strokeDp = 1.2f)
+        handler.postDelayed(resetLabelRunnable, 2200L)
     }
 
     // ---------- 화면 캡처 + 빠른 분석 + 마커 표시 ----------
@@ -297,15 +312,19 @@ internal class HiddenObjectController(
                                     setFindingState(false)
                                     res.onSuccess { list ->
                                         if (list.isEmpty()) {
+                                            showRunStatus("⚠️ 0", "#B45309", "#FCD34D")
                                             toast(T.x.hiddenObjNoneFound)
                                         } else {
                                             showMarkers(list)
                                             vibrate(30)
                                             val sec = String.format("%.1f", (System.currentTimeMillis() - startedAt) / 1000.0)
+                                            showRunStatus("✅ ${list.size} (${sec}s)", "#047857", "#34D399")
                                             toast("${T.x.hiddenObjFoundN(list.size)} (${sec}s)")
                                         }
                                     }.onFailure { err ->
-                                        toast(T.x.hiddenObjFailed(err.message ?: "error"))
+                                        val msg = err.message ?: "error"
+                                        showRunStatus("❌ ${msg.take(18)}", "#B91C1C", "#F87171")
+                                        toast(T.x.hiddenObjFailed(msg))
                                     }
                                 }
                             }.start()
@@ -314,6 +333,7 @@ internal class HiddenObjectController(
                         override fun onFailure(errorCode: Int) {
                             runBtn?.visibility = View.VISIBLE
                             setFindingState(false)
+                            showRunStatus("❌ cap $errorCode", "#B91C1C", "#F87171")
                             toast(T.x.hiddenObjFailed("code $errorCode"))
                         }
                     }

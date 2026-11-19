@@ -20,14 +20,14 @@ internal object HiddenObjectFinder {
     const val MODEL_FLASH = "gemini-2.5-flash"
     const val MODEL_LITE = "gemini-2.5-flash-lite"
 
-    private const val MAX_IMAGE_DIM = 512
-    private const val JPEG_QUALITY = 60
+    private const val MAX_IMAGE_DIM = 720
+    private const val JPEG_QUALITY = 70
     private const val CONNECT_TIMEOUT_MS = 4000
     private const val READ_TIMEOUT_MS = 8000
 
     private const val PROMPT =
-        "Find bottom target words in the picture above. " +
-            "Return JSON array [{\\\"label\\\":\\\"name\\\",\\\"x\\\":0-1000,\\\"y\\\":0-1000}]."
+        "Find the target items written at the bottom of this hidden-object game inside the picture above. " +
+            "Return JSON array [{\\\"label\\\":\\\"item\\\",\\\"x\\\":0-1000,\\\"y\\\":0-1000}] with normalized center coordinates."
 
     fun buildRequestJson(base64Jpeg: String): String {
         val cleanB64 = base64Jpeg.replace("\r", "").replace("\n", "")
