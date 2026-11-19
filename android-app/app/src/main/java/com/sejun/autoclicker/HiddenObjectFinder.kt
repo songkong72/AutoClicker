@@ -20,21 +20,19 @@ internal object HiddenObjectFinder {
     const val MODEL_FLASH = "gemini-2.5-flash"
     const val MODEL_LITE = "gemini-2.5-flash-lite"
 
-    private const val MAX_IMAGE_DIM = 768
-    private const val JPEG_QUALITY = 75
-    private const val CONNECT_TIMEOUT_MS = 5000
-    private const val READ_TIMEOUT_MS = 10000
+    private const val MAX_IMAGE_DIM = 512
+    private const val JPEG_QUALITY = 60
+    private const val CONNECT_TIMEOUT_MS = 4000
+    private const val READ_TIMEOUT_MS = 8000
 
     private const val PROMPT =
-        "Find each hidden object listed at the bottom of this game screen inside the main picture above. " +
-            "Return ONLY a JSON array of objects with keys \\\"label\\\" (exact target name from bottom), " +
-            "\\\"x\\\" (0-1000 normalized horizontal center), and \\\"y\\\" (0-1000 normalized vertical center). " +
-            "Example: [{\\\"label\\\":\\\"통풍구\\\",\\\"x\\\":185,\\\"y\\\":105}]"
+        "Find bottom target words in the picture above. " +
+            "Return JSON array [{\\\"label\\\":\\\"name\\\",\\\"x\\\":0-1000,\\\"y\\\":0-1000}]."
 
     fun buildRequestJson(base64Jpeg: String): String {
         val cleanB64 = base64Jpeg.replace("\r", "").replace("\n", "")
-        // 제한시간이 짧은 게임이므로 thinkingBudget=0으로 추론 지연을 없애고 JSON만 짧게 받는다.
-        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"responseMimeType":"application/json","thinkingConfig":{"thinkingBudget":0}}}"""
+        // 제한시간이 짧은 게임이므로 thinkingBudget=0, maxOutputTokens=160으로 지연을 최소화한다.
+        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":160,"responseMimeType":"application/json","thinkingConfig":{"thinkingBudget":0}}}"""
     }
 
     fun parseResponse(responseBody: String): List<FoundObject> {
@@ -115,7 +113,7 @@ internal object HiddenObjectFinder {
             val scale = MAX_IMAGE_DIM.toFloat() / maxSide.toFloat()
             val nw = (w * scale).toInt().coerceAtLeast(1)
             val nh = (h * scale).toInt().coerceAtLeast(1)
-            Bitmap.createScaledBitmap(bitmap, nw, nh, true)
+            Bitmap.createScaledBitmap(bitmap, nw, nh, false)
         } else {
             bitmap
         }
@@ -125,10 +123,24 @@ internal object HiddenObjectFinder {
         return Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
     }
 
-    fun analyzeBitmap(bitmap: Bitmap, apiKey: String, model: String = MODEL_FLASH): Result<List<FoundObject>> {
+    /** 모드 진입 시 TLS 핸드셰이크를 미리 맺어 첫 검색 지연을 줄인다. */
+    fun prewarm() {
+        Thread {
+            try {
+                val conn = (URL("https://generativelanguage.googleapis.com/").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "HEAD"
+                    connectTimeout = 3000
+                    readTimeout = 3000
+                }
+                try { conn.responseCode } finally { conn.disconnect() }
+            } catch (_: Exception) { }
+        }.start()
+    }
+
+    fun analyzeBitmap(bitmap: Bitmap, apiKey: String, model: String = MODEL_LITE): Result<List<FoundObject>> {
         val cleanKey = apiKey.trim()
         if (cleanKey.isEmpty()) return Result.failure(IllegalArgumentException("API key is empty"))
-        val safeModel = if (model == MODEL_LITE) MODEL_LITE else MODEL_FLASH
+        val safeModel = if (model == MODEL_FLASH) MODEL_FLASH else MODEL_LITE
 
         return try {
             val base64 = encodeBitmapToBase64Jpeg(bitmap)

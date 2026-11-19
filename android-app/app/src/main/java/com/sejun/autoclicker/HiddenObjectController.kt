@@ -58,7 +58,7 @@ internal class HiddenObjectController(
 
     fun hasApiKey(): Boolean = prefs().getString(KEY_API_KEY, "")?.trim().orEmpty().isNotEmpty()
     private fun getApiKey(): String = prefs().getString(KEY_API_KEY, "")?.trim().orEmpty()
-    private fun getModel(): String = prefs().getString(KEY_MODEL, HiddenObjectFinder.MODEL_FLASH) ?: HiddenObjectFinder.MODEL_FLASH
+    private fun getModel(): String = prefs().getString(KEY_MODEL, HiddenObjectFinder.MODEL_LITE) ?: HiddenObjectFinder.MODEL_LITE
 
     private fun saveSettings(apiKey: String, model: String) {
         prefs().edit()
@@ -98,6 +98,7 @@ internal class HiddenObjectController(
         isActive = true
         showRunButton()
         onModeChanged()
+        if (hasApiKey()) HiddenObjectFinder.prewarm()
         if (!quiet) {
             if (hasApiKey()) toast(T.x.hiddenObjOnToast)
             else {
@@ -254,6 +255,7 @@ internal class HiddenObjectController(
 
         clearMarkers()
         setFindingState(true)
+        val startedAt = System.currentTimeMillis()
         // 캡처 이미지에 실행 버튼이 겹치지 않게 순간적으로만 숨긴다.
         runBtn?.visibility = View.INVISIBLE
 
@@ -299,7 +301,8 @@ internal class HiddenObjectController(
                                         } else {
                                             showMarkers(list)
                                             vibrate(30)
-                                            toast(T.x.hiddenObjFoundN(list.size))
+                                            val sec = String.format("%.1f", (System.currentTimeMillis() - startedAt) / 1000.0)
+                                            toast("${T.x.hiddenObjFoundN(list.size)} (${sec}s)")
                                         }
                                     }.onFailure { err ->
                                         toast(T.x.hiddenObjFailed(err.message ?: "error"))
@@ -316,7 +319,7 @@ internal class HiddenObjectController(
                     }
                 )
             }
-        }, 40L)
+        }, 16L)
     }
 
     private fun screenBoundsPx(): Pair<Int, Int> {

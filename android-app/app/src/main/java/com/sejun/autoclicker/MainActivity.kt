@@ -1246,8 +1246,8 @@ class MainActivity : AppCompatActivity() {
     private fun showHiddenObjectSettingsDialog() {
         val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
         val currentKey = prefs.getString("hidden_object_api_key", "") ?: ""
-        var selectedModel = prefs.getString("hidden_object_model", HiddenObjectFinder.MODEL_FLASH)
-            ?: HiddenObjectFinder.MODEL_FLASH
+        var selectedModel = prefs.getString("hidden_object_model", HiddenObjectFinder.MODEL_LITE)
+            ?: HiddenObjectFinder.MODEL_LITE
 
         val sheet = SheetDialog(this, T.x.hiddenObjKeyTitle, T.x.hiddenObjModelLabel)
         val etKey = sheet.field(
