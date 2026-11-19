@@ -1,6 +1,7 @@
 package com.sejun.autoclicker
 
 import android.accessibilityservice.AccessibilityService
+import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -409,10 +410,30 @@ internal class HiddenObjectController(
             setHintTextColor(Color.parseColor("#64748B"))
             setTextColor(Color.parseColor("#F8FAFC"))
             textSize = 13f
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            inputType = InputType.TYPE_CLASS_TEXT
             isSingleLine = true
             setPadding(px(12), px(10), px(12), px(10))
             background = round("#0B1220", 10, "#334155", strokeDp = 1f)
+        }
+        val pasteBtn = label(T.x.hiddenObjPaste, 12f, "#E2E8F0", bold = true).apply {
+            gravity = Gravity.CENTER
+            setPadding(px(12), px(10), px(12), px(10))
+            background = round("#1E293B", 10, "#475569", strokeDp = 1f)
+            setOnClickListener {
+                vibrate(15)
+                val cm = service.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                val text = cm?.primaryClip?.getItemAt(0)?.coerceToText(service)?.toString()?.trim().orEmpty()
+                if (text.isNotEmpty()) {
+                    keyInput.setText(text)
+                    keyInput.setSelection(text.length)
+                }
+            }
+        }
+        val keyRow = LinearLayout(service).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(keyInput, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = px(6) })
+            addView(pasteBtn, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         }
 
         val modelHeader = label(T.x.hiddenObjModelLabel, 12f, "#94A3B8", bold = true).apply {
@@ -472,7 +493,7 @@ internal class HiddenObjectController(
             addView(View(service).apply { background = round("#475569", 2) },
                 LinearLayout.LayoutParams(px(40), px(4)).apply { gravity = Gravity.CENTER_HORIZONTAL; bottomMargin = px(6) })
             addView(title)
-            addView(keyInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(keyRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             addView(modelHeader)
             addView(modelRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             addView(btnRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = px(14) })

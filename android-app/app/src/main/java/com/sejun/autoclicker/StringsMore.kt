@@ -158,6 +158,7 @@ internal interface MoreStr {
     val hiddenObjClearDesc: String
     val hiddenObjKeyTitle: String
     val hiddenObjKeyHint: String
+    val hiddenObjPaste: String
     val hiddenObjModelLabel: String
     val hiddenObjModelFlash: String
     val hiddenObjModelLite: String
@@ -382,6 +383,7 @@ internal object MoreKo : MoreStr {
     override val hiddenObjClearDesc = "표시 지우기"
     override val hiddenObjKeyTitle = "숨은그림찾기 설정"
     override val hiddenObjKeyHint = "Gemini API 키 입력"
+    override val hiddenObjPaste = "붙여넣기"
     override val hiddenObjModelLabel = "속도 / 모델"
     override val hiddenObjModelFlash = "2.5 Flash (추천)"
     override val hiddenObjModelLite = "2.5 Flash-Lite (초고속)"
@@ -606,6 +608,7 @@ internal object MoreEn : MoreStr {
     override val hiddenObjClearDesc = "Clear markers"
     override val hiddenObjKeyTitle = "Hidden Object Settings"
     override val hiddenObjKeyHint = "Enter Gemini API key"
+    override val hiddenObjPaste = "Paste"
     override val hiddenObjModelLabel = "Speed / Model"
     override val hiddenObjModelFlash = "2.5 Flash (Best)"
     override val hiddenObjModelLite = "2.5 Flash-Lite (Fastest)"
@@ -830,6 +833,7 @@ internal object MoreZh : MoreStr {
     override val hiddenObjClearDesc = "清除标记"
     override val hiddenObjKeyTitle = "隐藏物品设置"
     override val hiddenObjKeyHint = "输入 Gemini API 密钥"
+    override val hiddenObjPaste = "粘贴"
     override val hiddenObjModelLabel = "速度 / 模型"
     override val hiddenObjModelFlash = "2.5 Flash (推荐)"
     override val hiddenObjModelLite = "2.5 Flash-Lite (极速)"
@@ -1054,6 +1058,7 @@ internal object MoreZhTw : MoreStr {
     override val hiddenObjClearDesc = "清除標記"
     override val hiddenObjKeyTitle = "隱藏物品設定"
     override val hiddenObjKeyHint = "輸入 Gemini API 金鑰"
+    override val hiddenObjPaste = "貼上"
     override val hiddenObjModelLabel = "速度 / 模型"
     override val hiddenObjModelFlash = "2.5 Flash (推薦)"
     override val hiddenObjModelLite = "2.5 Flash-Lite (極速)"
