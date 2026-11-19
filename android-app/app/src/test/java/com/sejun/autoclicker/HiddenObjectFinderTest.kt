@@ -1,6 +1,9 @@
 package com.sejun.autoclicker
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -16,11 +19,24 @@ class HiddenObjectFinderTest {
     }
 
     @Test
-    fun `buildRequestJson은 thinkingBudget 64와 application json을 포함한다`() {
+    fun `buildRequestJson은 thinkingBudget 256과 고해상도·충분한 출력 토큰을 포함한다`() {
         val json = HiddenObjectFinder.buildRequestJson("AAAA")
-        assertTrue(json.contains("\"thinkingBudget\":64"))
+        assertTrue(json.contains("\"thinkingBudget\":256"))
+        assertTrue(json.contains("\"maxOutputTokens\":2048"))
+        assertTrue(json.contains("\"mediaResolution\":\"MEDIA_RESOLUTION_HIGH\""))
         assertTrue(json.contains("\"responseMimeType\":\"application/json\""))
+        assertTrue(json.contains("\"responseSchema\""))
         assertTrue(json.contains("\"data\":\"AAAA\""))
+    }
+
+    @Test
+    fun `buildDualCropRequestJson은 제시어와 순수 그림 이미지를 분리해 함께 보낸다`() {
+        val json = HiddenObjectFinder.buildDualCropRequestJson("WORDS_B64", "SCENE_B64", thinkingBudget = 256)
+        assertTrue(json.contains("\"data\":\"WORDS_B64\""))
+        assertTrue(json.contains("\"data\":\"SCENE_B64\""))
+        assertTrue(json.contains("\"propertyOrdering\":[\"label\",\"where\",\"box_2d\"]"))
+        assertTrue(json.contains("\"mediaResolution\":\"MEDIA_RESOLUTION_HIGH\""))
+        assertTrue(json.contains("\"maxOutputTokens\":2048"))
     }
 
     @Test
@@ -70,15 +86,43 @@ class HiddenObjectFinderTest {
     }
 
     @Test
+    fun `parseResponse는 thinking thought 파트가 앞에 와도 실제 JSON 파트를 파싱한다`() {
+        val body = """
+            {
+              "candidates": [
+                {
+                  "content": {
+                    "parts": [
+                      {"thought": true, "text": "Let me carefully inspect Image 1 and Image 2 for toolbox."},
+                      {"text": "[{\"label\":\"공구함\",\"where\":\"gray toolbox on porch\",\"box_2d\":[600,340,660,420]}]"}
+                    ]
+                  }
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val list = HiddenObjectFinder.parseResponse(body, filterBottomButtons = false)
+        assertEquals(listOf(FoundObject("공구함", 380, 630)), list)
+    }
+
+    @Test
     fun `parseResponse는 candidates가 비어 있으면 빈 목록을 반환한다`() {
         assertEquals(emptyList<FoundObject>(), HiddenObjectFinder.parseResponse("{}"))
         assertEquals(emptyList<FoundObject>(), HiddenObjectFinder.parseResponse("{\"candidates\":[]}"))
     }
 
     @Test
-    fun `buildRequestJson에서 thinkingConfig를 끌 수 있다`() {
-        val json = HiddenObjectFinder.buildRequestJson("AAAA", includeThinkingZero = false)
-        assertTrue(!json.contains("thinkingConfig"))
+    fun `buildRequestJson에서 thinkingConfig와 mediaResolution을 끌 수 있다`() {
+        val json = HiddenObjectFinder.buildRequestJson(
+            "AAAA",
+            includeThinkingZero = false,
+            includeMediaResolution = false,
+            includeSchema = false,
+        )
+        assertFalse(json.contains("thinkingConfig"))
+        assertFalse(json.contains("mediaResolution"))
+        assertFalse(json.contains("responseSchema"))
     }
 
     @Test
@@ -96,18 +140,21 @@ class HiddenObjectFinderTest {
     }
 
     @Test
-    fun `parseResponse는 하단 제시어 영역(y 800 초과) 좌표를 걸러낸다`() {
+    fun `parseResponse는 단일 이미지 모드에서 하단 제시어 영역(y 850 초과)을 걸러내고 이중 크롭 모드에서는 하단 사물도 유지한다`() {
         val body = """
-            {"candidates":[{"content":{"parts":[{"text":"[{\"label\":\"가면\",\"x\":740,\"y\":440},{\"label\":\"스툴\",\"x\":800,\"y\":920}]"}]}}]}
+            {"candidates":[{"content":{"parts":[{"text":"[{\"label\":\"가면\",\"x\":740,\"y\":440},{\"label\":\"말\",\"x\":550,\"y\":920}]"}]}}]}
         """.trimIndent()
-        val list = HiddenObjectFinder.parseResponse(body)
-        assertEquals(listOf(FoundObject("가면", 740, 440)), list)
+        assertEquals(listOf(FoundObject("가면", 740, 440)), HiddenObjectFinder.parseResponse(body, filterBottomButtons = true))
+        assertEquals(
+            listOf(FoundObject("가면", 740, 440), FoundObject("말", 550, 920)),
+            HiddenObjectFinder.parseResponse(body, filterBottomButtons = false),
+        )
     }
 
     @Test
-    fun `parseResponse는 box_2d 바운딩 박스의 중심 좌표를 계산한다`() {
+    fun `parseResponse는 box_2d 바운딩 박스의 중심 좌표를 계산하고 중복·과대 박스를 제외한다`() {
         val body = """
-            {"candidates":[{"content":{"parts":[{"text":"[{\"label\":\"우편함\",\"box_2d\":[500,600,560,680]}]"}]}}]}
+            {"candidates":[{"content":{"parts":[{"text":"[{\"label\":\"우편함\",\"where\":\"brown mailbox\",\"box_2d\":[500,600,560,680]},{\"label\":\"우편함\",\"where\":\"dup\",\"box_2d\":[100,100,120,120]},{\"label\":\"배경\",\"where\":\"whole room\",\"box_2d\":[50,50,650,700]}]"}]}}]}
         """.trimIndent()
         val list = HiddenObjectFinder.parseResponse(body)
         assertEquals(listOf(FoundObject("우편함", 640, 530)), list)
@@ -124,6 +171,34 @@ class HiddenObjectFinderTest {
     }
 
     @Test
+    fun `detectIllustrationRect는 흰색 사각형 그림 액자와 하단 제시어 영역을 정확히 분리한다`() {
+        val w = 852
+        val h = 1024
+        val rect = HiddenObjectFinder.detectIllustrationRect(w, h) { x, y ->
+            val onVert = (x in 184..186 || x in 666..668) && y in 60..849
+            val onHoriz = (y in 60..62 || y in 847..849) && x in 184..668
+            // 왼쪽 하단 오류 토스트(y=720..770)가 테두리를 일부 가려도 감지되어야 한다
+            val coveredByToast = x in 184..186 && y in 720..770
+            (onVert || onHoriz) && !coveredByToast
+        }
+        assertNotNull(rect)
+        // inset=2 적용 -> x=186, y=62, w=480, h=785
+        assertEquals(HiddenObjectFinder.CropRect(186, 62, 480, 785), rect)
+
+        val words = HiddenObjectFinder.computeWordsCrop(rect!!, w, h)
+        assertNotNull(words)
+        assertEquals(847, words!!.y)
+        assertEquals(1024 - 847, words.h)
+        assertTrue(words.x < rect.x && words.x + words.w > rect.x + rect.w)
+    }
+
+    @Test
+    fun `detectIllustrationRect는 순백색 화면이나 테두리 없는 화면에서 null을 반환한다`() {
+        assertNull(HiddenObjectFinder.detectIllustrationRect(852, 1024) { _, _ -> true })
+        assertNull(HiddenObjectFinder.detectIllustrationRect(852, 1024) { _, _ -> false })
+    }
+
+    @Test
     fun `pickBestModelForMode는 MODEL_PRO 요청 시 최신 Pro 모델을 고른다`() {
         val json = """
             {"models":[
@@ -133,4 +208,46 @@ class HiddenObjectFinderTest {
         """.trimIndent()
         assertEquals("gemini-3.5-pro", HiddenObjectFinder.pickBestModelForMode(json, HiddenObjectFinder.MODEL_PRO))
     }
+
+    @Test
+    fun `buildFallbackChain은 Pro와 Flash 한도 초과 시 하위 모델로 자동 폴백 순서를 구성한다`() {
+        assertEquals(
+            listOf(HiddenObjectFinder.MODEL_PRO, HiddenObjectFinder.MODEL_FLASH, HiddenObjectFinder.MODEL_LITE),
+            HiddenObjectFinder.buildFallbackChain(HiddenObjectFinder.MODEL_PRO),
+        )
+        assertEquals(
+            listOf(HiddenObjectFinder.MODEL_FLASH, HiddenObjectFinder.MODEL_LITE),
+            HiddenObjectFinder.buildFallbackChain(HiddenObjectFinder.MODEL_FLASH),
+        )
+        assertEquals(
+            listOf(HiddenObjectFinder.MODEL_LITE, HiddenObjectFinder.MODEL_FLASH),
+            HiddenObjectFinder.buildFallbackChain(HiddenObjectFinder.MODEL_LITE),
+        )
+    }
+
+    @Test
+    fun `pickAlternateModel은 이미 시도한 모델을 제외하고 다른 Flash 모델 버킷을 고른다`() {
+        val json = """
+            {"models":[
+              {"name":"models/gemini-flash-latest","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-2.5-flash","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-2.5-flash-lite","supportedGenerationMethods":["generateContent"]}
+            ]}
+        """.trimIndent()
+        assertEquals(
+            "gemini-2.5-flash",
+            HiddenObjectFinder.pickAlternateModel(json, setOf("gemini-flash-latest", "gemini-flash-lite-latest")),
+        )
+        assertEquals(
+            "gemini-2.5-flash-lite",
+            HiddenObjectFinder.pickAlternateModel(json, setOf("gemini-flash-latest", "gemini-2.5-flash")),
+        )
+    }
+
+    @Test
+    fun `isZeroQuotaError는 무료 한도 0 오류 메시지를 판별한다`() {
+        assertTrue(HiddenObjectFinder.isZeroQuotaError("""{"error":{"message":"Quota exceeded for metric: generate_content_free_tier_requests, limit: 0"}}"""))
+        assertFalse(HiddenObjectFinder.isZeroQuotaError("""{"error":{"message":"Resource has been exhausted (e.g. check quota)."}}"""))
+    }
 }
+

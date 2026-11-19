@@ -339,7 +339,7 @@ internal class HiddenObjectController(
                     }
                 )
             }
-        }, 16L)
+        }, 50L)
     }
 
     private fun screenBoundsPx(): Pair<Int, Int> {
@@ -394,13 +394,20 @@ internal class HiddenObjectController(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                // 터치를 가로채지 않아 표시된 곳을 바로 손으로 누를 수 있다.
+                // 터치를 가로채지 않아 표시된 곳을 바로 손으로 누를 수 있으며, 상태바/노치 밀림 없이 화면 픽셀과 1:1 일치시킨다.
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    fitInsetsTypes = 0
+                    layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
                 x = (cx - cw / 2).coerceIn(0, (screenW - cw).coerceAtLeast(0))
                 y = (cy - circlePx / 2).coerceIn(0, (screenH - circlePx).coerceAtLeast(0))
             }
