@@ -94,4 +94,13 @@ class HiddenObjectFinderTest {
         assertEquals("gemini-3.5-flash-lite", HiddenObjectFinder.pickBestModelFromList(json, preferLite = true))
         assertEquals("gemini-3.5-flash", HiddenObjectFinder.pickBestModelFromList(json, preferLite = false))
     }
+
+    @Test
+    fun `parseResponse는 하단 제시어 영역(y 800 초과) 좌표를 걸러낸다`() {
+        val body = """
+            {"candidates":[{"content":{"parts":[{"text":"[{\"label\":\"가면\",\"x\":740,\"y\":440},{\"label\":\"스툴\",\"x\":800,\"y\":920}]"}]}}]}
+        """.trimIndent()
+        val list = HiddenObjectFinder.parseResponse(body)
+        assertEquals(listOf(FoundObject("가면", 740, 440)), list)
+    }
 }

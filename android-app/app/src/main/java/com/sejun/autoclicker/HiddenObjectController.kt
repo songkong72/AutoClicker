@@ -58,7 +58,7 @@ internal class HiddenObjectController(
 
     fun hasApiKey(): Boolean = prefs().getString(KEY_API_KEY, "")?.trim().orEmpty().isNotEmpty()
     private fun getApiKey(): String = prefs().getString(KEY_API_KEY, "")?.trim().orEmpty()
-    private fun getModel(): String = prefs().getString(KEY_MODEL, HiddenObjectFinder.MODEL_LITE) ?: HiddenObjectFinder.MODEL_LITE
+    private fun getModel(): String = prefs().getString(KEY_MODEL, HiddenObjectFinder.MODEL_FLASH) ?: HiddenObjectFinder.MODEL_FLASH
 
     private fun saveSettings(apiKey: String, model: String) {
         prefs().edit()

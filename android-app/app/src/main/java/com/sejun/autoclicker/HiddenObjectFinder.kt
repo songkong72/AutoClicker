@@ -29,13 +29,16 @@ internal object HiddenObjectFinder {
     @Volatile private var cachedFlashModel: String? = null
 
     private const val PROMPT =
-        "Find the target items written at the bottom of this hidden-object game inside the picture above. " +
-            "Return JSON array [{\\\"label\\\":\\\"item\\\",\\\"x\\\":0-1000,\\\"y\\\":0-1000}] with normalized center coordinates."
+        "Look at the hidden-object game screenshot. " +
+            "1) Read the target item names in the buttons at the bottom (y > 800). " +
+            "2) Find the ACTUAL DRAWN OBJECTS inside the upper illustration (y MUST be between 80 and 780, x between 150 and 850). " +
+            "NEVER return the coordinates of the bottom text buttons themselves. " +
+            "Return JSON array [{\\\"label\\\":\\\"item\\\",\\\"x\\\":0-1000,\\\"y\\\":80-780}]."
 
     fun buildRequestJson(base64Jpeg: String, includeThinkingZero: Boolean = true): String {
         val cleanB64 = base64Jpeg.replace("\r", "").replace("\n", "")
         val thinkingPart = if (includeThinkingZero) ""","thinkingConfig":{"thinkingBudget":0}""" else ""
-        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":160,"responseMimeType":"application/json"$thinkingPart}}"""
+        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":200,"responseMimeType":"application/json"$thinkingPart}}"""
     }
 
     /**
@@ -79,6 +82,8 @@ internal object HiddenObjectFinder {
             val x = xRegex.find(block)?.groupValues?.get(1)?.toIntOrNull() ?: continue
             val y = yRegex.find(block)?.groupValues?.get(1)?.toIntOrNull() ?: continue
             if (label.isEmpty()) continue
+            // 하단 제시어 버튼 영역(y > 800)은 실제 그림이 아니므로 제외한다.
+            if (y > 800) continue
             out.add(FoundObject(label = label, normX = x.coerceIn(0, 1000), normY = y.coerceIn(0, 1000)))
         }
         return out
