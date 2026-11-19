@@ -150,6 +150,23 @@ internal interface MoreStr {
     fun troopsN(n: Int): String
     val beforeSave: String
     val hunter: String
+    val hiddenObj: String
+    val hiddenObjReady: String
+    val hiddenObjNeedKey: String
+    val hiddenObjFindBtn: String
+    val hiddenObjFinding: String
+    val hiddenObjClearDesc: String
+    val hiddenObjKeyTitle: String
+    val hiddenObjKeyHint: String
+    val hiddenObjModelLabel: String
+    val hiddenObjModelFlash: String
+    val hiddenObjModelLite: String
+    val hiddenObjKeySaved: String
+    val hiddenObjOnToast: String
+    val hiddenObjNeedApi30: String
+    val hiddenObjNoneFound: String
+    fun hiddenObjFoundN(n: Int): String
+    fun hiddenObjFailed(err: String): String
     val newSeq: String
     fun seqLimit(max: Int): String
     val off: String
@@ -357,6 +374,23 @@ internal object MoreKo : MoreStr {
     override fun troopsN(n: Int) = "부대 ${n}개"
     override val beforeSave = "위치 저장 전"
     override val hunter = "헌터"
+    override val hiddenObj = "숨은그림찾기"
+    override val hiddenObjReady = "키 저장됨 · 찾기 준비"
+    override val hiddenObjNeedKey = "Gemini API 키 설정 필요"
+    override val hiddenObjFindBtn = "찾기"
+    override val hiddenObjFinding = "찾는 중…"
+    override val hiddenObjClearDesc = "표시 지우기"
+    override val hiddenObjKeyTitle = "숨은그림찾기 설정"
+    override val hiddenObjKeyHint = "Gemini API 키 입력"
+    override val hiddenObjModelLabel = "속도 / 모델"
+    override val hiddenObjModelFlash = "2.5 Flash (추천)"
+    override val hiddenObjModelLite = "2.5 Flash-Lite (초고속)"
+    override val hiddenObjKeySaved = "API 키를 저장했어요"
+    override val hiddenObjOnToast = "숨은그림찾기를 켰어요. [찾기]를 누르면 위치를 표시해요."
+    override val hiddenObjNeedApi30 = "화면 캡처는 안드로이드 11 이상에서 지원돼요"
+    override val hiddenObjNoneFound = "물건을 찾지 못했어요. 다시 시도해 주세요"
+    override fun hiddenObjFoundN(n: Int) = "${n}개 찾았어요!"
+    override fun hiddenObjFailed(err: String) = "찾기 실패: $err"
     override val newSeq = "+ 새 순서 만들기"
     override fun seqLimit(max: Int) = "순서는 ${max}개까지 저장할 수 있어요"
     override val off = "끄기"
@@ -564,6 +598,23 @@ internal object MoreEn : MoreStr {
     override fun troopsN(n: Int) = "$n squads"
     override val beforeSave = "No positions yet"
     override val hunter = "Hunter"
+    override val hiddenObj = "Hidden Object"
+    override val hiddenObjReady = "Key saved · Ready"
+    override val hiddenObjNeedKey = "Gemini API key required"
+    override val hiddenObjFindBtn = "Find"
+    override val hiddenObjFinding = "Finding…"
+    override val hiddenObjClearDesc = "Clear markers"
+    override val hiddenObjKeyTitle = "Hidden Object Settings"
+    override val hiddenObjKeyHint = "Enter Gemini API key"
+    override val hiddenObjModelLabel = "Speed / Model"
+    override val hiddenObjModelFlash = "2.5 Flash (Best)"
+    override val hiddenObjModelLite = "2.5 Flash-Lite (Fastest)"
+    override val hiddenObjKeySaved = "API key saved"
+    override val hiddenObjOnToast = "Hidden Object mode on. Tap [Find] to mark targets."
+    override val hiddenObjNeedApi30 = "Screen capture requires Android 11 or higher"
+    override val hiddenObjNoneFound = "No objects found. Please try again"
+    override fun hiddenObjFoundN(n: Int) = "Found $n!"
+    override fun hiddenObjFailed(err: String) = "Find failed: $err"
     override val newSeq = "+ New sequence"
     override fun seqLimit(max: Int) = "You can save up to $max sequences"
     override val off = "Off"
@@ -771,6 +822,23 @@ internal object MoreZh : MoreStr {
     override fun troopsN(n: Int) = "部队${n}支"
     override val beforeSave = "尚未保存位置"
     override val hunter = "猎人"
+    override val hiddenObj = "隐藏物品查找"
+    override val hiddenObjReady = "密钥已保存 · 就绪"
+    override val hiddenObjNeedKey = "需要设置 Gemini API 密钥"
+    override val hiddenObjFindBtn = "查找"
+    override val hiddenObjFinding = "查找中…"
+    override val hiddenObjClearDesc = "清除标记"
+    override val hiddenObjKeyTitle = "隐藏物品设置"
+    override val hiddenObjKeyHint = "输入 Gemini API 密钥"
+    override val hiddenObjModelLabel = "速度 / 模型"
+    override val hiddenObjModelFlash = "2.5 Flash (推荐)"
+    override val hiddenObjModelLite = "2.5 Flash-Lite (极速)"
+    override val hiddenObjKeySaved = "已保存 API 密钥"
+    override val hiddenObjOnToast = "已开启隐藏物品查找。点击[查找]即可标记位置。"
+    override val hiddenObjNeedApi30 = "截屏功能需要 Android 11 或更高版本"
+    override val hiddenObjNoneFound = "未找到目标物品，请重试"
+    override fun hiddenObjFoundN(n: Int) = "已找到${n}个！"
+    override fun hiddenObjFailed(err: String) = "查找失败：${err}"
     override val newSeq = "+ 新建序列"
     override fun seqLimit(max: Int) = "最多可以保存${max}个序列"
     override val off = "关闭"
@@ -978,6 +1046,23 @@ internal object MoreZhTw : MoreStr {
     override fun troopsN(n: Int) = "部隊${n}支"
     override val beforeSave = "尚未儲存位置"
     override val hunter = "獵人"
+    override val hiddenObj = "隱藏物品尋找"
+    override val hiddenObjReady = "金鑰已儲存 · 就緒"
+    override val hiddenObjNeedKey = "需要設定 Gemini API 金鑰"
+    override val hiddenObjFindBtn = "尋找"
+    override val hiddenObjFinding = "尋找中…"
+    override val hiddenObjClearDesc = "清除標記"
+    override val hiddenObjKeyTitle = "隱藏物品設定"
+    override val hiddenObjKeyHint = "輸入 Gemini API 金鑰"
+    override val hiddenObjModelLabel = "速度 / 模型"
+    override val hiddenObjModelFlash = "2.5 Flash (推薦)"
+    override val hiddenObjModelLite = "2.5 Flash-Lite (極速)"
+    override val hiddenObjKeySaved = "已儲存 API 金鑰"
+    override val hiddenObjOnToast = "已開啟隱藏物品尋找。點擊[尋找]即可標記位置。"
+    override val hiddenObjNeedApi30 = "截圖功能需要 Android 11 或更高版本"
+    override val hiddenObjNoneFound = "未找到目標物品，請重試"
+    override fun hiddenObjFoundN(n: Int) = "已找到${n}個！"
+    override fun hiddenObjFailed(err: String) = "尋找失敗：${err}"
     override val newSeq = "+ 新建序列"
     override fun seqLimit(max: Int) = "最多可以儲存${max}個序列"
     override val off = "關閉"

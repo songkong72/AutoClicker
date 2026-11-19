@@ -187,15 +187,25 @@ class AutoClickService : AccessibilityService() {
         if (!modeAllowed) {
             if (HunterModeManager.isHunterModeEnabled) toggleBearMode()
             sequenceUi.hideAll()
+            hiddenObjUi.hideAll()
         }
     }
 
-    /** 숨은 모드(헌터·순서 클릭)를 쓸 수 있는지: 지금 지휘관 화면이고, 이 폰에서 개방해 둔 경우만. 집결장 화면에서는 숨긴다. */
+    /** 숨은 모드(헌터·숨은그림찾기·순서 클릭)를 쓸 수 있는지: 지금 지휘관 화면이고, 이 폰에서 개방해 둔 경우만. 집결장 화면에서는 숨긴다. */
     private fun hunterAllowed(): Boolean =
         PreferencesHelper.hasAccess(this) && PreferencesHelper.isAdminMode(this) &&
             getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE).getBoolean("bear_mode_unlocked", false)
 
-    /** 모드 목록과 순서 클릭 화면. 헌터는 이 서비스에 있고, 목록에서 켜고 끄는 것만 넘겨받는다. */
+    private val hiddenObjUi by lazy {
+        HiddenObjectController(
+            service = this,
+            toast = { showToast(it) },
+            vibrate = { vibrate(it) },
+            onModeChanged = { refreshModeIcon() },
+        )
+    }
+
+    /** 모드 목록과 순서 클릭 화면. 헌터/숨은그림찾기는 목록에서 켜고 끄는 것만 넘겨받는다. */
     private val sequenceUi by lazy {
         SequenceClickController(
             service = this,
@@ -210,15 +220,20 @@ class AutoClickService : AccessibilityService() {
                 hideBearSetupUi()
                 showBearSetupUi() // 위치 다시 잡기
             },
+            hiddenObjOn = { hiddenObjUi.isActive },
+            hiddenObjReady = { hiddenObjUi.hasApiKey() },
+            setHiddenObj = { on -> if (on) hiddenObjUi.activate() else hiddenObjUi.deactivate() },
+            editHiddenObj = { hiddenObjUi.showSettingsPopup() },
             onModeChanged = { refreshModeIcon() },
         )
     }
 
-    /** 모드 버튼의 색을 켜진 모드에 맞춘다: 헌터 초록, 순서 클릭 하늘색, 꺼짐 회색. 그림은 늘 목록 모양이다. */
+    /** 모드 버튼의 색을 켜진 모드에 맞춘다: 헌터 초록, 숨은그림찾기 주황, 순서 클릭 하늘색, 꺼짐 회색. 그림은 늘 목록 모양이다. */
     private fun refreshModeIcon() {
         val b = controlView?.findViewById<ImageButton>(R.id.btnBearMode) ?: return
         val color = Color.parseColor(when {
             HunterModeManager.isHunterModeEnabled -> "#10B981"
+            hiddenObjUi.isActive -> "#F59E0B"
             sequenceUi.isActive -> "#38BDF8"
             else -> "#CBD5E1"
         })
@@ -465,6 +480,7 @@ class AutoClickService : AccessibilityService() {
         hideHunterFireButton()
         hideBearSetupUi()
         sequenceUi.hideAll()
+        hiddenObjUi.hideAll()
         hideClock()
         stopAutoClick()
         hideSettingsDialog()
@@ -640,6 +656,7 @@ class AutoClickService : AccessibilityService() {
             hideOpacityPanel()
             when {
                 sequenceUi.isActive -> sequenceUi.editActive()
+                hiddenObjUi.isActive -> hiddenObjUi.showSettingsPopup()
                 HunterModeManager.isHunterModeEnabled -> { hideBearSetupUi(); showBearSetupUi() }
                 else -> sequenceUi.showMenu()
             }
@@ -1689,7 +1706,8 @@ class AutoClickService : AccessibilityService() {
     private fun toggleBearMode() {
         HunterModeManager.isHunterModeEnabled = !HunterModeManager.isHunterModeEnabled
         if (HunterModeManager.isHunterModeEnabled) {
-            sequenceUi.deactivate() // 헌터와 순서 클릭은 한 번에 하나만
+            sequenceUi.deactivate() // 헌터와 순서 클릭·숨은그림찾기는 한 번에 하나만
+            hiddenObjUi.deactivate()
             HunterModeManager.resetSequence() // 켤 때마다 1번 부대부터
             showHunterFireButton()
             if (HunterModeManager.hasTargets) {

@@ -37,6 +37,10 @@ internal class SequenceClickController(
     private val hunterOn: () -> Boolean,
     private val setHunter: (Boolean) -> Unit,
     private val editHunter: () -> Unit,
+    private val hiddenObjOn: () -> Boolean,
+    private val hiddenObjReady: () -> Boolean,
+    private val setHiddenObj: (Boolean) -> Unit,
+    private val editHiddenObj: () -> Unit,
     /** 켜진 모드가 바뀌었을 때(막대 버튼의 색과 그림을 맞추라는 신호). */
     private val onModeChanged: () -> Unit,
 ) {
@@ -179,6 +183,8 @@ internal class SequenceClickController(
         if (hunterAllowed()) {
             val sub = if (HunterModeManager.hasTargets) T.x.troopsN(HunterModeManager.troops.size) else T.x.beforeSave
             box.addView(row(GREEN, T.x.hunter, sub, on = hunterOn(), onPencil = { hidePopup(); editHunter() }) { hidePopup(); selectHunter() })
+            val hoSub = if (hiddenObjReady()) T.x.hiddenObjReady else T.x.hiddenObjNeedKey
+            box.addView(row(AMBER, T.x.hiddenObj, hoSub, on = hiddenObjOn(), onPencil = { hidePopup(); editHiddenObj() }) { hidePopup(); selectHiddenObj() })
             box.addDivider()
         }
         sets.forEachIndexed { i, seq ->
@@ -265,12 +271,21 @@ internal class SequenceClickController(
     private fun selectHunter() {
         closeSetup()
         deactivate()
+        if (hiddenObjOn()) setHiddenObj(false)
         if (!hunterOn()) setHunter(true)
+    }
+
+    private fun selectHiddenObj() {
+        closeSetup()
+        deactivate()
+        if (hunterOn()) setHunter(false)
+        if (!hiddenObjOn()) setHiddenObj(true)
     }
 
     private fun turnOff() {
         closeSetup()
         if (hunterOn()) setHunter(false)
+        if (hiddenObjOn()) setHiddenObj(false)
         deactivate()
     }
 
@@ -278,6 +293,7 @@ internal class SequenceClickController(
         val seq = sets.getOrNull(index) ?: return
         closeSetup()
         if (hunterOn()) setHunter(false)
+        if (hiddenObjOn()) setHiddenObj(false)
         stopRun()
         activeIndex = index
         showRunButton()
@@ -667,6 +683,7 @@ internal class SequenceClickController(
         const val INK = "#F1F5F9"
         const val SUB = "#A9B4C7"
         const val GREEN = "#10B981"
+        const val AMBER = "#F59E0B"
         const val SKY = "#38BDF8"
         const val SKY_TEXT = "#7DD3FC"
         const val RUN_READY = "#EB38BDF8"
