@@ -21,10 +21,10 @@ internal object HiddenObjectFinder {
     const val MODEL_LITE = "gemini-flash-lite-latest"
     const val MODEL_PRO = "gemini-pro-latest"
 
-    private const val MAX_IMAGE_DIM = 1024
-    private const val JPEG_QUALITY = 80
-    private const val CONNECT_TIMEOUT_MS = 4000
-    private const val READ_TIMEOUT_MS = 15000
+    private const val MAX_IMAGE_DIM = 768
+    private const val JPEG_QUALITY = 75
+    private const val CONNECT_TIMEOUT_MS = 5000
+    private const val READ_TIMEOUT_MS = 30000
 
     @Volatile private var cachedLiteModel: String? = null
     @Volatile private var cachedFlashModel: String? = null
@@ -62,10 +62,10 @@ internal object HiddenObjectFinder {
             "Carefully inspect the upper illustration ONLY (ymin >= 20, ymax <= 785) to find each exact item—do NOT guess randomly or mark bottom text buttons. " +
             "Return JSON array [{\\\"label\\\":\\\"word\\\",\\\"box_2d\\\":[ymin,xmin,ymax,xmax]}] with 0-1000 coordinates."
 
-    fun buildRequestJson(base64Jpeg: String, includeThinkingZero: Boolean = true): String {
+    fun buildRequestJson(base64Jpeg: String, includeThinkingZero: Boolean = true, thinkingBudget: Int = 64): String {
         val cleanB64 = base64Jpeg.replace("\r", "").replace("\n", "")
-        val thinkingPart = if (includeThinkingZero) ""","thinkingConfig":{"thinkingBudget":256}""" else ""
-        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":450,"responseMimeType":"application/json"$thinkingPart}}"""
+        val thinkingPart = if (includeThinkingZero) ""","thinkingConfig":{"thinkingBudget":$thinkingBudget}""" else ""
+        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":350,"responseMimeType":"application/json"$thinkingPart}}"""
     }
 
     fun pickBestModelFromList(modelsJson: String, preferLite: Boolean): String? =
@@ -284,7 +284,8 @@ internal object HiddenObjectFinder {
             val origH = bitmap.height
             val crop = computeGameCrop(origW, origH)
             val base64 = encodeBitmapToBase64Jpeg(bitmap, crop)
-            var (code, body) = postGenerate(cleanKey, activeModel, buildRequestJson(base64, includeThinkingZero = true))
+            val budget = if (safeTarget == MODEL_PRO) 128 else 64
+            var (code, body) = postGenerate(cleanKey, activeModel, buildRequestJson(base64, includeThinkingZero = true, thinkingBudget = budget))
 
             if (code == 404) {
                 val discovered = discoverModel(cleanKey, safeTarget)
@@ -295,7 +296,7 @@ internal object HiddenObjectFinder {
                         MODEL_LITE -> cachedLiteModel = discovered
                         else -> cachedFlashModel = discovered
                     }
-                    val retry = postGenerate(cleanKey, activeModel, buildRequestJson(base64, includeThinkingZero = true))
+                    val retry = postGenerate(cleanKey, activeModel, buildRequestJson(base64, includeThinkingZero = true, thinkingBudget = budget))
                     code = retry.first
                     body = retry.second
                 }
