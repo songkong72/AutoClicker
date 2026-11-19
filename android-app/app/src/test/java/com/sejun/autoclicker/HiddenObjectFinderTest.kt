@@ -74,4 +74,24 @@ class HiddenObjectFinderTest {
         assertEquals(emptyList<FoundObject>(), HiddenObjectFinder.parseResponse("{}"))
         assertEquals(emptyList<FoundObject>(), HiddenObjectFinder.parseResponse("{\"candidates\":[]}"))
     }
+
+    @Test
+    fun `buildRequestJson에서 thinkingConfig를 끌 수 있다`() {
+        val json = HiddenObjectFinder.buildRequestJson("AAAA", includeThinkingZero = false)
+        assertTrue(!json.contains("thinkingConfig"))
+    }
+
+    @Test
+    fun `pickBestModelFromList는 generateContent를 지원하는 최신 Flash 모델을 고른다`() {
+        val json = """
+            {"models":[
+              {"name":"models/gemini-3.5-flash","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-3.5-flash-lite","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/gemini-3.5-flash-tts","supportedGenerationMethods":["generateContent"]},
+              {"name":"models/embedding-001","supportedGenerationMethods":["embedContent"]}
+            ]}
+        """.trimIndent()
+        assertEquals("gemini-3.5-flash-lite", HiddenObjectFinder.pickBestModelFromList(json, preferLite = true))
+        assertEquals("gemini-3.5-flash", HiddenObjectFinder.pickBestModelFromList(json, preferLite = false))
+    }
 }

@@ -17,22 +17,50 @@ data class FoundObject(
  * 하단 제시어의 상단 그림 내 중심 좌표(0~1000 정규화)를 추출한다.
  */
 internal object HiddenObjectFinder {
-    const val MODEL_FLASH = "gemini-2.5-flash"
-    const val MODEL_LITE = "gemini-2.5-flash-lite"
+    const val MODEL_FLASH = "gemini-flash-latest"
+    const val MODEL_LITE = "gemini-flash-lite-latest"
 
     private const val MAX_IMAGE_DIM = 720
     private const val JPEG_QUALITY = 70
     private const val CONNECT_TIMEOUT_MS = 4000
     private const val READ_TIMEOUT_MS = 8000
 
+    @Volatile private var cachedLiteModel: String? = null
+    @Volatile private var cachedFlashModel: String? = null
+
     private const val PROMPT =
         "Find the target items written at the bottom of this hidden-object game inside the picture above. " +
             "Return JSON array [{\\\"label\\\":\\\"item\\\",\\\"x\\\":0-1000,\\\"y\\\":0-1000}] with normalized center coordinates."
 
-    fun buildRequestJson(base64Jpeg: String): String {
+    fun buildRequestJson(base64Jpeg: String, includeThinkingZero: Boolean = true): String {
         val cleanB64 = base64Jpeg.replace("\r", "").replace("\n", "")
-        // 제한시간이 짧은 게임이므로 thinkingBudget=0, maxOutputTokens=160으로 지연을 최소화한다.
-        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":160,"responseMimeType":"application/json","thinkingConfig":{"thinkingBudget":0}}}"""
+        val thinkingPart = if (includeThinkingZero) ""","thinkingConfig":{"thinkingBudget":0}""" else ""
+        return """{"contents":[{"parts":[{"text":"$PROMPT"},{"inline_data":{"mime_type":"image/jpeg","data":"$cleanB64"}}]}],"generationConfig":{"temperature":0.0,"maxOutputTokens":160,"responseMimeType":"application/json"$thinkingPart}}"""
+    }
+
+    /**
+     * `v1beta/models` 응답에서 generateContent를 지원하는 가장 적합한 Flash 모델을 고른다.
+     */
+    fun pickBestModelFromList(modelsJson: String, preferLite: Boolean): String? {
+        val blockRegex = Regex("""\{[^{}]*"name"\s*:\s*"models/([^"]+)"[^{}]*"supportedGenerationMethods"\s*:\s*\[([^\]]*)\][^{}]*\}""")
+        val candidates = ArrayList<String>()
+        for (m in blockRegex.findAll(modelsJson)) {
+            val id = m.groupValues[1].trim()
+            val methods = m.groupValues[2]
+            if (!methods.contains("generateContent")) continue
+            val lower = id.lowercase()
+            if (!lower.contains("flash")) continue
+            // 임베딩·라이브·이미지전용·TTS 모델 제외
+            if (lower.contains("tts") || lower.contains("image") || lower.contains("live") || lower.contains("audio")) continue
+            candidates.add(id)
+        }
+        if (candidates.isEmpty()) return null
+        val sorted = candidates.sortedDescending()
+        return if (preferLite) {
+            sorted.firstOrNull { it.lowercase().contains("lite") } ?: sorted.first()
+        } else {
+            sorted.firstOrNull { !it.lowercase().contains("lite") } ?: sorted.first()
+        }
     }
 
     fun parseResponse(responseBody: String): List<FoundObject> {
@@ -137,36 +165,81 @@ internal object HiddenObjectFinder {
         }.start()
     }
 
+    private fun discoverModel(apiKey: String, preferLite: Boolean): String? {
+        return try {
+            val url = URL("https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = CONNECT_TIMEOUT_MS
+                readTimeout = READ_TIMEOUT_MS
+            }
+            try {
+                if (conn.responseCode !in 200..299) return null
+                val body = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                pickBestModelFromList(body, preferLite)
+            } finally {
+                conn.disconnect()
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun postGenerate(apiKey: String, model: String, reqBody: String): Pair<Int, String> {
+        val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = CONNECT_TIMEOUT_MS
+            readTimeout = READ_TIMEOUT_MS
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+        }
+        return try {
+            conn.outputStream.use { it.write(reqBody.toByteArray(Charsets.UTF_8)) }
+            val code = conn.responseCode
+            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+            val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            code to body
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     fun analyzeBitmap(bitmap: Bitmap, apiKey: String, model: String = MODEL_LITE): Result<List<FoundObject>> {
         val cleanKey = apiKey.trim()
         if (cleanKey.isEmpty()) return Result.failure(IllegalArgumentException("API key is empty"))
-        val safeModel = if (model == MODEL_FLASH) MODEL_FLASH else MODEL_LITE
+        val preferLite = model != MODEL_FLASH
+        var activeModel = if (preferLite) (cachedLiteModel ?: MODEL_LITE) else (cachedFlashModel ?: MODEL_FLASH)
 
         return try {
             val base64 = encodeBitmapToBase64Jpeg(bitmap)
-            val reqBody = buildRequestJson(base64)
-            val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$safeModel:generateContent?key=$cleanKey")
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                connectTimeout = CONNECT_TIMEOUT_MS
-                readTimeout = READ_TIMEOUT_MS
-                doOutput = true
-                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            }
-            try {
-                conn.outputStream.use { it.write(reqBody.toByteArray(Charsets.UTF_8)) }
-                val code = conn.responseCode
-                val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-                if (code !in 200..299) {
-                    val msg = Regex(""""message"\s*:\s*"((?:[^"\\]|\\.)*)"""")
-                        .find(body)?.groupValues?.get(1)?.let { unescapeJsonString(it) }.orEmpty()
-                    Result.failure(RuntimeException("HTTP $code ${msg.ifEmpty { body.take(120) }}"))
-                } else {
-                    Result.success(parseResponse(body))
+            var (code, body) = postGenerate(cleanKey, activeModel, buildRequestJson(base64, includeThinkingZero = true))
+
+            // 404면 사용 가능한 최신 Flash 모델을 자동 조회해 캐시 후 재시도한다.
+            if (code == 404) {
+                val discovered = discoverModel(cleanKey, preferLite)
+                if (discovered != null && discovered != activeModel) {
+                    activeModel = discovered
+                    if (preferLite) cachedLiteModel = discovered else cachedFlashModel = discovered
+                    val retry = postGenerate(cleanKey, activeModel, buildRequestJson(base64, includeThinkingZero = true))
+                    code = retry.first
+                    body = retry.second
                 }
-            } finally {
-                conn.disconnect()
+            }
+
+            // 400이면 thinkingConfig 미지원 모델일 수 있으므로 해당 필드를 빼고 1회 재시도한다.
+            if (code == 400) {
+                val retry = postGenerate(cleanKey, activeModel, buildRequestJson(base64, includeThinkingZero = false))
+                code = retry.first
+                body = retry.second
+            }
+
+            if (code !in 200..299) {
+                val msg = Regex(""""message"\s*:\s*"((?:[^"\\]|\\.)*)"""")
+                    .find(body)?.groupValues?.get(1)?.let { unescapeJsonString(it) }.orEmpty()
+                Result.failure(RuntimeException("HTTP $code ${msg.ifEmpty { body.take(120) }}"))
+            } else {
+                Result.success(parseResponse(body))
             }
         } catch (e: Exception) {
             Result.failure(e)
