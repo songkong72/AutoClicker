@@ -3,6 +3,7 @@ package com.sejun.autoclicker
 import android.accessibilityservice.AccessibilityService
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -396,148 +397,13 @@ internal class HiddenObjectController(
     // ---------- 설정 창 (Gemini API 키 + 모델 선택) ----------
 
     fun showSettingsPopup() {
-        hideSettingsPopup()
-        val manager = wm ?: return
-        var selectedModel = getModel()
-
-        val title = label(T.x.hiddenObjKeyTitle, 16f, "#F8FAFC", bold = true).apply {
-            setPadding(px(6), px(4), px(6), px(8))
+        val intent = Intent(service, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra(MainActivity.EXTRA_OPEN_HIDDEN_OBJ, true)
         }
-
-        val keyInput = EditText(service).apply {
-            setText(getApiKey())
-            hint = T.x.hiddenObjKeyHint
-            setHintTextColor(Color.parseColor("#64748B"))
-            setTextColor(Color.parseColor("#F8FAFC"))
-            textSize = 13f
-            inputType = InputType.TYPE_CLASS_TEXT
-            isSingleLine = true
-            setPadding(px(12), px(10), px(12), px(10))
-            background = round("#0B1220", 10, "#334155", strokeDp = 1f)
-        }
-        val pasteBtn = label(T.x.hiddenObjPaste, 12f, "#E2E8F0", bold = true).apply {
-            gravity = Gravity.CENTER
-            setPadding(px(12), px(10), px(12), px(10))
-            background = round("#1E293B", 10, "#475569", strokeDp = 1f)
-            setOnClickListener {
-                vibrate(15)
-                val cm = service.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                val text = cm?.primaryClip?.getItemAt(0)?.coerceToText(service)?.toString()?.trim().orEmpty()
-                if (text.isNotEmpty()) {
-                    keyInput.setText(text)
-                    keyInput.setSelection(text.length)
-                }
-            }
-        }
-        val keyRow = LinearLayout(service).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            addView(keyInput, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = px(6) })
-            addView(pasteBtn, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        }
-
-        val modelHeader = label(T.x.hiddenObjModelLabel, 12f, "#94A3B8", bold = true).apply {
-            setPadding(px(4), px(10), px(4), px(6))
-        }
-
-        val flashBtn = label(T.x.hiddenObjModelFlash, 12f, "#F8FAFC", bold = true).apply {
-            gravity = Gravity.CENTER
-            setPadding(px(8), px(10), px(8), px(10))
-        }
-        val liteBtn = label(T.x.hiddenObjModelLite, 12f, "#F8FAFC", bold = true).apply {
-            gravity = Gravity.CENTER
-            setPadding(px(8), px(10), px(8), px(10))
-        }
-
-        fun refreshModelChips() {
-            val isLite = selectedModel == HiddenObjectFinder.MODEL_LITE
-            flashBtn.background = round(if (!isLite) "#1D4ED8" else "#0B1220", 10, if (!isLite) "#60A5FA" else "#334155")
-            liteBtn.background = round(if (isLite) "#1D4ED8" else "#0B1220", 10, if (isLite) "#60A5FA" else "#334155")
-        }
-        refreshModelChips()
-
-        flashBtn.setOnClickListener { vibrate(15); selectedModel = HiddenObjectFinder.MODEL_FLASH; refreshModelChips() }
-        liteBtn.setOnClickListener { vibrate(15); selectedModel = HiddenObjectFinder.MODEL_LITE; refreshModelChips() }
-
-        val modelRow = LinearLayout(service).apply {
-            orientation = LinearLayout.HORIZONTAL
-            addView(flashBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = px(6) })
-            addView(liteBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        }
-
-        val cancelBtn = label(T.s.cancel, 14f, "#CBD5E1", bold = true).apply {
-            gravity = Gravity.CENTER
-            background = round("#2A3447", 12)
-            setOnClickListener { hideSettingsPopup() }
-        }
-        val saveBtn = label(T.a.save, 14f, "#FFFFFF", bold = true).apply {
-            gravity = Gravity.CENTER
-            background = round("#D97706", 12)
-            setOnClickListener {
-                vibrate(20)
-                saveSettings(keyInput.text.toString(), selectedModel)
-                hideSettingsPopup()
-                toast(T.x.hiddenObjKeySaved)
-            }
-        }
-        val btnRow = LinearLayout(service).apply {
-            orientation = LinearLayout.HORIZONTAL
-            addView(cancelBtn, LinearLayout.LayoutParams(0, px(44), 1f).apply { rightMargin = px(8) })
-            addView(saveBtn, LinearLayout.LayoutParams(0, px(44), 1f))
-        }
-
-        val root = RallyDragLayout(service).apply {
-            orientation = LinearLayout.VERTICAL
-            background = round("#121A2C", 16, "#475569")
-            setPadding(px(14), px(10), px(14), px(14))
-            addView(View(service).apply { background = round("#475569", 2) },
-                LinearLayout.LayoutParams(px(40), px(4)).apply { gravity = Gravity.CENTER_HORIZONTAL; bottomMargin = px(6) })
-            addView(title)
-            addView(keyRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-            addView(modelHeader)
-            addView(modelRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-            addView(btnRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = px(14) })
-            setOnTouchListener { _, e ->
-                if (e.action == MotionEvent.ACTION_OUTSIDE) { hideSettingsPopup(); true } else false
-            }
-        }
-
-        val params = WindowManager.LayoutParams(
-            px(300),
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
-            PixelFormat.TRANSLUCENT,
-        ).apply {
-            gravity = Gravity.CENTER
-            x = popupX
-            y = popupY
-        }
-
-        var sx = 0
-        var sy = 0
-        root.onDragStart = { sx = params.x; sy = params.y }
-        root.onDragMove = { dx, dy ->
-            val dm = service.resources.displayMetrics
-            val (nx, ny) = OverlayDragBounds.centered(sx + dx.toInt(), sy + dy.toInt(), dm.widthPixels, dm.heightPixels, root.width, root.height)
-            params.x = nx
-            params.y = ny
-            popupX = nx
-            popupY = ny
-            try { manager.updateViewLayout(root, params) } catch (_: Exception) { }
-        }
-
-        settingsPopup = root
         try {
-            manager.addView(root, params)
-            keyInput.requestFocus()
-            handler.postDelayed({
-                val imm = service.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                imm?.showSoftInput(keyInput, InputMethodManager.SHOW_IMPLICIT)
-            }, 120L)
-        } catch (_: Exception) {
-            settingsPopup = null
-        }
+            service.startActivity(intent)
+        } catch (_: Exception) { }
     }
 
     private fun hideSettingsPopup() {

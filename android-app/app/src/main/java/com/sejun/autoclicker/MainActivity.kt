@@ -85,6 +85,11 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     override fun onResume() {
         super.onResume()
         T.use(this)
@@ -95,6 +100,10 @@ class MainActivity : AppCompatActivity() {
         updatePermissionStates()
         updateServiceState()
         bindServiceCallbacks()
+        if (intent?.getBooleanExtra(EXTRA_OPEN_HIDDEN_OBJ, false) == true) {
+            intent.removeExtra(EXTRA_OPEN_HIDDEN_OBJ)
+            showHiddenObjectSettingsDialog()
+        }
     }
 
     override fun onPause() {
@@ -1232,5 +1241,59 @@ class MainActivity : AppCompatActivity() {
         }
 
         sheet.actions(SheetDialog.act(T.s.close)).show()
+    }
+
+    private fun showHiddenObjectSettingsDialog() {
+        val prefs = getSharedPreferences("AutoClickerPrefs", Context.MODE_PRIVATE)
+        val currentKey = prefs.getString("hidden_object_api_key", "") ?: ""
+        var selectedModel = prefs.getString("hidden_object_model", HiddenObjectFinder.MODEL_FLASH)
+            ?: HiddenObjectFinder.MODEL_FLASH
+
+        val sheet = SheetDialog(this, T.x.hiddenObjKeyTitle, T.x.hiddenObjModelLabel)
+        val etKey = sheet.field(
+            hint = T.x.hiddenObjKeyHint,
+            maxLength = 200,
+            initial = currentKey,
+        )
+        sheet.wideButton(T.x.hiddenObjPaste, SheetDialog.Kind.OUTLINE, top = 8) {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            val text = cm?.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()?.trim().orEmpty()
+            if (text.isNotEmpty()) {
+                etKey.setText(text)
+                etKey.setSelection(text.length)
+            }
+        }
+
+        lateinit var btnFlash: TextView
+        lateinit var btnLite: TextView
+        fun refreshModelButtons() {
+            val isLite = selectedModel == HiddenObjectFinder.MODEL_LITE
+            btnFlash.text = (if (!isLite) "✓ " else "") + T.x.hiddenObjModelFlash
+            btnLite.text = (if (isLite) "✓ " else "") + T.x.hiddenObjModelLite
+        }
+        btnFlash = sheet.wideButton(T.x.hiddenObjModelFlash, SheetDialog.Kind.OUTLINE, top = 12) {
+            selectedModel = HiddenObjectFinder.MODEL_FLASH
+            refreshModelButtons()
+        }
+        btnLite = sheet.wideButton(T.x.hiddenObjModelLite, SheetDialog.Kind.OUTLINE, top = 8) {
+            selectedModel = HiddenObjectFinder.MODEL_LITE
+            refreshModelButtons()
+        }
+        refreshModelButtons()
+
+        sheet.actions(
+            SheetDialog.act(T.s.cancel),
+            SheetDialog.act(T.a.save, SheetDialog.Kind.PRIMARY) {
+                prefs.edit()
+                    .putString("hidden_object_api_key", etKey.text.toString().trim())
+                    .putString("hidden_object_model", selectedModel)
+                    .apply()
+                Toast.makeText(this, T.x.hiddenObjKeySaved, Toast.LENGTH_SHORT).show()
+            }
+        ).show()
+    }
+
+    companion object {
+        const val EXTRA_OPEN_HIDDEN_OBJ = "open_hidden_obj_settings"
     }
 }
